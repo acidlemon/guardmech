@@ -1,0 +1,55 @@
+
+server {
+    listen $NGINX_PORT;
+    server_name _;
+
+    location / {
+        auth_request /oauth2/auth;
+        error_page 401 = /oauth2/sign_in;
+
+        auth_request_set $user $upstream_http_x_auth_request_user;
+        auth_request_set $email $upstream_http_x_auth_request_email;
+        auth_request_set $role $upstream_http_x_auth_role;
+        proxy_set_header X-Auth-User   $user;
+        proxy_set_header X-Auth-Email  $email;
+        proxy_set_header X-Auth-Role   $role;
+        proxy_set_header Host               $host;
+
+        proxy_pass http://dumper_app:8080;
+
+    }
+
+    # for checking login status.
+    # only returns a 202 Accepted response or a 401 Unauthorized response;
+    location = /oauth2/auth {
+        internal;
+        proxy_pass http://guardmech:2989;
+        proxy_set_header Host                    $host;
+        proxy_set_header X-Real-IP               $remote_addr;
+        proxy_set_header X-Scheme                $scheme;
+    }
+
+    location /guardmech/ {
+        proxy_pass       http://guardmech:2989;
+        auth_request_set $user $upstream_http_x_auth_request_user;
+        auth_request_set $email $upstream_http_x_auth_request_email;
+        auth_request_set $powawa $upstream_http_x_powawa;
+        proxy_set_header X-Auth-User   $user;
+        proxy_set_header X-Auth-Email  $email;
+        proxy_set_header X-Auth-Powawa $powawa;
+        proxy_set_header Host                    $host;
+    }
+
+    location /oauth2/ {
+        proxy_pass       http://guardmech:2989;
+        proxy_set_header Host                    $host;
+        proxy_set_header X-Real-IP               $remote_addr;
+        proxy_set_header X-Scheme                $scheme;
+        proxy_set_header X-Auth-Request-Redirect $request_uri;
+    }
+
+}
+
+
+
+
