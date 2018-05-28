@@ -1,3 +1,5 @@
+# docker-compose.yml for local development
+
 version: '3'
 
 volumes:
@@ -10,16 +12,22 @@ services:
     env_file: .env-guardmech
     depends_on: ["mysql"]
 
+  frontend:
+    build: vue/
+    volumes:
+      - "./vue:/vue"
+
   oauth2_proxy:
     image: deweysasser/bitly-oauth2-proxy
     env_file: .env-oauth2proxy
-    command: ["--upstream", "http://dummy:8080/", "--email-domain", "*", "-http-address", "0.0.0.0:4180", "-redirect-url", "http://localhost:15000/oauth2/callback", "-cookie-secure=false", "-set-xauthrequest"]
+    command: ["--upstream", "http://dummy:8080/", "--email-domain", "*", "-http-address", "0.0.0.0:4180", "-redirect-url", "http://localhost:5001/oauth2/callback", "-cookie-secure=false", "-set-xauthrequest"]
 
   nginx:
     image: nginx
     ports:
-      - "5000:80"
-    volumes: ["./nginx.default.template:/etc/nginx/conf.d/default.template"]
+      - "5001:80"
+    volumes:
+      - "./nginx.default.template:/etc/nginx/conf.d/default.template"
     env_file: .env-nginx
     command: /bin/bash -c "envsubst '$$NGINX_PORT $$NGINX_HOST' < /etc/nginx/conf.d/default.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
     depends_on: ["guardmech"]

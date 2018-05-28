@@ -30,7 +30,21 @@ server {
     }
 
     location /guardmech/ {
+        auth_request /oauth2/auth;
+        error_page 401 = /oauth2/sign_in;
+
+       auth_request_set $user $upstream_http_x_auth_request_user;
+        auth_request_set $email $upstream_http_x_auth_request_email;
+        auth_request_set $powawa $upstream_http_x_powawa;
+        proxy_set_header X-Auth-User   $user;
+        proxy_set_header X-Auth-Email  $email;
+        proxy_set_header X-Auth-Powawa $powawa;
+        proxy_set_header Host                    $host;
+
         proxy_pass       http://guardmech:2989;
+    }
+
+    location /guardmech/admin/ {
         auth_request_set $user $upstream_http_x_auth_request_user;
         auth_request_set $email $upstream_http_x_auth_request_email;
         auth_request_set $powawa $upstream_http_x_powawa;
@@ -38,14 +52,17 @@ server {
         proxy_set_header X-Auth-Email  $email;
         proxy_set_header X-Auth-Powawa $powawa;
         proxy_set_header Host                    $host;
+
+        proxy_pass       http://frontend:6000;
     }
 
     location /oauth2/ {
-        proxy_pass       http://guardmech:2989;
         proxy_set_header Host                    $host;
         proxy_set_header X-Real-IP               $remote_addr;
         proxy_set_header X-Scheme                $scheme;
         proxy_set_header X-Auth-Request-Redirect $request_uri;
+
+        proxy_pass       http://guardmech:2989;
     }
 
 }
