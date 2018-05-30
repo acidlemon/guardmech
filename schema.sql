@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS permission (
 CREATE TABLE IF NOT EXISTS principal_group_map (
     principal_id BIGINT NOT NULL,
     group_id BIGINT NOT NULL,
+    manager BOOLEAN DEFAULT FALSE,
     PRIMARY KEY (principal_id, group_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 

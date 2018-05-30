@@ -49,16 +49,33 @@ func (g *GuardMech) Run() error {
 		return nil
 	}
 
+	childMux := http.NewServeMux()
+	childMux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		log.Println("defualt handler")
+	})
+	childMux.HandleFunc("/guardmech/api/", func(w http.ResponseWriter, req *http.Request) {
+		log.Println("api request has come" + req.URL.Path)
+		w.WriteHeader(200)
+		io.WriteString(w, `{"message":"Hello World!"}`)
+	})
+	childMux.HandleFunc("/guardmech/api/users", func(w http.ResponseWriter, req *http.Request) {
+
+	})
+	childMux.Handle("/guardmech/admin/", http.FileServer(http.Dir("dist")))
+
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		log.Println("catch all:", req.URL.Path)
+	})
 	mux.HandleFunc("/oauth2/", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("request has come " + req.URL.Path)
 		g.ReverseProxy(w, req)
 	})
 	mux.HandleFunc("/guardmech/", func(w http.ResponseWriter, req *http.Request) {
-		log.Println("request has come " + req.URL.Path)
-		w.WriteHeader(200)
-		io.WriteString(w, "Hello World!")
+		log.Println("guardmech request")
+		childMux.ServeHTTP(w, req)
 	})
+	mux.Handle("/guardmech/api/", ApiMux())
 
 	return http.Serve(listener, mux)
 }
