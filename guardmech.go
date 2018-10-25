@@ -63,19 +63,18 @@ func (g *GuardMech) Run() error {
 	})
 	childMux.Handle("/guardmech/admin/", http.FileServer(http.Dir("dist")))
 
+	authMux := NewAuthMux()
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		log.Println("catch all:", req.URL.Path)
-	})
-	mux.HandleFunc("/oauth2/", func(w http.ResponseWriter, req *http.Request) {
-		log.Println("request has come " + req.URL.Path)
-		g.ReverseProxy(w, req)
-	})
+	mux.Handle("/auth/", authMux.Mux())
 	mux.HandleFunc("/guardmech/", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("guardmech request")
 		childMux.ServeHTTP(w, req)
 	})
 	mux.Handle("/guardmech/api/", ApiMux())
+	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		log.Println("catch all:", req.URL.Path)
+	})
 
 	return http.Serve(listener, mux)
 }
@@ -91,6 +90,8 @@ func (g *GuardMech) Authenticate(account string, res *http.Response) {
 		WrapServerError(res, err)
 		return
 	}
+	defer conn.Close()
+
 	ok, err := HasPrincipal(ctx, conn)
 	if err != nil {
 		WrapServerError(res, err)

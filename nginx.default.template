@@ -3,17 +3,21 @@ server {
     listen $NGINX_PORT;
     server_name _;
 
-    location / {
-        auth_request /oauth2/auth;
-        error_page 401 = /oauth2/sign_in;
+    location = /favicon.ico {
+        return 404;
+    }
 
-        auth_request_set $user $upstream_http_x_auth_request_user;
-        auth_request_set $email $upstream_http_x_auth_request_email;
-        auth_request_set $role $upstream_http_x_auth_role;
-        proxy_set_header X-Auth-User   $user;
+    location / {
+        auth_request /auth/request;
+        error_page 401 = /auth/sign_in;
+
+        auth_request_set $email $upstream_http_x_guardmech_email;
+        auth_request_set $group $upstream_http_x_guardmech_group;
+        auth_request_set $role  $upstream_http_x_guardmech_role;
         proxy_set_header X-Auth-Email  $email;
+        proxy_set_header X-Auth-Group  $group;
         proxy_set_header X-Auth-Role   $role;
-        proxy_set_header Host               $host;
+        proxy_set_header Host          $host;
 
         proxy_pass http://dumper_app:8080;
 
@@ -21,7 +25,7 @@ server {
 
     # for checking login status.
     # only returns a 202 Accepted response or a 401 Unauthorized response;
-    location = /oauth2/auth {
+    location = /auth/request {
         internal;
         proxy_pass http://guardmech:2989;
         proxy_set_header Host                    $host;
@@ -30,16 +34,14 @@ server {
     }
 
     location /guardmech/ {
-        auth_request /oauth2/auth;
-        error_page 401 = /oauth2/sign_in;
+        auth_request /auth/request;
+        error_page 401 = /auth/sign_in;
 
-       auth_request_set $user $upstream_http_x_auth_request_user;
-        auth_request_set $email $upstream_http_x_auth_request_email;
-        auth_request_set $powawa $upstream_http_x_powawa;
-        proxy_set_header X-Auth-User   $user;
+        auth_request_set $email $upstream_http_x_guardmech_email;
+        auth_request_set $group $upstream_http_x_guardmech_group;
         proxy_set_header X-Auth-Email  $email;
-        proxy_set_header X-Auth-Powawa $powawa;
-        proxy_set_header Host                    $host;
+        proxy_set_header X-Auth-Group  $group;
+        proxy_set_header Host          $host;
 
         proxy_pass       http://guardmech:2989;
     }
@@ -56,7 +58,7 @@ server {
         proxy_pass       http://frontend:5001;
     }
 
-    location /oauth2/ {
+    location /auth/ {
         proxy_set_header Host                    $host;
         proxy_set_header X-Real-IP               $remote_addr;
         proxy_set_header X-Scheme                $scheme;
