@@ -59,8 +59,6 @@ func NewSessionPayload(fromCookie string, box PayloadData) (*SessionPayload, err
 	}
 	expireAt := time.Unix(expireUnix, 0)
 
-	log.Println("encVal=", encVal, "expireAt=", expireAt)
-
 	// decrypt data
 	cryptoKey := os.Getenv("GUARDMECH_CRYPTO_KEY")
 	c := Cryptor{
@@ -106,10 +104,10 @@ func (s *SessionPayload) String() string {
 	return fmt.Sprintf("%s('-'*)%s", data, signature)
 }
 
-func (s *SessionPayload) MakeCookie(req *http.Request, key string) *http.Cookie {
+func (s *SessionPayload) MakeCookie(req *http.Request, key string, extend time.Duration) *http.Cookie {
 	domain := req.URL.Host
 	value := s.String()
-	return makeCookie(domain, key, value, s.ExpireAt)
+	return makeCookie(domain, key, value, s.ExpireAt.Add(extend))
 }
 func (s *SessionPayload) RevokeCookie(req *http.Request, key string) *http.Cookie {
 	domain := req.URL.Host
