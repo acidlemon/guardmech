@@ -12,11 +12,13 @@ server {
         error_page 401 = /auth/sign_in;
 
         auth_request_set $email $upstream_http_x_guardmech_email;
-        auth_request_set $group $upstream_http_x_guardmech_group;
-        auth_request_set $role  $upstream_http_x_guardmech_role;
+        auth_request_set $groups $upstream_http_x_guardmech_groups;
+        auth_request_set $roles  $upstream_http_x_guardmech_roles;
+        auth_request_set $permissions  $upstream_http_x_guardmech_permissions;
         proxy_set_header X-Auth-Email  $email;
-        proxy_set_header X-Auth-Group  $group;
-        proxy_set_header X-Auth-Role   $role;
+        proxy_set_header X-Auth-Groups  $groups;
+        proxy_set_header X-Auth-Roles   $roles;
+        proxy_set_header X-Auth-Permissions   $permissions;
         proxy_set_header Host          $host;
 
         proxy_pass http://dumper_app:8080;
