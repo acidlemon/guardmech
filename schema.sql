@@ -2,8 +2,11 @@
 CREATE TABLE IF NOT EXISTS auth (
     id BIGINT NOT NULL auto_increment,
     principal_id BIGINT NOT NULL,
-    account VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
-    PRIMARY KEY (id)
+    issuer VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+    subject VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+    email VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
+    PRIMARY KEY (id),
+    UNIQUE uniq_issuer_subject (issuer,subject)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS api_key (
@@ -15,7 +18,7 @@ CREATE TABLE IF NOT EXISTS api_key (
 
 CREATE TABLE IF NOT EXISTS principal (
     id BIGINT NOT NULL auto_increment,
-    name VARCHAR(191) NOT NULL,
+    name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
     PRIMARY KEY (id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -23,7 +26,7 @@ CREATE TABLE IF NOT EXISTS principal (
 -- group is reserved word...
 CREATE TABLE IF NOT EXISTS group_info (
     id BIGINT NOT NULL auto_increment,
-    name VARCHAR(191) NOT NULL,
+    name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
     PRIMARY KEY (id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -31,14 +34,14 @@ CREATE TABLE IF NOT EXISTS group_info (
 -- role is reserved word...
 CREATE TABLE IF NOT EXISTS role_info (
     id BIGINT NOT NULL auto_increment,
-    name VARCHAR(191) NOT NULL,
+    name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
     PRIMARY KEY (id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS permission (
     id BIGINT NOT NULL auto_increment,
-    name VARCHAR(191) NOT NULL,
+    name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
     PRIMARY KEY (id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
