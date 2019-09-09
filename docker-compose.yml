@@ -1,6 +1,6 @@
 # docker-compose.yml for local development
 
-version: '3'
+version: '3.5'
 
 volumes:
   mysql:
@@ -33,7 +33,7 @@ services:
     depends_on: ["guardmech"]
 
   dumper_app:
-    image: bborbe/http-dump
+    image: scalify/http-dump
     environment:
       - PORT=8080
 
