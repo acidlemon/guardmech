@@ -10,7 +10,9 @@ import (
 
 type Auth struct {
 	ID        int64      `json:"id"`
-	Account   string     `json:"account"`
+	Issuer    string     `json:"issuer"`
+	Subject   string     `json:"subject"`
+	Email     string     `json:"email"`
 	Principal *Principal `json:"-"`
 }
 
@@ -26,14 +28,26 @@ type Principal struct {
 	Description string `json:"description"`
 }
 
+type PrincipalDetailed struct {
+	Principal
+	Groups []string
+	Roles  []string
+}
+
 type PrincipalPayload struct {
 	Principal *Principal `json:"principal"`
 	Auths     []*Auth    `json:"auths"`
 	APIKeys   []*APIKey  `json:"api_keys"`
+	Groups    []*Group   `json:"groups"`
+	Roles     []*Role    `json:"roles"`
 }
 
-func FindPrincipal(ctx context.Context, conn *sql.Conn, account string) (*Principal, error) {
-	row := conn.QueryRowContext(ctx, `SELECT p.id, p.name, p.description FROM auth AS a JOIN principal AS p ON a.principal_id = p.id where a.account = ?`, account)
+func FindPrincipal(ctx context.Context, conn *sql.Conn, issuer, subject string) (*Principal, error) {
+	log.Println(issuer)
+	log.Println(subject)
+	row := conn.QueryRowContext(ctx, `SELECT p.id, p.name, p.description FROM auth AS a 
+  JOIN principal AS p ON a.principal_id = p.id
+  WHERE a.issuer = ? AND a.subject = ?`, issuer, subject)
 	pr, err := scanPrincipalRow(row)
 	if err != nil {
 		return nil, err
@@ -43,14 +57,18 @@ func FindPrincipal(ctx context.Context, conn *sql.Conn, account string) (*Princi
 }
 
 func FindPrincipalByID(ctx context.Context, conn *sql.Conn, id string) (*PrincipalPayload, error) {
-	row := conn.QueryRowContext(ctx, `SELECT p.id, p.name, p.description FROM principal p WHERE id = ?`, id)
+	row := conn.QueryRowContext(ctx, `
+SELECT p.id, p.name, p.description FROM principal AS p 
+  WHERE id = ?`, id)
 	pr, err := scanPrincipalRow(row)
 	if err != nil {
 		return nil, err
 	}
 
 	auths := make([]*Auth, 0, 4)
-	rows, err := conn.QueryContext(ctx, `SELECT a.id, a.account FROM auth AS a WHERE a.principal_id = ?`, id)
+	rows, err := conn.QueryContext(ctx, `
+SELECT a.id, a.account FROM auth AS a 
+  WHERE a.principal_id = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +82,9 @@ func FindPrincipalByID(ctx context.Context, conn *sql.Conn, id string) (*Princip
 	}
 
 	apikeys := make([]*APIKey, 0, 4)
-	rows, err = conn.QueryContext(ctx, `SELECT a.id, a.Token FROM api_key AS a WHERE a.principal_id = ?`, id)
+	rows, err = conn.QueryContext(ctx, `
+SELECT a.id, a.Token FROM api_key AS a 
+  WHERE a.principal_id = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -77,10 +97,46 @@ func FindPrincipalByID(ctx context.Context, conn *sql.Conn, id string) (*Princip
 		apikeys = append(apikeys, a)
 	}
 
+	roles := make([]*Role, 0, 8)
+	rows, err = conn.QueryContext(ctx, `
+SELECT r.id, r.name, r.description FROM principal_role_map AS m
+  JOIN role_info AS r ON m.role_id = r.id
+  WHERE m.principal_id = ?`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		r, err := scanRoleRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		roles = append(roles, r)
+	}
+
+	groups := make([]*Group, 0, 8)
+	rows, err = conn.QueryContext(ctx, `
+SELECT r.id, r.name, r.description FROM principal_group_map AS m
+  JOIN group_info AS r ON m.group_id = r.id
+  WHERE m.principal_id = ?`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		r, err := scanGroupRow(rows)
+		if err != nil {
+			return nil, err
+		}
+		groups = append(groups, r)
+	}
+
 	return &PrincipalPayload{
 		Principal: pr,
 		Auths:     auths,
 		APIKeys:   apikeys,
+		Groups:    groups,
+		Roles:     roles,
 	}, nil
 }
 
@@ -108,8 +164,8 @@ func scanPrincipalRow(r RowScanner) (*Principal, error) {
 
 func scanAuthRow(r RowScanner, pr *Principal) (*Auth, error) {
 	var id int64
-	var account string
-	err := r.Scan(&id, &account)
+	var issuer, subject, email string
+	err := r.Scan(&id, &issuer, &subject, &email)
 	if err == sql.ErrNoRows {
 		return nil, err
 	} else if err != nil {
@@ -119,7 +175,9 @@ func scanAuthRow(r RowScanner, pr *Principal) (*Auth, error) {
 
 	return &Auth{
 		ID:        id,
-		Account:   account,
+		Issuer:    issuer,
+		Subject:   subject,
+		Email:     email,
 		Principal: pr,
 	}, nil
 }
@@ -148,6 +206,7 @@ func FetchAllPrincipal(ctx context.Context, conn *sql.Conn) ([]*Principal, error
 		return nil, err
 	}
 
+	//result := []*PrincipalDetailed{}
 	result := []*Principal{}
 	for rows.Next() {
 		pr, err := scanPrincipalRow(rows)
@@ -155,6 +214,7 @@ func FetchAllPrincipal(ctx context.Context, conn *sql.Conn) ([]*Principal, error
 			return nil, err
 		}
 
+		//result = append(result, &PrincipalDetailed{Principal: pr})
 		result = append(result, pr)
 	}
 
@@ -175,7 +235,7 @@ func HasPrincipal(ctx context.Context, conn *sql.Conn) (bool, error) {
 	return true, nil
 }
 
-func CreateFirstPrincipal(ctx context.Context, conn *sql.Conn, account string) error {
+func CreateFirstPrincipal(ctx context.Context, conn *sql.Conn, idToken *OpenIDToken) error {
 	tx, err := conn.BeginTx(ctx, nil)
 	commited := false
 	defer func() {
@@ -184,7 +244,7 @@ func CreateFirstPrincipal(ctx context.Context, conn *sql.Conn, account string) e
 		}
 	}()
 
-	pr, err := CreateAuthPrincipal(ctx, conn, account)
+	pr, err := CreateAuthPrincipal(ctx, conn, idToken)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -210,9 +270,13 @@ func CreateFirstPrincipal(ctx context.Context, conn *sql.Conn, account string) e
 	return nil
 }
 
-func CreateAuthPrincipal(ctx context.Context, conn *sql.Conn, account string) (*Principal, error) {
+func CreateAuthPrincipal(ctx context.Context, conn *sql.Conn, idToken *OpenIDToken) (*Principal, error) {
 	// insert to principal
-	res, err := conn.ExecContext(ctx, `INSERT INTO principal (name, description) VALUES (?, ?)`, account, "")
+	name := idToken.Name
+	if name == "" {
+		name = idToken.Email
+	}
+	res, err := conn.ExecContext(ctx, `INSERT INTO principal (name, description) VALUES (?, ?)`, name, "")
 	if err != nil {
 		return nil, err
 	}
@@ -222,14 +286,15 @@ func CreateAuthPrincipal(ctx context.Context, conn *sql.Conn, account string) (*
 	}
 
 	// insert to auth
-	_, err = conn.ExecContext(ctx, `INSERT INTO auth (account, principal_id) VALUES (?, ?)`, account, principalID)
+	_, err = conn.ExecContext(ctx, `INSERT INTO auth (issuer, subject, email, principal_id) VALUES (?, ?, ?, ?)`,
+		idToken.Issuer, idToken.Sub, idToken.Email, principalID)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Principal{
 		ID:          principalID,
-		Name:        account,
+		Name:        name,
 		Description: "",
 	}, nil
 }
