@@ -57,17 +57,14 @@ func FindPrincipal(ctx context.Context, conn *sql.Conn, issuer, subject string) 
 }
 
 func FindPrincipalByID(ctx context.Context, conn *sql.Conn, id string) (*PrincipalPayload, error) {
-	row := conn.QueryRowContext(ctx, `
-SELECT p.id, p.name, p.description FROM principal AS p 
-  WHERE id = ?`, id)
+	row := conn.QueryRowContext(ctx, `SELECT p.id, p.name, p.description FROM principal AS p WHERE id = ?`, id)
 	pr, err := scanPrincipalRow(row)
 	if err != nil {
 		return nil, err
 	}
 
 	auths := make([]*Auth, 0, 4)
-	rows, err := conn.QueryContext(ctx, `
-SELECT a.id, a.account FROM auth AS a 
+	rows, err := conn.QueryContext(ctx, `SELECT a.id, a.issuer, a.subject, a.email FROM auth AS a 
   WHERE a.principal_id = ?`, id)
 	if err != nil {
 		return nil, err
