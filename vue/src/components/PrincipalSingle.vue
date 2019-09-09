@@ -67,7 +67,7 @@ export default {
   data () {
     return {
       fields: {
-        auth: ['account'],
+        auth: ['issuer', 'subject', 'email'],
         api_key: ['token'],
         role: ['name', 'description'],
         group: ['name', 'description']
