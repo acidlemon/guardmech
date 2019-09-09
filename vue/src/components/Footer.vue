@@ -4,6 +4,10 @@
   </div>
 </template>
 
+<script>
+
+</script>
+
 <style scope>
 #footer {
   margin-top: 100px;

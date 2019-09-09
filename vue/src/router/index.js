@@ -1,6 +1,8 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import HelloWorld from '@/components/HelloWorld'
+import PrincipalList from '@/components/PrincipalList'
+import PrincipalSingle from '@/components/PrincipalSingle'
+import RoleList from '@/components/RoleList'
 import Top from '@/components/Top'
 
 Vue.use(Router)
@@ -15,9 +17,19 @@ export default new Router({
       component: Top
     },
     {
-      path: '/users',
-      name: 'Users',
-      component: HelloWorld
+      path: '/principals',
+      name: 'Principals',
+      component: PrincipalList
+    },
+    {
+      path: '/principal/:id',
+      name: 'PrincipalSingle',
+      component: PrincipalSingle
+    },
+    {
+      path: '/roles',
+      name: 'Roles',
+      component: RoleList
     }
   ]
 })

@@ -2,7 +2,9 @@
 <template>
 <div id="app">
   <app-header />
-  <router-view/>
+  <div id="main">
+    <router-view/>
+  </div>
   <app-footer />
 </div>
 </template>
@@ -25,7 +27,17 @@ export default {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
   color: #2c3e50;
+  text-align: center;
+}
+
+#main {
+  padding: 20px 50px;
+  text-align: left;
+}
+
+h1 {
+    margin: 0;
+    padding: 0;
 }
 </style>

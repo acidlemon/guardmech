@@ -10,7 +10,7 @@ module.exports = {
     assetsSubDirectory: 'static',
     assetsPublicPath: '/guardmech/admin/',
     proxyTable: {},
-    publicPath: 'htpp://localhost:5000/guardmech/admin/',
+    publicPath: 'http://logicalhost.beatsync.net:5000/guardmech/admin/',
     hot: false,
     inline: false,
 

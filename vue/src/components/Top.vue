@@ -2,7 +2,7 @@
   <div class="hello">
     <h1>Guardmech Admin Panel</h1>
     <ul>
-      <li><router-link to="/users">Users</router-link></li>
+      <li><router-link to="/principals">Principals</router-link></li>
       <li><router-link to="/groups">Groups</router-link></li>
       <li><router-link to="/roles">Roles</router-link></li>
       <li><router-link to="/permissions">Permissions</router-link></li>
