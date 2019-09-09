@@ -14,7 +14,6 @@ import (
 
 	oidc "github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
-	"github.com/k0kubun/pp"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
@@ -64,7 +63,7 @@ func NewAuthMux() *AuthMux {
 			ClientSecret: clientSecret,
 			RedirectURL:  redirectURL,
 			Endpoint:     p.Endpoint(),
-			Scopes:       []string{oidc.ScopeOpenID, "email"},
+			Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
 		},
 		provider: p,
 	}
@@ -105,7 +104,7 @@ func (a *AuthMux) StartAuth(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// bake CSRF cookie
-	http.SetCookie(w, authSession.MakeCookie(req, authSessionKey))
+	http.SetCookie(w, authSession.MakeCookie(req, authSessionKey, 0))
 	http.Redirect(w, req, a.conf.AuthCodeURL(csrfToken), http.StatusFound)
 }
 
@@ -125,8 +124,6 @@ func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 	}
 	// delete cookie
 	http.SetCookie(w, authSession.RevokeCookie(req, authSessionKey))
-
-	pp.Print(as)
 
 	// decode path
 	path, err := url.PathUnescape(as.Path)
@@ -150,6 +147,30 @@ func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// normalize issuer (remove "https://" for Google)
+	token.Issuer = strings.Replace(token.Issuer, "https://", "", -1)
+
+	// if first user, set as owner
+	ctx := req.Context()
+	conn, err := db.Conn(ctx)
+
+	ok, err := HasPrincipal(ctx, conn)
+	if err != nil {
+		http.Error(w, "Failed to Check Principal", http.StatusInternalServerError)
+		return
+	}
+	// first cut
+	if !ok {
+		log.Println("No User!! Entering setup mode.")
+
+		err := CreateFirstPrincipal(ctx, conn, token)
+		if err != nil {
+			log.Println("failed to setup:", err.Error())
+			http.Error(w, "Failed to Setup", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	is := &IDSession{
 		Issuer:  token.Issuer,
 		Subject: token.Sub,
@@ -161,7 +182,7 @@ func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 		Data:     is,
 		ExpireAt: time.Now().Add(5 * time.Minute),
 	}
-	http.SetCookie(w, session.MakeCookie(req, sessionKey))
+	http.SetCookie(w, session.MakeCookie(req, sessionKey, 24*time.Hour))
 
 	http.Redirect(w, req, path, http.StatusFound)
 }
@@ -171,6 +192,7 @@ type OpenIDToken struct {
 	Sub      string `json:"sub"`
 	Email    string `json:"email"`
 	Verified bool   `json:"email_verified"`
+	Name     string `json:"name"`
 }
 
 func (a *AuthMux) verifyAuthCode(ctx context.Context, code string) (*OpenIDToken, error) {
@@ -202,23 +224,29 @@ func (a *AuthMux) verifyAuthCode(ctx context.Context, code string) (*OpenIDToken
 	return &claims, nil
 }
 
-func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
+func (a *AuthMux) parseIDSession(req *http.Request, is *IDSession) (*SessionPayload, error) {
 	// parse session cookie
 	c, err := req.Cookie(sessionKey)
 	if err != nil {
-		// log.Println("first visit")
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+		return nil, fmt.Errorf("first visit")
 	}
 
-	is := &IDSession{}
 	session, err := NewSessionPayload(c.Value, is)
 	if err != nil {
-		// log.Println("invalid cookie")
+		return nil, fmt.Errorf("invalid cookie")
+	}
+
+	return session, nil
+}
+
+func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
+	is := &IDSession{}
+	session, err := a.parseIDSession(req, is)
+	if err != nil {
+		//log.Println(err.Error())
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	pp.Print(is)
 
 	// check ExpireAt
 	if time.Now().Sub(session.ExpireAt) > 0 {
@@ -227,9 +255,37 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// fetch Role & Group
+	ctx := req.Context()
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		log.Println("Could Not Get Conn")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	pri, err := FindPrincipal(ctx, conn, is.Issuer, is.Subject)
+	if err != nil {
+		log.Println("Could Not Find Principal: " + err.Error())
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	payload, err := FindPrincipalByID(ctx, conn, fmt.Sprintf("%d", pri.ID))
+	if err != nil {
+		log.Println("Could Not Find PrincipalPayload: " + err.Error())
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	// OK! print headers
 	w.Header().Set("X-Guardmech-Email", is.Email)
-	//w.Header().Set("X-Guardmech-Group", "")
+	if len(payload.Groups) > 0 {
+		w.Header().Set("X-Guardmech-Groups", payload.Groups[0].Name)
+	}
+	if len(payload.Roles) > 0 {
+		w.Header().Set("X-Guardmech-Roles", payload.Roles[0].Name)
+	}
 
 	w.WriteHeader(http.StatusAccepted)
 }
@@ -238,9 +294,20 @@ func (a *AuthMux) NeedAuth(w http.ResponseWriter, req *http.Request) {
 	// catch path
 	originUri := req.Header.Get("X-Auth-Request-Redirect")
 	path := url.PathEscape(originUri)
-	fmt.Println(path)
 
-	// render HTML
+	// cookie check
+	is := &IDSession{}
+	session, err := a.parseIDSession(req, is)
+	if err == nil {
+		// cookie is live, try to authenticate without prompt
+		if time.Now().Sub(session.ExpireAt) > 0 {
+			http.Redirect(w, req, fmt.Sprintf("/auth/start?p=%s", path), http.StatusFound)
+			return
+		}
+		// else ... what's happen
+	}
+
+	// render HTML (TODO template/html)
 	t := `
 <!doctype html>
 <html>
