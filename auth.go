@@ -77,6 +77,7 @@ func (a *AuthMux) Mux() http.Handler {
 	m.HandleFunc("/auth/callback", a.CallbackAuth)
 	m.HandleFunc("/auth/request", a.AuthRequest)
 	m.HandleFunc("/auth/sign_in", a.NeedAuth)
+	m.HandleFunc("/auth/unauthorized", a.Unauthorized)
 
 	return m
 }
@@ -239,6 +240,18 @@ func (a *AuthMux) parseIDSession(req *http.Request, is *IDSession) (*SessionPayl
 	return session, nil
 }
 
+const html403 = `<!doctype html>
+<html>
+<head>
+  <title>Forbidden Access</title>
+</head>
+<body>
+<h1>アクセス権がありません</h1>
+<p>ごめんにゃ</p>
+</body>
+</html>
+`
+
 func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 	is := &IDSession{}
 	session, err := a.parseIDSession(req, is)
@@ -267,14 +280,14 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 	pri, err := FindPrincipal(ctx, conn, is.Issuer, is.Subject)
 	if err != nil {
 		log.Println("Could Not Find Principal: " + err.Error())
-		w.WriteHeader(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
 	payload, err := FindPrincipalByID(ctx, conn, fmt.Sprintf("%d", pri.ID))
 	if err != nil {
 		log.Println("Could Not Find PrincipalPayload: " + err.Error())
-		w.WriteHeader(http.StatusUnauthorized)
+		w.WriteHeader(http.StatusForbidden)
 		return
 	}
 
@@ -326,6 +339,11 @@ func (a *AuthMux) NeedAuth(w http.ResponseWriter, req *http.Request) {
 
 	io.WriteString(w, t)
 
+}
+
+func (a *AuthMux) Unauthorized(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(http.StatusForbidden)
+	io.WriteString(w, html403)
 }
 
 type AuthSession struct {

@@ -10,6 +10,7 @@ server {
     location / {
         auth_request /auth/request;
         error_page 401 = /auth/sign_in;
+        error_page 403 = /auth/unauthorized;
 
         auth_request_set $email $upstream_http_x_guardmech_email;
         auth_request_set $groups $upstream_http_x_guardmech_groups;
@@ -22,11 +23,10 @@ server {
         proxy_set_header Host          $host;
 
         proxy_pass http://dumper_app:8080;
-
     }
 
     # for checking login status.
-    # only returns a 202 Accepted response or a 401 Unauthorized response;
+    # only returns 202 Accepted, 401 Unauthorized, or 403 Forbidden response;
     location = /auth/request {
         internal;
         proxy_pass http://guardmech:2989;
