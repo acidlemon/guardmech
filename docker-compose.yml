@@ -17,11 +17,6 @@ services:
     volumes:
       - "./vue:/vue"
 
-  oauth2_proxy:
-    image: deweysasser/bitly-oauth2-proxy
-    env_file: .env-oauth2proxy
-    command: ["--upstream", "http://dummy:8080/", "--email-domain", "*", "-http-address", "0.0.0.0:4180", "-redirect-url", "http://localhost:5001/oauth2/callback", "-cookie-secure=false", "-set-xauthrequest"]
-
   nginx:
     image: nginx
     ports:
