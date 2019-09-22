@@ -73,3 +73,25 @@ func FetchAllRole(ctx context.Context, conn *sql.Conn) ([]*Role, error) {
 
 	return result, nil
 }
+
+func uniqRoles(roles []*Role) []*Role{
+	m := map[int64]struct{}{}
+	result := make([]*Role, 0, len(roles))
+
+	for _, r := range roles {
+		if _, exist := m[r.ID]; !exist {
+			result = append(result, r)
+			m[r.ID] = struct{}{}
+		}
+	}
+
+	return result
+}
+
+func roleIDs(roles []*Role) []int64{
+	result := make([]int64, 0, len(roles))
+	for _, r := range roles {
+		result = append(result, r.ID)
+	}
+	return result
+}

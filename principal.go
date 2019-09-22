@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/k0kubun/pp"
 )
 
@@ -35,11 +36,12 @@ type PrincipalDetailed struct {
 }
 
 type PrincipalPayload struct {
-	Principal *Principal `json:"principal"`
-	Auths     []*Auth    `json:"auths"`
-	APIKeys   []*APIKey  `json:"api_keys"`
-	Groups    []*Group   `json:"groups"`
-	Roles     []*Role    `json:"roles"`
+	Principal   *Principal    `json:"principal"`
+	Auths       []*Auth       `json:"auths"`
+	APIKeys     []*APIKey     `json:"api_keys"`
+	Groups      []*Group      `json:"groups"`
+	Roles       []*Role       `json:"roles"`
+	Permissions []*Permission `json:"permissions"`
 }
 
 func FindPrincipal(ctx context.Context, conn *sql.Conn, issuer, subject string) (*Principal, error) {
@@ -56,16 +58,17 @@ func FindPrincipal(ctx context.Context, conn *sql.Conn, issuer, subject string) 
 	return pr, nil
 }
 
-func FindPrincipalByID(ctx context.Context, conn *sql.Conn, id string) (*PrincipalPayload, error) {
-	row := conn.QueryRowContext(ctx, `SELECT p.id, p.name, p.description FROM principal AS p WHERE id = ?`, id)
+func FetchPrincipalPayload(ctx context.Context, conn *sql.Conn, id int64) (*PrincipalPayload, error) {
+	row := conn.QueryRowContext(ctx,
+		`SELECT p.id, p.name, p.description FROM principal AS p WHERE id = ?`, id)
 	pr, err := scanPrincipalRow(row)
 	if err != nil {
 		return nil, err
 	}
 
 	auths := make([]*Auth, 0, 4)
-	rows, err := conn.QueryContext(ctx, `SELECT a.id, a.issuer, a.subject, a.email FROM auth AS a 
-  WHERE a.principal_id = ?`, id)
+	rows, err := conn.QueryContext(ctx,
+		`SELECT a.id, a.issuer, a.subject, a.email FROM auth AS a WHERE a.principal_id = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -79,9 +82,8 @@ func FindPrincipalByID(ctx context.Context, conn *sql.Conn, id string) (*Princip
 	}
 
 	apikeys := make([]*APIKey, 0, 4)
-	rows, err = conn.QueryContext(ctx, `
-SELECT a.id, a.Token FROM api_key AS a 
-  WHERE a.principal_id = ?`, id)
+	rows, err = conn.QueryContext(ctx,
+		`SELECT a.id, a.Token FROM api_key AS a WHERE a.principal_id = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -89,33 +91,17 @@ SELECT a.id, a.Token FROM api_key AS a
 	for rows.Next() {
 		a, err := scanAPIKeyRow(rows, pr)
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
 		apikeys = append(apikeys, a)
 	}
 
-	roles := make([]*Role, 0, 8)
-	rows, err = conn.QueryContext(ctx, `
-SELECT r.id, r.name, r.description FROM principal_role_map AS m
-  JOIN role_info AS r ON m.role_id = r.id
-  WHERE m.principal_id = ?`, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		r, err := scanRoleRow(rows)
-		if err != nil {
-			return nil, err
-		}
-		roles = append(roles, r)
-	}
-
 	groups := make([]*Group, 0, 8)
-	rows, err = conn.QueryContext(ctx, `
-SELECT r.id, r.name, r.description FROM principal_group_map AS m
-  JOIN group_info AS r ON m.group_id = r.id
-  WHERE m.principal_id = ?`, id)
+	groupIDs := make([]int64, 0, 8)
+	rows, err = conn.QueryContext(ctx,
+		`SELECT r.id, r.name, r.description FROM principal_group_map AS m
+		JOIN group_info AS r ON m.group_id = r.id WHERE m.principal_id = ?`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -123,17 +109,76 @@ SELECT r.id, r.name, r.description FROM principal_group_map AS m
 	for rows.Next() {
 		r, err := scanGroupRow(rows)
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
 		groups = append(groups, r)
+		groupIDs = append(groupIDs, r.ID)
+	}
+
+	roles := make([]*Role, 0, 8)
+	rows, err = conn.QueryContext(ctx,
+		`SELECT r.id, r.name, r.description FROM principal_role_map AS m 
+		JOIN role_info AS r ON m.role_id = r.id WHERE m.principal_id = ?`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		r, err := scanRoleRow(rows)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		roles = append(roles, r)
+	}
+
+	if len(groupIDs) > 0 {
+		query, args, err := sqlx.In(`SELECT r.id, r.name, r.description FROM group_role_map AS m 
+		JOIN role_info AS r ON m.role_id = r.id WHERE m.group_id IN (?))`, groupIDs)
+		rows, err = conn.QueryContext(ctx, query, args...)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			r, err := scanRoleRow(rows)
+			if err != nil {
+				log.Println(err)
+				return nil, err
+			}
+			roles = append(roles, r)
+		}
+
+		roles = uniqRoles(roles)
+	}
+
+	permissions := make([]*Permission, 0, 8)
+	query, args, err := sqlx.In(`SELECT p.id, p.name, p.description FROM role_permission_map AS m 
+	JOIN permission AS p ON m.permission_id = p.id WHERE m.role_id IN (?)`, roleIDs(roles))
+	rows, err = conn.QueryContext(ctx, query, args...)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		p, err := scanPermissionRow(rows)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		permissions = append(permissions, p)
 	}
 
 	return &PrincipalPayload{
-		Principal: pr,
-		Auths:     auths,
-		APIKeys:   apikeys,
-		Groups:    groups,
-		Roles:     roles,
+		Principal:   pr,
+		Auths:       auths,
+		APIKeys:     apikeys,
+		Groups:      groups,
+		Roles:       roles,
+		Permissions: permissions,
 	}, nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -15,9 +16,9 @@ func ApiMux() http.Handler {
 	r.HandleFunc("/guardmech/api/principals", ListPrincipalsHandler)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", PrincipalHandler)
 	r.HandleFunc("/guardmech/api/roles", ListRolesHandler)
-//	r.HandleFunc("/guardmech/api/role/{id:[0-9]+}", RoleHandler)
-//	r.HandleFunc("/guardmech/api/permissions", ListPermissionHandler)
-//	r.HandleFunc("/guardmech/api/permission/{id:[0-9]+}", PermissionHandler)
+	//	r.HandleFunc("/guardmech/api/role/{id:[0-9]+}", RoleHandler)
+	//	r.HandleFunc("/guardmech/api/permissions", ListPermissionHandler)
+	//	r.HandleFunc("/guardmech/api/permission/{id:[0-9]+}", PermissionHandler)
 
 	return r
 }
@@ -60,7 +61,13 @@ func PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 	defer conn.Close()
 
 	vars := mux.Vars(req)
-	id := vars["id"]
+	idStr := vars["id"]
+	var id int64
+	id, err = strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
 
 	switch req.Method {
 	case http.MethodPost:
@@ -72,7 +79,7 @@ func PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 
 	default:
 		// read
-		payload, err := FindPrincipalByID(ctx, conn, id)
+		payload, err := FetchPrincipalPayload(ctx, conn, id)
 		if err != nil {
 			errorJSON(w, err)
 			return

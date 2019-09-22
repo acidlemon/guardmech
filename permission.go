@@ -31,3 +31,21 @@ func CreatePermission(ctx context.Context, conn *sql.Conn, name string) (*Permis
 		Name: name,
 	}, nil
 }
+
+func scanPermissionRow(r RowScanner) (*Permission, error) {
+	var id int64
+	var name, description string
+	err := r.Scan(&id, &name, &description)
+	if err == sql.ErrNoRows {
+		return nil, err
+	} else if err != nil {
+		// something wrong
+		return nil, err
+	}
+
+	return &Permission{
+		ID:          id,
+		Name:        name,
+		Description: description,
+	}, nil
+}

@@ -284,7 +284,7 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	payload, err := FindPrincipalByID(ctx, conn, fmt.Sprintf("%d", pri.ID))
+	payload, err := FetchPrincipalPayload(ctx, conn, pri.ID)
 	if err != nil {
 		log.Println("Could Not Find PrincipalPayload: " + err.Error())
 		w.WriteHeader(http.StatusForbidden)
@@ -294,10 +294,25 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 	// OK! print headers
 	w.Header().Set("X-Guardmech-Email", is.Email)
 	if len(payload.Groups) > 0 {
-		w.Header().Set("X-Guardmech-Groups", payload.Groups[0].Name)
+		groups := make([]string, 0, len(payload.Groups))
+		for _, v := range payload.Groups {
+			groups = append(groups, v.Name)
+		}
+		w.Header().Set("X-Guardmech-Groups", strings.Join(groups, ";"))
 	}
 	if len(payload.Roles) > 0 {
-		w.Header().Set("X-Guardmech-Roles", payload.Roles[0].Name)
+		roles := make([]string, 0, len(payload.Roles))
+		for _, v := range payload.Roles {
+			roles = append(roles, v.Name)
+		}
+		w.Header().Set("X-Guardmech-Roles", strings.Join(roles, ";"))
+	}
+	if len(payload.Permissions) > 0 {
+		perms := make([]string, 0, len(payload.Permissions))
+		for _, v := range payload.Permissions {
+			perms = append(perms, v.Name)
+		}
+		w.Header().Set("X-Guardmech-Permissions", strings.Join(perms, ";"))
 	}
 
 	w.WriteHeader(http.StatusAccepted)
