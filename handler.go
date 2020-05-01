@@ -33,7 +33,7 @@ func ListPrincipalsHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 
 	ctx := req.Context()
-	conn, err := db.Conn(ctx)
+	conn, err := GetConn(ctx)
 	if err != nil {
 		errorJSON(w, err)
 		return
@@ -53,7 +53,7 @@ func ListPrincipalsHandler(w http.ResponseWriter, req *http.Request) {
 
 func PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	conn, err := db.Conn(ctx)
+	conn, err := GetConn(ctx)
 	if err != nil {
 		errorJSON(w, err)
 		return
@@ -94,7 +94,7 @@ func ListRolesHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 
 	ctx := req.Context()
-	conn, err := db.Conn(ctx)
+	conn, err := GetConn(ctx)
 	if err != nil {
 		errorJSON(w, err)
 		return

@@ -1,9 +1,11 @@
 package guardmech
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"os"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -34,5 +36,25 @@ func initDB() {
 	}
 	log.Println("connecting db OK")
 
+	// avoid recycle of too idle connection
+	d.SetConnMaxLifetime(time.Second * 60)
+
 	db = d
+}
+
+func GetConn(ctx context.Context) (*sql.Conn, error) {
+	conn, err := db.Conn(ctx)
+	if err != nil {
+		log.Println("Could Not Get Conn")
+		return nil, err
+	}
+
+	err = conn.PingContext(ctx)
+	if err != nil {
+		log.Println("Failed to Ping")
+		defer conn.Close()
+		return nil, err
+	}
+
+	return conn, nil
 }

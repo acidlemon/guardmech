@@ -15,8 +15,8 @@ type Permission struct {
 	Description string
 }
 
-func CreatePermission(ctx context.Context, conn *sql.Conn, name string) (*Permission, error) {
-	res, err := conn.ExecContext(ctx, `INSERT INTO permission (name, description) VALUES (?, ?)`, name, "")
+func CreatePermission(ctx context.Context, tx *sql.Tx, name string) (*Permission, error) {
+	res, err := tx.ExecContext(ctx, `INSERT INTO permission (name, description) VALUES (?, ?)`, name, "")
 	if err != nil {
 		return nil, err
 	}

@@ -13,9 +13,9 @@ services:
     depends_on: ["mysql"]
 
   frontend:
-    build: vue/
+    image: guardmech-frontend
     volumes:
-      - "./vue:/vue"
+      - "./coreui:/coreui"
 
   nginx:
     image: nginx

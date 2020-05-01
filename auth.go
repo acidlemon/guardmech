@@ -153,10 +153,17 @@ func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 
 	// if first user, set as owner
 	ctx := req.Context()
-	conn, err := db.Conn(ctx)
+	conn, err := GetConn(ctx)
+	if err != nil {
+		log.Println("Could Not Get Conn")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
 
 	ok, err := HasPrincipal(ctx, conn)
 	if err != nil {
+		log.Println(err)
 		http.Error(w, "Failed to Check Principal", http.StatusInternalServerError)
 		return
 	}
@@ -270,12 +277,13 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 
 	// fetch Role & Group
 	ctx := req.Context()
-	conn, err := db.Conn(ctx)
+	conn, err := GetConn(ctx)
 	if err != nil {
 		log.Println("Could Not Get Conn")
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	defer conn.Close()
 
 	pri, err := FindPrincipal(ctx, conn, is.Issuer, is.Subject)
 	if err != nil {

@@ -31,6 +31,15 @@ CREATE TABLE IF NOT EXISTS group_info (
     PRIMARY KEY (id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS group_rule (
+    id BIGINT NOT NULL auto_increment,
+    name VARCHAR(191) NOT NULL UNIQUE,
+    description TEXT(2048),
+    rule_type INTEGER NOT NULL, /* 1=specific domain, 2=whole domain, 3=member of  */
+    condition TEXT(4096),
+    PRIMARY KEY (id)
+) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- role is reserved word...
 CREATE TABLE IF NOT EXISTS role_info (
     id BIGINT NOT NULL auto_increment,

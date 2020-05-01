@@ -45,8 +45,6 @@ type PrincipalPayload struct {
 }
 
 func FindPrincipal(ctx context.Context, conn *sql.Conn, issuer, subject string) (*Principal, error) {
-	log.Println(issuer)
-	log.Println(subject)
 	row := conn.QueryRowContext(ctx, `SELECT p.id, p.name, p.description FROM auth AS a 
   JOIN principal AS p ON a.principal_id = p.id
   WHERE a.issuer = ? AND a.subject = ?`, issuer, subject)
@@ -286,39 +284,39 @@ func CreateFirstPrincipal(ctx context.Context, conn *sql.Conn, idToken *OpenIDTo
 		}
 	}()
 
-	pr, err := CreateAuthPrincipal(ctx, conn, idToken)
+	pr, err := CreateAuthPrincipal(ctx, tx, idToken)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	pe, err := CreatePermission(ctx, conn, PermissionOwner)
+	pe, err := CreatePermission(ctx, tx, PermissionOwner)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	r, err := CreateRole(ctx, conn, RoleOwner)
+	r, err := CreateRole(ctx, tx, RoleOwner)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	r.AttachPermission(ctx, conn, pe)
-	pr.AttachRole(ctx, conn, r)
+	r.AttachPermission(ctx, tx, pe)
+	pr.AttachRole(ctx, tx, r)
 
 	tx.Commit()
 
 	return nil
 }
 
-func CreateAuthPrincipal(ctx context.Context, conn *sql.Conn, idToken *OpenIDToken) (*Principal, error) {
+func CreateAuthPrincipal(ctx context.Context, tx *sql.Tx, idToken *OpenIDToken) (*Principal, error) {
 	// insert to principal
 	name := idToken.Name
 	if name == "" {
 		name = idToken.Email
 	}
-	res, err := conn.ExecContext(ctx, `INSERT INTO principal (name, description) VALUES (?, ?)`, name, "")
+	res, err := tx.ExecContext(ctx, `INSERT INTO principal (name, description) VALUES (?, ?)`, name, "")
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +326,7 @@ func CreateAuthPrincipal(ctx context.Context, conn *sql.Conn, idToken *OpenIDTok
 	}
 
 	// insert to auth
-	_, err = conn.ExecContext(ctx, `INSERT INTO auth (issuer, subject, email, principal_id) VALUES (?, ?, ?, ?)`,
+	_, err = tx.ExecContext(ctx, `INSERT INTO auth (issuer, subject, email, principal_id) VALUES (?, ?, ?, ?)`,
 		idToken.Issuer, idToken.Sub, idToken.Email, principalID)
 	if err != nil {
 		return nil, err
@@ -341,8 +339,14 @@ func CreateAuthPrincipal(ctx context.Context, conn *sql.Conn, idToken *OpenIDTok
 	}, nil
 }
 
-func (pr *Principal) AttachRole(ctx context.Context, conn *sql.Conn, r *Role) error {
-	_, err := conn.ExecContext(ctx, `INSERT INTO principal_role_map (principal_id, role_id) VALUES (?, ?)`, pr.ID, r.ID)
+func ModifyPrincipal(ctx context.Context, tx *sql.Tx, princilpal *Principal) error {
+	// update principal
+
+	return nil
+}
+
+func (pr *Principal) AttachRole(ctx context.Context, tx *sql.Tx, r *Role) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO principal_role_map (principal_id, role_id) VALUES (?, ?)`, pr.ID, r.ID)
 	return err
 }
 

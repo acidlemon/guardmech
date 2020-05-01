@@ -10,6 +10,7 @@ import (
 func main() {
 	fmt.Println("Hello World!")
 
+	// setup
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.Lshortfile)
 
 	m := guardmech.New()

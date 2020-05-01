@@ -15,8 +15,8 @@ type Role struct {
 	Description string `json:"description"`
 }
 
-func CreateRole(ctx context.Context, conn *sql.Conn, name string) (*Role, error) {
-	res, err := conn.ExecContext(ctx, `INSERT INTO role_info (name, description) VALUES (?, ?)`, name, "")
+func CreateRole(ctx context.Context, tx *sql.Tx, name string) (*Role, error) {
+	res, err := tx.ExecContext(ctx, `INSERT INTO role_info (name, description) VALUES (?, ?)`, name, "")
 	if err != nil {
 		return nil, err
 	}
@@ -32,8 +32,8 @@ func CreateRole(ctx context.Context, conn *sql.Conn, name string) (*Role, error)
 	}, nil
 }
 
-func (r *Role) AttachPermission(ctx context.Context, conn *sql.Conn, pe *Permission) error {
-	_, err := conn.ExecContext(ctx, `INSERT INTO role_permission_map (role_id, permission_id) VALUES (?, ?)`, r.ID, pe.ID)
+func (r *Role) AttachPermission(ctx context.Context, tx *sql.Tx, pe *Permission) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO role_permission_map (role_id, permission_id) VALUES (?, ?)`, r.ID, pe.ID)
 	return err
 }
 
@@ -56,7 +56,7 @@ func scanRoleRow(r RowScanner) (*Role, error) {
 }
 
 func FetchAllRole(ctx context.Context, conn *sql.Conn) ([]*Role, error) {
-	rows, err := conn.QueryContext(ctx, `SELECT r.id, r.name, r.description FROM role AS r`)
+	rows, err := conn.QueryContext(ctx, `SELECT r.id, r.name, r.description FROM role_info AS r`)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func FetchAllRole(ctx context.Context, conn *sql.Conn) ([]*Role, error) {
 	return result, nil
 }
 
-func uniqRoles(roles []*Role) []*Role{
+func uniqRoles(roles []*Role) []*Role {
 	m := map[int64]struct{}{}
 	result := make([]*Role, 0, len(roles))
 
@@ -88,7 +88,7 @@ func uniqRoles(roles []*Role) []*Role{
 	return result
 }
 
-func roleIDs(roles []*Role) []int64{
+func roleIDs(roles []*Role) []int64 {
 	result := make([]int64, 0, len(roles))
 	for _, r := range roles {
 		result = append(result, r.ID)

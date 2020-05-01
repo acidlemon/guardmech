@@ -10,20 +10,14 @@ import (
 	"net/http"
 )
 
-
-
 type GuardMech struct {
 }
 
 func New() *GuardMech {
-	gm := &GuardMech{
-	}
+	gm := &GuardMech{}
 
 	return gm
 }
-
-
-
 
 func (g *GuardMech) Run() error {
 	listener, err := net.Listen("tcp", "0.0.0.0:2989")
@@ -65,7 +59,6 @@ func (g *GuardMech) Run() error {
 func (g *GuardMech) ReverseProxy(w http.ResponseWriter, req *http.Request) {
 }
 
-
 func WrapServerError(res *http.Response, err error) {
 	res.StatusCode = http.StatusInternalServerError
 	log.Println("server error: ", err)
@@ -85,4 +78,3 @@ func WrapServerError(res *http.Response, err error) {
 	b := []byte(fmt.Sprintf(html, err.Error()))
 	res.Body = ioutil.NopCloser(bytes.NewReader(b))
 }
-
