@@ -1,4 +1,4 @@
-package guardmech
+package auth
 
 import (
 	"encoding/base64"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestCryptor(t *testing.T) {
-	c := &Cryptor{[]byte("12345678901234567890123456789012")}
+	c := &cryptor{[]byte("12345678901234567890123456789012")}
 
 	enc, err := c.Encrypt("hoge")
 	if err != nil {
@@ -31,7 +31,7 @@ func TestSignator(t *testing.T) {
 	precomputed := `50d82b3a68204da83f89877eff0208fc5ee0f607bead90306384c06a53bc71a9`
 	secret := `09876543210w0`
 
-	s := &Signator{[]byte(secret)}
+	s := &signator{[]byte(secret)}
 
 	signed := s.Sign(text)
 	buf, err := base64.StdEncoding.DecodeString(signed)

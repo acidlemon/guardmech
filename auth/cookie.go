@@ -1,4 +1,4 @@
-package guardmech
+package auth
 
 import (
 	"crypto/aes"
@@ -18,10 +18,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Config struct {
-	CryptoKey    string
-	SignatureKey string
-}
+// type Config struct {
+// 	CryptoKey    string
+// 	SignatureKey string
+// }
 
 type PayloadData interface {
 	String() string
@@ -31,17 +31,17 @@ type PayloadData interface {
 type SessionPayload struct {
 	ExpireAt time.Time
 	Data     PayloadData
-	cfg      Config
+	// cfg      Config
 }
 
-func NewSessionPayload(fromCookie string, box PayloadData) (*SessionPayload, error) {
+func RestoreSessionPayload(fromCookie string, box PayloadData) (*SessionPayload, error) {
 	ss := strings.Split(fromCookie, "('-'*)")
 	data := ss[0]
 	signature := ss[1]
 
 	// validate signature
 	signKey := os.Getenv("GUARDMECH_SIGNATURE_KEY")
-	sig := &Signator{SignKey: []byte(signKey)}
+	sig := &signator{SignKey: []byte(signKey)}
 	result, err := sig.Verify(data, signature)
 	if err != nil {
 		return nil, errors.Wrap(err, "Session Signature Verification failed")
@@ -61,7 +61,7 @@ func NewSessionPayload(fromCookie string, box PayloadData) (*SessionPayload, err
 
 	// decrypt data
 	cryptoKey := os.Getenv("GUARDMECH_CRYPTO_KEY")
-	c := Cryptor{
+	c := cryptor{
 		CipherKey: []byte(cryptoKey),
 	}
 	sessionData, err := c.Decrypt(encVal)
@@ -82,13 +82,13 @@ func NewSessionPayload(fromCookie string, box PayloadData) (*SessionPayload, err
 
 func (s *SessionPayload) sign(data string) string {
 	key := os.Getenv("GUARDMECH_SIGNATURE_KEY")
-	sig := &Signator{SignKey: []byte(key)}
+	sig := &signator{SignKey: []byte(key)}
 	return sig.Sign(data)
 }
 
 func (s *SessionPayload) String() string {
 	key := os.Getenv("GUARDMECH_CRYPTO_KEY")
-	c := &Cryptor{
+	c := &cryptor{
 		CipherKey: []byte(key),
 	}
 
@@ -109,26 +109,25 @@ func (s *SessionPayload) MakeCookie(req *http.Request, key string, extend time.D
 	value := s.String()
 	return makeCookie(domain, key, value, s.ExpireAt.Add(extend))
 }
-func (s *SessionPayload) RevokeCookie(req *http.Request, key string) *http.Cookie {
-	domain := req.URL.Host
+func (s *SessionPayload) RevokeCookie(domain, key string) *http.Cookie {
 	return revokeCookie(domain, key)
 }
 
-type Signator struct {
+type signator struct {
 	SignKey []byte
 }
 
-func (s *Signator) calc(in string) []byte {
+func (s *signator) calc(in string) []byte {
 	mac := hmac.New(sha256.New, s.SignKey)
 	mac.Write([]byte(in))
 	return mac.Sum(nil)
 }
 
-func (s *Signator) Sign(in string) string {
+func (s *signator) Sign(in string) string {
 	return base64.StdEncoding.EncodeToString(s.calc(in))
 }
 
-func (s *Signator) Verify(in, b64str string) (bool, error) {
+func (s *signator) Verify(in, b64str string) (bool, error) {
 	data, err := base64.StdEncoding.DecodeString(b64str)
 	if err != nil {
 		return false, err
@@ -138,12 +137,12 @@ func (s *Signator) Verify(in, b64str string) (bool, error) {
 	return hmac.Equal(data, hash), nil
 }
 
-type Cryptor struct {
+type cryptor struct {
 	CipherKey []byte
 }
 
 // ref. https://gist.github.com/kkirsche/e28da6754c39d5e7ea10
-func (c *Cryptor) Encrypt(s string) (string, error) {
+func (c *cryptor) Encrypt(s string) (string, error) {
 	// using AES-GCM Encryption
 	block, err := aes.NewCipher(c.CipherKey)
 	if err != nil {
@@ -167,7 +166,7 @@ func (c *Cryptor) Encrypt(s string) (string, error) {
 	return base64.StdEncoding.EncodeToString(cipherText), nil
 }
 
-func (c *Cryptor) Decrypt(b64str string) (string, error) {
+func (c *cryptor) Decrypt(b64str string) (string, error) {
 	buf, err := base64.StdEncoding.DecodeString(b64str)
 	if err != nil {
 		return "", err

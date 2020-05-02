@@ -1,4 +1,4 @@
-package guardmech
+package membership
 
 import (
 	"context"

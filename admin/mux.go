@@ -1,14 +1,24 @@
-package guardmech
+package admin
 
 import (
+	"context"
+	"database/sql"
 	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 
+	"github.com/acidlemon/guardmech/db"
+	"github.com/acidlemon/guardmech/membership"
 	"github.com/gorilla/mux"
 )
+
+type AdminService interface {
+	FetchAllPrincipal(context.Context, *sql.Conn) ([]*membership.Principal, error)
+	FetchAllRole(context.Context, *sql.Conn) ([]*membership.Role, error)
+	FetchPrincipalPayload(context.Context, *sql.Conn, int64) (*membership.PrincipalPayload, error)
+}
 
 func ApiMux() http.Handler {
 	r := mux.NewRouter()
@@ -30,17 +40,19 @@ func ApiFallbackHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func ListPrincipalsHandler(w http.ResponseWriter, req *http.Request) {
+	var svc AdminService
+	svc = membership.NewService()
 	// TODO permission check
 
 	ctx := req.Context()
-	conn, err := GetConn(ctx)
+	conn, err := db.GetConn(ctx)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 	defer conn.Close()
 
-	prs, err := FetchAllPrincipal(ctx, conn)
+	prs, err := svc.FetchAllPrincipal(ctx, conn)
 	if err != nil {
 		errorJSON(w, err)
 		return
@@ -53,12 +65,15 @@ func ListPrincipalsHandler(w http.ResponseWriter, req *http.Request) {
 
 func PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	conn, err := GetConn(ctx)
+	conn, err := db.GetConn(ctx)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 	defer conn.Close()
+
+	var svc AdminService
+	svc = membership.NewService()
 
 	vars := mux.Vars(req)
 	idStr := vars["id"]
@@ -79,7 +94,7 @@ func PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 
 	default:
 		// read
-		payload, err := FetchPrincipalPayload(ctx, conn, id)
+		payload, err := svc.FetchPrincipalPayload(ctx, conn, id)
 		if err != nil {
 			errorJSON(w, err)
 			return
@@ -91,17 +106,20 @@ func PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func ListRolesHandler(w http.ResponseWriter, req *http.Request) {
+	var svc AdminService
+	svc = membership.NewService()
+
 	// TODO permission check
 
 	ctx := req.Context()
-	conn, err := GetConn(ctx)
+	conn, err := db.GetConn(ctx)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 	defer conn.Close()
 
-	roles, err := FetchAllRole(ctx, conn)
+	roles, err := svc.FetchAllRole(ctx, conn)
 	if err != nil {
 		errorJSON(w, err)
 		return

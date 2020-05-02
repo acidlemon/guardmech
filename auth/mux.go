@@ -1,11 +1,10 @@
-package guardmech
+package auth
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
-	"log"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,18 +13,28 @@ import (
 
 	oidc "github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
-	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
+
+	"github.com/acidlemon/guardmech/membership"
 )
 
-var randLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+const authSessionKey string = `_guardmech_csrf`
+const sessionKey string = `_guardmech_session`
+
+type AuthService interface {
+	HasPrincipal(context.Context, *sql.Conn) (bool, error)
+	CreateFirstPrincipal(context.Context, *sql.Conn, *membership.OpenIDToken) error
+	FindPrincipal(context.Context, *sql.Conn, string, string) (*membership.Principal, error)
+	FetchPrincipalPayload(context.Context, *sql.Conn, int64) (*membership.PrincipalPayload, error)
+}
+
+type Mux struct {
+	usecase *Usecase
+}
 
 var clientID string
 var clientSecret string
 var redirectURL string
-
-const authSessionKey string = `_guardmech_csrf`
-const sessionKey string = `_guardmech_session`
 
 func init() {
 	clientID = os.Getenv("GUARDMECH_CLIENT_ID")
@@ -33,23 +42,7 @@ func init() {
 	redirectURL = os.Getenv("GUARDMECH_REDIRECT_URL")
 }
 
-type AuthMux struct {
-	conf     *oauth2.Config
-	provider *oidc.Provider
-}
-
-func generateRandomString(length int, letters []rune) string {
-	b := strings.Builder{}
-	b.Grow(length)
-	lc := len(letters)
-
-	for i := 0; i < length; i++ {
-		b.WriteRune(letters[rand.Intn(lc)])
-	}
-	return b.String()
-}
-
-func NewAuthMux() *AuthMux {
+func NewMux() *Mux {
 	ctx := context.Background()
 	p, err := oidc.NewProvider(ctx, "https://accounts.google.com")
 	if err != nil {
@@ -57,32 +50,34 @@ func NewAuthMux() *AuthMux {
 		panic(`failed to initialize Google OpenID Connect provider:` + err.Error())
 	}
 
-	am := &AuthMux{
-		conf: &oauth2.Config{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
-			RedirectURL:  redirectURL,
-			Endpoint:     p.Endpoint(),
-			Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
+	am := &Mux{
+		usecase: &Usecase{
+			conf: &oauth2.Config{
+				ClientID:     clientID,
+				ClientSecret: clientSecret,
+				RedirectURL:  redirectURL,
+				Endpoint:     p.Endpoint(),
+				Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
+			},
+			provider: p,
 		},
-		provider: p,
 	}
 
 	return am
 }
 
-func (a *AuthMux) Mux() http.Handler {
+func (a *Mux) Mux() http.Handler {
 	m := mux.NewRouter()
 	m.HandleFunc("/auth/start", a.StartAuth)
 	m.HandleFunc("/auth/callback", a.CallbackAuth)
 	m.HandleFunc("/auth/request", a.AuthRequest)
-	m.HandleFunc("/auth/sign_in", a.NeedAuth)
+	m.HandleFunc("/auth/sign_in", a.SignIn)
 	m.HandleFunc("/auth/unauthorized", a.Unauthorized)
 
 	return m
 }
 
-func (a *AuthMux) StartAuth(w http.ResponseWriter, req *http.Request) {
+func (a *Mux) StartAuth(w http.ResponseWriter, req *http.Request) {
 	// return path
 	if req.ParseForm() != nil {
 		http.Error(w, "Body Parsing Error", http.StatusBadRequest)
@@ -93,214 +88,55 @@ func (a *AuthMux) StartAuth(w http.ResponseWriter, req *http.Request) {
 		path = "%2F"
 	}
 
-	csrfToken := generateRandomString(32, randLetters)
-	as := &AuthSession{
-		CSRFToken: csrfToken,
-		Path:      path,
-	}
+	authSession, url := a.usecase.StartAuth(path)
 
-	authSession := &SessionPayload{
-		ExpireAt: time.Now().Add(5 * time.Minute),
-		Data:     as,
-	}
-
-	// bake CSRF cookie
+	// bake CSRF session cookie
 	http.SetCookie(w, authSession.MakeCookie(req, authSessionKey, 0))
-	http.Redirect(w, req, a.conf.AuthCodeURL(csrfToken), http.StatusFound)
+	http.Redirect(w, req, url, http.StatusFound)
 }
 
-func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
-	// session validation
+func (a *Mux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
+	// CSRF session validation
 	c, err := req.Cookie(authSessionKey)
 	if err != nil {
 		http.Error(w, "No CSRF Session", http.StatusForbidden)
 		return
 	}
 
-	as := &AuthSession{}
-	authSession, err := NewSessionPayload(c.Value, as)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Session Validation Failed", http.StatusForbidden)
-	}
-	// delete cookie
-	http.SetCookie(w, authSession.RevokeCookie(req, authSessionKey))
-
-	// decode path
-	path, err := url.PathUnescape(as.Path)
-	if err != nil {
-		path = "/"
-	}
-
-	// CSRF check
 	req.ParseForm()
 	state := req.Form.Get("state")
-	if state != as.CSRFToken {
-		http.Error(w, "Detect Possibility of CSRF Attack", http.StatusForbidden)
-		return
-	}
-
-	// ID Token
 	code := req.URL.Query().Get("code")
-	token, err := a.verifyAuthCode(req.Context(), code)
+
+	session, path, err := a.usecase.CallbackAuth(req.Context(), c.Value, state, code)
+
+	// delete CSRF session cookie
+	domain := req.URL.Host
+	http.SetCookie(w, revokeCookie(domain, authSessionKey))
+
 	if err != nil {
-		http.Error(w, "Failed to Verify AuthCode", http.StatusForbidden)
+		WriteHttpError(w, err)
 		return
 	}
 
-	// normalize issuer (remove "https://" for Google)
-	token.Issuer = strings.Replace(token.Issuer, "https://", "", -1)
-
-	// if first user, set as owner
-	ctx := req.Context()
-	conn, err := GetConn(ctx)
-	if err != nil {
-		log.Println("Could Not Get Conn")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	defer conn.Close()
-
-	ok, err := HasPrincipal(ctx, conn)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Failed to Check Principal", http.StatusInternalServerError)
-		return
-	}
-	// first cut
-	if !ok {
-		log.Println("No User!! Entering setup mode.")
-
-		err := CreateFirstPrincipal(ctx, conn, token)
-		if err != nil {
-			log.Println("failed to setup:", err.Error())
-			http.Error(w, "Failed to Setup", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	is := &IDSession{
-		Issuer:  token.Issuer,
-		Subject: token.Sub,
-		Email:   token.Email,
-	}
-
-	// OK!! Create Session!!
-	session := &SessionPayload{
-		Data:     is,
-		ExpireAt: time.Now().Add(5 * time.Minute),
-	}
 	http.SetCookie(w, session.MakeCookie(req, sessionKey, 24*time.Hour))
-
 	http.Redirect(w, req, path, http.StatusFound)
 }
 
-type OpenIDToken struct {
-	Issuer   string `json:"iss"`
-	Sub      string `json:"sub"`
-	Email    string `json:"email"`
-	Verified bool   `json:"email_verified"`
-	Name     string `json:"name"`
-}
-
-func (a *AuthMux) verifyAuthCode(ctx context.Context, code string) (*OpenIDToken, error) {
-	var verifier = a.provider.Verifier(&oidc.Config{ClientID: a.conf.ClientID})
-	oauth2Token, err := a.conf.Exchange(ctx, code)
-	if err != nil {
-		return nil, err
-	}
-
-	// Extract the ID Token from OAuth2 token.
-	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
-	if !ok {
-		return nil, fmt.Errorf("Token does not contains id_token")
-	}
-
-	// Parse and verify ID Token payload.
-	idToken, err := verifier.Verify(ctx, rawIDToken)
-	if err != nil {
-		return nil, errors.Wrap(err, "Verification failed")
-	}
-
-	// Extract custom claims
-	var claims OpenIDToken
-	if err := idToken.Claims(&claims); err != nil {
-		// handle error
-		return nil, err
-	}
-
-	return &claims, nil
-}
-
-func (a *AuthMux) parseIDSession(req *http.Request, is *IDSession) (*SessionPayload, error) {
-	// parse session cookie
+func (a *Mux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 	c, err := req.Cookie(sessionKey)
 	if err != nil {
-		return nil, fmt.Errorf("first visit")
-	}
-
-	session, err := NewSessionPayload(c.Value, is)
-	if err != nil {
-		return nil, fmt.Errorf("invalid cookie")
-	}
-
-	return session, nil
-}
-
-const html403 = `<!doctype html>
-<html>
-<head>
-  <title>Forbidden Access</title>
-</head>
-<body>
-<h1>アクセス権がありません</h1>
-<p>ごめんにゃ</p>
-</body>
-</html>
-`
-
-func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
-	is := &IDSession{}
-	session, err := a.parseIDSession(req, is)
-	if err != nil {
-		//log.Println(err.Error())
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	// check ExpireAt
-	if time.Now().Sub(session.ExpireAt) > 0 {
-		//log.Println("expired")
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	// fetch Role & Group
-	ctx := req.Context()
-	conn, err := GetConn(ctx)
+	email, payload, err := a.usecase.Authorization(req.Context(), c.Value)
 	if err != nil {
-		log.Println("Could Not Get Conn")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	defer conn.Close()
-
-	pri, err := FindPrincipal(ctx, conn, is.Issuer, is.Subject)
-	if err != nil {
-		log.Println("Could Not Find Principal: " + err.Error())
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	payload, err := FetchPrincipalPayload(ctx, conn, pri.ID)
-	if err != nil {
-		log.Println("Could Not Find PrincipalPayload: " + err.Error())
-		w.WriteHeader(http.StatusForbidden)
+		WriteHttpError(w, err)
 		return
 	}
 
 	// OK! print headers
-	w.Header().Set("X-Guardmech-Email", is.Email)
+	w.Header().Set("X-Guardmech-Email", email)
 	if len(payload.Groups) > 0 {
 		groups := make([]string, 0, len(payload.Groups))
 		for _, v := range payload.Groups {
@@ -326,21 +162,18 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
-func (a *AuthMux) NeedAuth(w http.ResponseWriter, req *http.Request) {
+func (a *Mux) SignIn(w http.ResponseWriter, req *http.Request) {
 	// catch path
 	originUri := req.Header.Get("X-Auth-Request-Redirect")
 	path := url.PathEscape(originUri)
 
-	// cookie check
-	is := &IDSession{}
-	session, err := a.parseIDSession(req, is)
+	c, err := req.Cookie(sessionKey)
 	if err == nil {
-		// cookie is live, try to authenticate without prompt
-		if time.Now().Sub(session.ExpireAt) > 0 {
+		necessary := a.usecase.NeedAuthPrompt(req.Context(), c.Value)
+		if !necessary {
 			http.Redirect(w, req, fmt.Sprintf("/auth/start?p=%s", path), http.StatusFound)
 			return
 		}
-		// else ... what's happen
 	}
 
 	// render HTML (TODO template/html)
@@ -361,72 +194,21 @@ func (a *AuthMux) NeedAuth(w http.ResponseWriter, req *http.Request) {
 `
 
 	io.WriteString(w, t)
-
 }
 
-func (a *AuthMux) Unauthorized(w http.ResponseWriter, req *http.Request) {
+const html403 = `<!doctype html>
+<html>
+<head>
+  <title>Forbidden Access</title>
+</head>
+<body>
+<h1>アクセス権がありません</h1>
+<p>ごめんにゃ</p>
+</body>
+</html>
+`
+
+func (a *Mux) Unauthorized(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusForbidden)
 	io.WriteString(w, html403)
-}
-
-type AuthSession struct {
-	CSRFToken string
-	Path      string
-}
-
-func (as *AuthSession) String() string {
-	b := strings.Builder{}
-	b.WriteString(as.CSRFToken)
-	b.WriteString("|")
-	b.WriteString(as.Path)
-
-	return b.String()
-}
-
-func (as *AuthSession) Restore(data string) error {
-	ss := strings.Split(data, "|")
-	as.CSRFToken = ss[0]
-	as.Path = ss[1]
-	if as.Path == "" {
-		as.Path = "/"
-	}
-
-	return nil
-}
-
-type IDSession struct {
-	Issuer  string
-	Subject string
-	Email   string
-}
-
-func (is *IDSession) String() string {
-	b := strings.Builder{}
-	b.WriteString(is.Issuer)
-	b.WriteString("('-'o)")
-	b.WriteString(is.Subject)
-	b.WriteString("('-'o)")
-	b.WriteString(is.Email)
-
-	return b.String()
-}
-
-func (is *IDSession) Restore(data string) error {
-	ss := strings.Split(data, "('-'o)")
-	is.Issuer = ss[0]
-	is.Subject = ss[1]
-	is.Email = ss[2]
-
-	return nil
-}
-
-func escapeRequestPath(u *url.URL) string {
-	var b strings.Builder
-	b.WriteString(url.PathEscape(u.RequestURI()))
-	if u.RawQuery != "" {
-		b.WriteString("%3F")
-		b.WriteString(url.QueryEscape(u.RawQuery))
-	}
-
-	return b.String()
 }
