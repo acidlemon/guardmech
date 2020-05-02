@@ -1,6 +1,10 @@
 package auth
 
-import "net/http"
+import (
+	"fmt"
+	"html/template"
+	"net/http"
+)
 
 type httpError struct {
 	code    int
@@ -35,15 +39,44 @@ func (e *httpError) Detail() error {
 func WriteHttpError(w http.ResponseWriter, err error) {
 	statusCode := http.StatusInternalServerError
 	httpErr, ok := err.(HttpError)
+	message := err.Error()
+	detail := ""
 	if ok {
 		statusCode = httpErr.StatusCode()
+		if httpErr.Detail() != nil {
+			detail = httpErr.Detail().Error()
+		}
 	}
+
+	tmpl := template.Must(template.New("errorHTML").Parse(errorHTML))
+
 	switch statusCode {
 	case http.StatusUnauthorized:
 		// hide failure reason
 		w.WriteHeader(http.StatusUnauthorized)
 	default:
-		http.Error(w, err.Error(), statusCode)
+		w.WriteHeader(statusCode)
+		tmpl.Execute(w, map[string]string{
+			"StatusCode":    fmt.Sprintf("%d", statusCode),
+			"StatusMessage": http.StatusText(statusCode),
+			"ErrorMessage":  message,
+			"ErrorDetail":   detail,
+		})
 	}
 	return
 }
+
+const errorHTML = `<!doctype html>
+<html>
+<head>
+  <title>{{ .StatusCode }} {{ .StatusMessage }} - guardmech</title>
+</head>
+<body>
+<h1>{{ .StatusMessage }}</h1>
+<p>Error: {{ .ErrorMessage }}</p>
+<p>Detail: {{ .ErrorDetail }}</p>
+
+<p><a href="/">back</a></p>
+</body>
+</html>
+`

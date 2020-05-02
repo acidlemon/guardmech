@@ -79,8 +79,8 @@ func (a *Mux) Mux() http.Handler {
 
 func (a *Mux) StartAuth(w http.ResponseWriter, req *http.Request) {
 	// return path
-	if req.ParseForm() != nil {
-		http.Error(w, "Body Parsing Error", http.StatusBadRequest)
+	if err := req.ParseForm(); err != nil {
+		WriteHttpError(w, NewHttpError(http.StatusBadRequest, "Body Parsing Error", err))
 		return
 	}
 	path := req.Form.Get("p")
@@ -99,7 +99,7 @@ func (a *Mux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 	// CSRF session validation
 	c, err := req.Cookie(authSessionKey)
 	if err != nil {
-		http.Error(w, "No CSRF Session", http.StatusForbidden)
+		WriteHttpError(w, NewHttpError(http.StatusForbidden, "No CSRF Session", err))
 		return
 	}
 
