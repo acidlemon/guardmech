@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
@@ -30,9 +31,17 @@ func generateRandomString(length int, letters []rune) string {
 	return b.String()
 }
 
+type AuthService interface {
+	CreateFirstPrincipal(context.Context, *sql.Conn, *membership.OpenIDToken) (*membership.Principal, error)
+	FindPrincipal(context.Context, *sql.Conn, string, string) (*membership.Principal, error)
+}
+
+// TODO Usecaseがほぼdomain knowledgeになっているのでなんとかする
+
 type Usecase struct {
 	conf     *oauth2.Config
 	provider *oidc.Provider
+	repos    membership.Repository
 }
 
 func (u *Usecase) StartAuth(returnPath string) (*SessionPayload, string) {
@@ -53,8 +62,7 @@ func (u *Usecase) StartAuth(returnPath string) (*SessionPayload, string) {
 }
 
 func (u *Usecase) CallbackAuth(ctx context.Context, cookieValue, state, code string) (session *SessionPayload, path string, reserr error) {
-	var svc AuthService
-	svc = membership.NewService()
+	var svc AuthService = membership.NewService(u.repos)
 
 	as := &AuthSession{}
 	_, err := RestoreSessionPayload(cookieValue, as)
@@ -94,31 +102,33 @@ func (u *Usecase) CallbackAuth(ctx context.Context, cookieValue, state, code str
 	}
 	defer conn.Close()
 
-	ok, err := svc.HasPrincipal(ctx, conn)
+	// generate membership token
+	pri, err := svc.FindPrincipal(ctx, conn, token.Issuer, token.Sub)
 	if err != nil {
-		reserr = NewHttpError(http.StatusInternalServerError, "Failed to Check Principal", err)
-		return
-	}
-	// first cut
-	if !ok {
-		log.Println("No User!! Entering setup mode.")
-
-		err := svc.CreateFirstPrincipal(ctx, conn, token)
+		ok, err := u.repos.HasPrincipal(ctx, conn)
 		if err != nil {
-			log.Println("failed to setup:", err.Error())
-			reserr = NewHttpError(http.StatusInternalServerError, "Failed to Setup", err)
+			reserr = NewHttpError(http.StatusInternalServerError, "Failed to Check Principal", err)
+			return
+		}
+
+		if !ok {
+			// 最初のユーザー
+			log.Println("No User!! Entering setup mode.")
+
+			pri, err = svc.CreateFirstPrincipal(ctx, conn, token)
+			if err != nil {
+				log.Println("failed to setup:", err.Error())
+				reserr = NewHttpError(http.StatusInternalServerError, "Failed to Setup", err)
+				return
+			}
+		} else {
+			// TODO ここで2人目以降のユーザを追加するための処理が必要
+			reserr = NewHttpError(http.StatusForbidden, "Could Not Find Principal", err)
 			return
 		}
 	}
 
-	// generate membership token
-	pri, err := svc.FindPrincipal(ctx, conn, token.Issuer, token.Sub)
-	if err != nil {
-		reserr = NewHttpError(http.StatusForbidden, "Could Not Find Principal", err)
-		return
-	}
-
-	payload, err := svc.FetchPrincipalPayload(ctx, conn, pri.ID)
+	payload, err := u.repos.FetchPrincipalPayload(ctx, conn, pri.SeqID)
 	if err != nil {
 		reserr = NewHttpError(http.StatusForbidden, "Could Not Find PrincipalPayload", err)
 		return
@@ -160,8 +170,7 @@ func (u *Usecase) Authorization(ctx context.Context, cookieValue string) (string
 
 func (u *Usecase) NeedAuthPrompt(ctx context.Context, cookieValue string) bool {
 	// cookie check
-	is := &IDSession{}
-	session, err := RestoreSessionPayload(cookieValue, is)
+	session, err := RestoreSessionPayload(cookieValue, &IDSession{})
 	if err == nil {
 		// cookie is live, try to authenticate without prompt
 		if time.Now().Sub(session.ExpireAt) > 0 {

@@ -44,6 +44,7 @@ func (g *GuardMech) Run() error {
 	childMux.Handle("/guardmech/admin/", http.FileServer(http.Dir("dist")))
 
 	authMux := auth.NewMux()
+	adminMux := admin.NewMux()
 
 	mux := http.NewServeMux()
 	mux.Handle("/auth/", authMux.Mux())
@@ -51,7 +52,7 @@ func (g *GuardMech) Run() error {
 		log.Println("guardmech request")
 		childMux.ServeHTTP(w, req)
 	})
-	mux.Handle("/guardmech/api/", admin.ApiMux())
+	mux.Handle("/guardmech/api/", adminMux.Mux())
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("catch all:", req.URL.Path)
 	})

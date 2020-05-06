@@ -10,7 +10,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-var db *sql.DB
+var pool *sql.DB
 
 func init() {
 	initDB()
@@ -39,11 +39,11 @@ func initDB() {
 	// avoid recycle of too idle connection
 	d.SetConnMaxLifetime(time.Second * 60)
 
-	db = d
+	pool = d
 }
 
 func GetConn(ctx context.Context) (*sql.Conn, error) {
-	conn, err := db.Conn(ctx)
+	conn, err := pool.Conn(ctx)
 	if err != nil {
 		log.Println("Could Not Get Conn")
 		return nil, err
@@ -57,4 +57,27 @@ func GetConn(ctx context.Context) (*sql.Conn, error) {
 	}
 
 	return conn, nil
+}
+
+func Begin(ctx context.Context, conn *sql.Conn) (*Tx, error) {
+	tx, err := conn.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Tx{Tx: tx}, nil
+}
+
+func GetTxConn(ctx context.Context) (*sql.Conn, *Tx, error) {
+	conn, err := GetConn(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tx, err := Begin(ctx, conn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return conn, tx, nil
 }

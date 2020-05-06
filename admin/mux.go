@@ -1,31 +1,37 @@
 package admin
 
 import (
-	"context"
-	"database/sql"
 	"encoding/json"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/acidlemon/guardmech/db"
-	"github.com/acidlemon/guardmech/membership"
+	"github.com/acidlemon/guardmech/infra"
 	"github.com/gorilla/mux"
 )
 
-type AdminService interface {
-	FetchAllPrincipal(context.Context, *sql.Conn) ([]*membership.Principal, error)
-	FetchAllRole(context.Context, *sql.Conn) ([]*membership.Role, error)
-	FetchPrincipalPayload(context.Context, *sql.Conn, int64) (*membership.PrincipalPayload, error)
+type Mux struct {
+	usecase *Usecase
 }
 
-func ApiMux() http.Handler {
+func NewMux() *Mux {
+	am := &Mux{
+		usecase: &Usecase{
+			repos: &infra.Membership{},
+		},
+	}
+
+	return am
+}
+
+func (a *Mux) Mux() http.Handler {
 	r := mux.NewRouter()
-	r.HandleFunc("/guardmech/api/", ApiFallbackHandler)
-	r.HandleFunc("/guardmech/api/principals", ListPrincipalsHandler)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", PrincipalHandler)
-	r.HandleFunc("/guardmech/api/roles", ListRolesHandler)
+	r.HandleFunc("/guardmech/api/", a.ApiFallbackHandler)
+	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler)
+	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.PrincipalHandler)
+	r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
 	//	r.HandleFunc("/guardmech/api/role/{id:[0-9]+}", RoleHandler)
 	//	r.HandleFunc("/guardmech/api/permissions", ListPermissionHandler)
 	//	r.HandleFunc("/guardmech/api/permission/{id:[0-9]+}", PermissionHandler)
@@ -33,52 +39,30 @@ func ApiMux() http.Handler {
 	return r
 }
 
-func ApiFallbackHandler(w http.ResponseWriter, req *http.Request) {
+func (a *Mux) ApiFallbackHandler(w http.ResponseWriter, req *http.Request) {
 	log.Println("api request has come" + req.URL.Path)
 	w.WriteHeader(200)
 	io.WriteString(w, `{"message":"Hello World!"}`)
 }
 
-func ListPrincipalsHandler(w http.ResponseWriter, req *http.Request) {
-	var svc AdminService
-	svc = membership.NewService()
+func (a *Mux) ListPrincipalsHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
-
-	ctx := req.Context()
-	conn, err := db.GetConn(ctx)
-	if err != nil {
-		errorJSON(w, err)
-		return
-	}
-	defer conn.Close()
-
-	prs, err := svc.FetchAllPrincipal(ctx, conn)
+	list, err := a.usecase.ListPrincipals(req.Context())
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"principals": prs,
+		"principals": list,
 	})
 }
 
-func PrincipalHandler(w http.ResponseWriter, req *http.Request) {
-	ctx := req.Context()
-	conn, err := db.GetConn(ctx)
-	if err != nil {
-		errorJSON(w, err)
-		return
-	}
-	defer conn.Close()
-
-	var svc AdminService
-	svc = membership.NewService()
-
+func (a *Mux) PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	idStr := vars["id"]
 	var id int64
-	id, err = strconv.ParseInt(idStr, 10, 64)
+	id, err := strconv.ParseInt(idStr, 10, 64)
 	if err != nil {
 		errorJSON(w, err)
 		return
@@ -94,7 +78,7 @@ func PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 
 	default:
 		// read
-		payload, err := svc.FetchPrincipalPayload(ctx, conn, id)
+		payload, err := a.usecase.ShowPrincipal(req.Context(), id)
 		if err != nil {
 			errorJSON(w, err)
 			return
@@ -105,28 +89,36 @@ func PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func ListRolesHandler(w http.ResponseWriter, req *http.Request) {
-	var svc AdminService
-	svc = membership.NewService()
+func (a *Mux) CreatePrincipalHandler(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, `{"error":"invalid http method"}`, http.StatusMethodNotAllowed)
+	}
 
-	// TODO permission check
+	// parameters
+	vars := mux.Vars(req)
+	name := vars["name"]
+	description := vars["description"]
 
-	ctx := req.Context()
-	conn, err := db.GetConn(ctx)
+	pri, err := a.usecase.CreatePrincipal(req.Context(), name, description)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
-	defer conn.Close()
 
-	roles, err := svc.FetchAllRole(ctx, conn)
+	renderJSON(w, pri)
+}
+
+func (a *Mux) ListRolesHandler(w http.ResponseWriter, req *http.Request) {
+	// TODO permission check
+
+	list, err := a.usecase.ListRoles(req.Context())
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"roles": roles,
+		"roles": list,
 	})
 }
 

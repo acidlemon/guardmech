@@ -22,14 +22,16 @@ type MembershipToken struct {
 	Principal *membership.PrincipalPayload `json:"principal"`
 }
 
+const IDSeparator string = "('-'o)"
+
 func (is *IDSession) String() string {
 	b := strings.Builder{}
 	b.WriteString(is.Issuer)
-	b.WriteString("('-'o)")
+	b.WriteString(IDSeparator)
 	b.WriteString(is.Subject)
-	b.WriteString("('-'o)")
+	b.WriteString(IDSeparator)
 	b.WriteString(is.Email)
-	b.WriteString("('-'o)")
+	b.WriteString(IDSeparator)
 	enc := json.NewEncoder(&b)
 	enc.Encode(is.Membership)
 
@@ -37,7 +39,7 @@ func (is *IDSession) String() string {
 }
 
 func (is *IDSession) Restore(data string) error {
-	ss := strings.Split(data, "('-'o)")
+	ss := strings.Split(data, IDSeparator)
 	if len(ss) < 4 {
 		return fmt.Errorf("not enough session data: len=%d", len(ss))
 	}

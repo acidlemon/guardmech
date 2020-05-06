@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,22 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/acidlemon/guardmech/infra"
 	oidc "github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
 	"golang.org/x/oauth2"
-
-	"github.com/acidlemon/guardmech/membership"
 )
 
 const authSessionKey string = `_guardmech_csrf`
 const sessionKey string = `_guardmech_session`
-
-type AuthService interface {
-	HasPrincipal(context.Context, *sql.Conn) (bool, error)
-	CreateFirstPrincipal(context.Context, *sql.Conn, *membership.OpenIDToken) error
-	FindPrincipal(context.Context, *sql.Conn, string, string) (*membership.Principal, error)
-	FetchPrincipalPayload(context.Context, *sql.Conn, int64) (*membership.PrincipalPayload, error)
-}
 
 type Mux struct {
 	usecase *Usecase
@@ -60,6 +51,7 @@ func NewMux() *Mux {
 				Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
 			},
 			provider: p,
+			repos:    &infra.Membership{},
 		},
 	}
 
@@ -196,19 +188,6 @@ func (a *Mux) SignIn(w http.ResponseWriter, req *http.Request) {
 	io.WriteString(w, t)
 }
 
-const html403 = `<!doctype html>
-<html>
-<head>
-  <title>Forbidden Access</title>
-</head>
-<body>
-<h1>アクセス権がありません</h1>
-<p>ごめんにゃ</p>
-</body>
-</html>
-`
-
 func (a *Mux) Unauthorized(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusForbidden)
-	io.WriteString(w, html403)
+	WriteHttpError(w, NewHttpError(http.StatusForbidden, "No Access Permission", nil))
 }

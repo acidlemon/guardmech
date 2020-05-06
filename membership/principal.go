@@ -5,12 +5,14 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/acidlemon/guardmech/db"
+	"github.com/google/uuid"
 	"github.com/k0kubun/pp"
 )
 
 type Auth struct {
-	ID        int64      `json:"id"`
+	SeqID     int64
+	UniqueID  uuid.UUID  `json:"uuid"`
 	Issuer    string     `json:"issuer"`
 	Subject   string     `json:"subject"`
 	Email     string     `json:"email"`
@@ -18,21 +20,17 @@ type Auth struct {
 }
 
 type APIKey struct {
-	ID        int64      `json:"id"`
+	SeqID     int64
+	UniqueID  uuid.UUID  `json:"uuid"`
 	Token     string     `json:"token"`
 	Principal *Principal `json:"-"`
 }
 
 type Principal struct {
-	ID          int64  `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-type PrincipalDetailed struct {
-	Principal
-	Groups []string
-	Roles  []string
+	SeqID       int64
+	UniqueID    uuid.UUID `json:"uuid"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
 }
 
 type PrincipalPayload struct {
@@ -44,309 +42,8 @@ type PrincipalPayload struct {
 	Permissions []*Permission `json:"permissions"`
 }
 
-func FindPrincipal(ctx context.Context, conn *sql.Conn, issuer, subject string) (*Principal, error) {
-	row := conn.QueryRowContext(ctx, `SELECT p.id, p.name, p.description FROM auth AS a 
-  JOIN principal AS p ON a.principal_id = p.id
-  WHERE a.issuer = ? AND a.subject = ?`, issuer, subject)
-	pr, err := scanPrincipalRow(row)
-	if err != nil {
-		return nil, err
-	}
-
-	return pr, nil
-}
-
-func FetchPrincipalPayload(ctx context.Context, conn *sql.Conn, id int64) (*PrincipalPayload, error) {
-	row := conn.QueryRowContext(ctx,
-		`SELECT p.id, p.name, p.description FROM principal AS p WHERE id = ?`, id)
-	pr, err := scanPrincipalRow(row)
-	if err != nil {
-		return nil, err
-	}
-
-	auths := make([]*Auth, 0, 4)
-	rows, err := conn.QueryContext(ctx,
-		`SELECT a.id, a.issuer, a.subject, a.email FROM auth AS a WHERE a.principal_id = ?`, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		a, err := scanAuthRow(rows, pr)
-		if err != nil {
-			return nil, err
-		}
-		auths = append(auths, a)
-	}
-
-	apikeys := make([]*APIKey, 0, 4)
-	rows, err = conn.QueryContext(ctx,
-		`SELECT a.id, a.Token FROM api_key AS a WHERE a.principal_id = ?`, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		a, err := scanAPIKeyRow(rows, pr)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		apikeys = append(apikeys, a)
-	}
-
-	groups := make([]*Group, 0, 8)
-	groupIDs := make([]int64, 0, 8)
-	rows, err = conn.QueryContext(ctx,
-		`SELECT r.id, r.name, r.description FROM principal_group_map AS m
-		JOIN group_info AS r ON m.group_id = r.id WHERE m.principal_id = ?`, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		r, err := scanGroupRow(rows)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		groups = append(groups, r)
-		groupIDs = append(groupIDs, r.ID)
-	}
-
-	roles := make([]*Role, 0, 8)
-	rows, err = conn.QueryContext(ctx,
-		`SELECT r.id, r.name, r.description FROM principal_role_map AS m 
-		JOIN role_info AS r ON m.role_id = r.id WHERE m.principal_id = ?`, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		r, err := scanRoleRow(rows)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		roles = append(roles, r)
-	}
-
-	if len(groupIDs) > 0 {
-		query, args, err := sqlx.In(`SELECT r.id, r.name, r.description FROM group_role_map AS m 
-		JOIN role_info AS r ON m.role_id = r.id WHERE m.group_id IN (?))`, groupIDs)
-		rows, err = conn.QueryContext(ctx, query, args...)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			r, err := scanRoleRow(rows)
-			if err != nil {
-				log.Println(err)
-				return nil, err
-			}
-			roles = append(roles, r)
-		}
-
-		roles = uniqRoles(roles)
-	}
-
-	permissions := make([]*Permission, 0, 8)
-	query, args, err := sqlx.In(`SELECT p.id, p.name, p.description FROM role_permission_map AS m 
-	JOIN permission AS p ON m.permission_id = p.id WHERE m.role_id IN (?)`, roleIDs(roles))
-	rows, err = conn.QueryContext(ctx, query, args...)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		p, err := scanPermissionRow(rows)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		permissions = append(permissions, p)
-	}
-
-	return &PrincipalPayload{
-		Principal:   pr,
-		Auths:       auths,
-		APIKeys:     apikeys,
-		Groups:      groups,
-		Roles:       roles,
-		Permissions: permissions,
-	}, nil
-}
-
-type RowScanner interface {
-	Scan(dest ...interface{}) error
-}
-
-func scanPrincipalRow(r RowScanner) (*Principal, error) {
-	var id int64
-	var name, description string
-	err := r.Scan(&id, &name, &description)
-	if err == sql.ErrNoRows {
-		return nil, err
-	} else if err != nil {
-		// something wrong
-		return nil, err
-	}
-
-	return &Principal{
-		ID:          id,
-		Name:        name,
-		Description: description,
-	}, nil
-}
-
-func scanAuthRow(r RowScanner, pr *Principal) (*Auth, error) {
-	var id int64
-	var issuer, subject, email string
-	err := r.Scan(&id, &issuer, &subject, &email)
-	if err == sql.ErrNoRows {
-		return nil, err
-	} else if err != nil {
-		// something wrong
-		return nil, err
-	}
-
-	return &Auth{
-		ID:        id,
-		Issuer:    issuer,
-		Subject:   subject,
-		Email:     email,
-		Principal: pr,
-	}, nil
-}
-
-func scanAPIKeyRow(r RowScanner, pr *Principal) (*APIKey, error) {
-	var id int64
-	var token string
-	err := r.Scan(&id, &token)
-	if err == sql.ErrNoRows {
-		return nil, err
-	} else if err != nil {
-		// something wrong
-		return nil, err
-	}
-
-	return &APIKey{
-		ID:        id,
-		Token:     token,
-		Principal: pr,
-	}, nil
-}
-
-func FetchAllPrincipal(ctx context.Context, conn *sql.Conn) ([]*Principal, error) {
-	rows, err := conn.QueryContext(ctx, `SELECT p.id, p.name, p.description FROM principal p`)
-	if err != nil {
-		return nil, err
-	}
-
-	//result := []*PrincipalDetailed{}
-	result := []*Principal{}
-	for rows.Next() {
-		pr, err := scanPrincipalRow(rows)
-		if err != nil {
-			return nil, err
-		}
-
-		//result = append(result, &PrincipalDetailed{Principal: pr})
-		result = append(result, pr)
-	}
-
-	return result, nil
-}
-
-func HasPrincipal(ctx context.Context, conn *sql.Conn) (bool, error) {
-	row := conn.QueryRowContext(ctx, `SELECT COUNT(*) AS cnt FROM principal`)
-	var cnt int
-	err := row.Scan(&cnt)
-	if err != nil {
-		return false, err
-	}
-
-	if cnt == 0 {
-		return false, nil
-	}
-	return true, nil
-}
-
-func CreateFirstPrincipal(ctx context.Context, conn *sql.Conn, idToken *OpenIDToken) error {
-	tx, err := conn.BeginTx(ctx, nil)
-	commited := false
-	defer func() {
-		if !commited {
-			tx.Rollback()
-		}
-	}()
-
-	pr, err := CreateAuthPrincipal(ctx, tx, idToken)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	pe, err := CreatePermission(ctx, tx, PermissionOwner)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	r, err := CreateRole(ctx, tx, RoleOwner)
-	if err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	r.AttachPermission(ctx, tx, pe)
-	pr.AttachRole(ctx, tx, r)
-
-	tx.Commit()
-
-	return nil
-}
-
-func CreateAuthPrincipal(ctx context.Context, tx *sql.Tx, idToken *OpenIDToken) (*Principal, error) {
-	// insert to principal
-	name := idToken.Name
-	if name == "" {
-		name = idToken.Email
-	}
-	res, err := tx.ExecContext(ctx, `INSERT INTO principal (name, description) VALUES (?, ?)`, name, "")
-	if err != nil {
-		return nil, err
-	}
-	principalID, err := res.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	// insert to auth
-	_, err = tx.ExecContext(ctx, `INSERT INTO auth (issuer, subject, email, principal_id) VALUES (?, ?, ?, ?)`,
-		idToken.Issuer, idToken.Sub, idToken.Email, principalID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Principal{
-		ID:          principalID,
-		Name:        name,
-		Description: "",
-	}, nil
-}
-
-func ModifyPrincipal(ctx context.Context, tx *sql.Tx, princilpal *Principal) error {
-	// update principal
-
-	return nil
-}
-
-func (pr *Principal) AttachRole(ctx context.Context, tx *sql.Tx, r *Role) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO principal_role_map (principal_id, role_id) VALUES (?, ?)`, pr.ID, r.ID)
+func (pr *Principal) AttachRole(ctx context.Context, tx *db.Tx, r *Role) error {
+	_, err := tx.ExecContext(ctx, `INSERT INTO principal_role_map (principal_id, role_id) VALUES (?, ?)`, pr.SeqID, r.SeqID)
 	return err
 }
 
@@ -356,7 +53,10 @@ func (pr *Principal) FindRole(ctx context.Context, conn *sql.Conn) ([]*Role, err
 	pp.Print(pr)
 
 	// find role (direct attached)
-	rows, err := conn.QueryContext(ctx, `SELECT r.id, r.name, r.description FROM principal_role_map AS m JOIN role_info AS r ON m.role_id = r.id WHERE m.principal_id = ?`, pr.ID)
+	rows, err := conn.QueryContext(ctx,
+		`SELECT r.seq_id, r.unique_id, r.name, r.description FROM principal_role_map AS m JOIN role_info AS r ON m.role_id = r.seq_id WHERE m.principal_id = ?`,
+		pr.SeqID,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -369,7 +69,7 @@ func (pr *Principal) FindRole(ctx context.Context, conn *sql.Conn) ([]*Role, err
 			return nil, err
 		}
 		result = append(result, &Role{
-			ID:          id,
+			SeqID:       id,
 			Name:        name,
 			Description: description,
 		})
