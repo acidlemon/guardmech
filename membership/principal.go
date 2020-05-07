@@ -11,8 +11,8 @@ import (
 )
 
 type Auth struct {
-	SeqID     int64
-	UniqueID  uuid.UUID  `json:"uuid"`
+	SeqID     int64      `json:"seq_id"`
+	UniqueID  uuid.UUID  `json:"unique_id"`
 	Issuer    string     `json:"issuer"`
 	Subject   string     `json:"subject"`
 	Email     string     `json:"email"`
@@ -20,15 +20,15 @@ type Auth struct {
 }
 
 type APIKey struct {
-	SeqID     int64
-	UniqueID  uuid.UUID  `json:"uuid"`
+	SeqID     int64      `json:"seq_id"`
+	UniqueID  uuid.UUID  `json:"unique_id"`
 	Token     string     `json:"token"`
 	Principal *Principal `json:"-"`
 }
 
 type Principal struct {
-	SeqID       int64
-	UniqueID    uuid.UUID `json:"uuid"`
+	SeqID       int64     `json:"seq_id"`
+	UniqueID    uuid.UUID `json:"unique_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 }

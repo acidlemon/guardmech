@@ -30,7 +30,7 @@ export default {
       items: [
       ],
       fields: [
-        {key: 'id'},
+        {key: 'unique_id'},
         {key: 'name'},
         {key: 'description'},
         {key: 'editable', label: 'hoge'},

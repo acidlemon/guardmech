@@ -127,21 +127,24 @@ func (s *Membership) FetchPrincipalPayload(ctx context.Context, conn *sql.Conn, 
 	}
 
 	permissions := make([]*membership.Permission, 0, 8)
-	query, args, err := sqlx.In(`SELECT pe.seq_id, pe.unique_id, pe.name, pe.description FROM role_permission_map AS m 
-	JOIN permission AS pe ON m.permission_id = pe.seq_id WHERE m.role_id IN (?)`, roleIDs(roles))
-	rows, err = conn.QueryContext(ctx, query, args...)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		p, err := scanPermissionRow(rows)
+
+	if len(roles) > 0 {
+		query, args, err := sqlx.In(`SELECT pe.seq_id, pe.unique_id, pe.name, pe.description FROM role_permission_map AS m 
+		JOIN permission AS pe ON m.permission_id = pe.seq_id WHERE m.role_id IN (?)`, roleIDs(roles))
+		rows, err = conn.QueryContext(ctx, query, args...)
 		if err != nil {
 			log.Println(err)
 			return nil, err
 		}
-		permissions = append(permissions, p)
+		defer rows.Close()
+		for rows.Next() {
+			p, err := scanPermissionRow(rows)
+			if err != nil {
+				log.Println(err)
+				return nil, err
+			}
+			permissions = append(permissions, p)
+		}
 	}
 
 	return &membership.PrincipalPayload{
