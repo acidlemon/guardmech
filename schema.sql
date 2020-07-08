@@ -14,7 +14,10 @@ CREATE TABLE IF NOT EXISTS api_key (
     seq_id BIGINT NOT NULL auto_increment,
     unique_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
     principal_id BIGINT NOT NULL,
-    token VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
+    name VARCHAR(191) NOT NULL,
+    masked_token VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+    salt VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+    hashed_token VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
     PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 

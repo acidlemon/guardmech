@@ -9,6 +9,8 @@ import (
 	"github.com/acidlemon/guardmech/membership"
 )
 
+type Role membership.Role
+
 func (m *Membership) FetchAllRole(ctx context.Context, conn *sql.Conn) ([]*membership.Role, error) {
 	rows, err := conn.QueryContext(ctx, `SELECT r.id, r.name, r.description FROM role_info AS r`)
 	if err != nil {

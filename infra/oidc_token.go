@@ -8,9 +8,11 @@ import (
 	"github.com/acidlemon/guardmech/membership"
 )
 
-type cC = context.Context
+type Context = context.Context
 
-func (s *Membership) SaveAuth(ctx cC, tx *db.Tx, a *membership.Auth) (int64, error) {
+type Auth membership.Auth
+
+func (s *Membership) SaveAuth(ctx Context, tx *db.Tx, a *membership.Auth) (int64, error) {
 	if a.SeqID == 0 {
 		return s.createAuth(ctx, tx, a)
 	} else {
@@ -18,7 +20,7 @@ func (s *Membership) SaveAuth(ctx cC, tx *db.Tx, a *membership.Auth) (int64, err
 	}
 }
 
-func (s *Membership) createAuth(ctx cC, tx *db.Tx, a *membership.Auth) (int64, error) {
+func (s *Membership) createAuth(ctx Context, tx *db.Tx, a *membership.Auth) (int64, error) {
 	res, err := tx.ExecContext(ctx,
 		`INSERT INTO auth (unique_id, issuer, subject, email, principal_id)
 			VALUES (?, ?, ?, ?, ?)`,
@@ -35,7 +37,7 @@ func (s *Membership) createAuth(ctx cC, tx *db.Tx, a *membership.Auth) (int64, e
 	return seqID, nil
 }
 
-func (s *Membership) updateAuth(ctx cC, tx *db.Tx, a *membership.Auth) (int64, error) {
+func (s *Membership) updateAuth(ctx Context, tx *db.Tx, a *membership.Auth) (int64, error) {
 	var seqID int64
 	row := tx.QueryRowContext(ctx,
 		`SELECT seq_id FROM auth WHERE unique_id = ?`,

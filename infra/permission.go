@@ -8,6 +8,8 @@ import (
 	"github.com/acidlemon/guardmech/membership"
 )
 
+type Permission membership.Permission
+
 func (s *Membership) SavePermission(ctx context.Context, tx *db.Tx, pe *membership.Permission) (int64, error) {
 	if pe.SeqID == 0 {
 		return s.createPermission(ctx, tx, pe)

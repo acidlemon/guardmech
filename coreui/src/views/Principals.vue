@@ -7,11 +7,56 @@
             Principals
           </div>
           <p class="text-right">
-            <b-button to="principals/new" variant="danger">Create New</b-button>
+            <b-button  v-b-modal.new-principal variant="danger">Create New</b-button>
+            <b-modal id="new-principal" title="Add New Principal" hide-footer>
+              <b-form> <!--@submit="onSubmit" @reset="onReset"-->
+                <b-form-group id="input-group-1" label="Your Name:" label-for="input-1">
+                  <b-form-input
+                    id="input-2"
+                    v-model="form.name"
+                    required
+                    placeholder="Enter name"
+                  ></b-form-input>
+                </b-form-group>
+
+                <b-form-group id="input-group-2" label="Description:" label-for="input-2">
+                  <b-form-input
+                    id="input-2"
+                    v-model="form.description"
+                    required
+                    placeholder="Write your memo"
+                  ></b-form-input>
+                </b-form-group>
+
+                <b-form-group id="input-group-3">
+                  <b-form-checkbox-group v-model="form.checked" id="checkboxes-3">
+                    <b-form-checkbox value="me">Check me out</b-form-checkbox>
+                  </b-form-checkbox-group>
+                </b-form-group>
+
+
+                <b-form-group
+                  id="input-group-4"
+                  label="Email address:"
+                  label-for="input-1"
+                  description="We'll never share your email with anyone else."
+                >
+                  <b-form-input
+                    id="input-4"
+                    v-model="form.email"
+                    type="email"
+                    required
+                    placeholder="Enter email"
+                  ></b-form-input>
+                </b-form-group>
+
+                <b-button type="submit" variant="primary">Submit</b-button>
+              </b-form>
+            </b-modal>
           </p>
           <b-table :items="items" :fields="fields">
-            <template v-slot:cell(editable)="data">
-              <b-button variant="primary">編集</b-button>
+            <template v-slot:cell(action)="data">
+              <b-button variant="primary" :to="'principal/' + data.item.seq_id">情報</b-button>
             </template>
           </b-table>
         </b-card>
@@ -30,11 +75,16 @@ export default {
       items: [
       ],
       fields: [
-        {key: 'unique_id'},
+        {key: 'seq_id', label: 'ID'},
         {key: 'name'},
         {key: 'description'},
-        {key: 'editable', label: 'hoge'},
-      ]
+        {key: 'action', label: ''},
+      ],
+      form: {
+        email: "",
+        name: "",
+      },
+      foods: ["a", "b"],
     }
   },
   mounted() {

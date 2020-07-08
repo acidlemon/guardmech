@@ -30,7 +30,9 @@ func (a *Mux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/", a.ApiFallbackHandler)
 	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler)
 	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.PrincipalHandler)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.PrincipalGetHandler).Methods(http.MethodGet)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.PrincipalPostHandler).Methods(http.MethodPost)
+	//	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}/new_key", a.CreateAPIKeyHandler)
 	r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
 	//	r.HandleFunc("/guardmech/api/role/{id:[0-9]+}", RoleHandler)
 	//	r.HandleFunc("/guardmech/api/permissions", ListPermissionHandler)
@@ -58,7 +60,7 @@ func (a *Mux) ListPrincipalsHandler(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
-func (a *Mux) PrincipalHandler(w http.ResponseWriter, req *http.Request) {
+func (a *Mux) PrincipalGetHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	idStr := vars["id"]
 	var id int64
@@ -68,25 +70,29 @@ func (a *Mux) PrincipalHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	switch req.Method {
-	case http.MethodPost:
-		// create
-		//name := vars["name"]
-		//description := vars["description"]
-
-		break
-
-	default:
-		// read
-		payload, err := a.usecase.ShowPrincipal(req.Context(), id)
-		if err != nil {
-			errorJSON(w, err)
-			return
-		}
-
-		renderJSON(w, payload)
-		break
+	payload, err := a.usecase.ShowPrincipal(req.Context(), id)
+	if err != nil {
+		errorJSON(w, err)
+		return
 	}
+
+	renderJSON(w, payload)
+}
+
+func (a *Mux) PrincipalPostHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	idStr := vars["id"]
+	var id int64
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	// create
+	//name := vars["name"]
+	//description := vars["description"]
+	log.Println("POST id=", id)
 }
 
 func (a *Mux) CreatePrincipalHandler(w http.ResponseWriter, req *http.Request) {

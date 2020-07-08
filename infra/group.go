@@ -7,7 +7,9 @@ import (
 	"github.com/google/uuid"
 )
 
-func scanGroupRow(r RowScanner) (*membership.Group, error) {
+type Group membership.Group
+
+func scanGroupRow(r RowScanner) (*Group, error) {
 	var seqID int64
 	var uniqID uuid.UUID
 	var name, description string
@@ -19,7 +21,7 @@ func scanGroupRow(r RowScanner) (*membership.Group, error) {
 		return nil, err
 	}
 
-	return &membership.Group{
+	return &Group{
 		SeqID:       seqID,
 		UniqueID:    uniqID,
 		Name:        name,

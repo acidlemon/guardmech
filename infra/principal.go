@@ -1,5 +1,7 @@
 package infra
 
+//go:generate go run github.com/acidlemon/seacle/cmd/seacle
+
 import (
 	"context"
 	"database/sql"
@@ -8,8 +10,12 @@ import (
 
 	"github.com/acidlemon/guardmech/db"
 	"github.com/acidlemon/guardmech/membership"
+	"github.com/acidlemon/seacle"
 	"github.com/jmoiron/sqlx"
 )
+
+//+table: principal
+type Principal membership.Principal
 
 type Membership struct {
 }
@@ -29,12 +35,21 @@ func (s *Membership) HasPrincipal(ctx context.Context, conn *sql.Conn) (bool, er
 }
 
 func (s *Membership) FetchPrincipalPayload(ctx context.Context, conn *sql.Conn, id int64) (*membership.PrincipalPayload, error) {
-	row := conn.QueryRowContext(ctx,
-		`SELECT p.seq_id, p.unique_id, p.name, p.description FROM principal AS p WHERE seq_id = ?`, id)
-	pr, err := scanPrincipalRow(row)
+
+	// row := conn.QueryRowContext(ctx,
+	// 	`SELECT p.seq_id, p.unique_id, p.name, p.description FROM principal AS p WHERE seq_id = ?`, id)
+	// pr, err := scanPrincipalRow(row)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	pr := &Principal{}
+	err := seacle.SelectRow(ctx, conn, pr, `WHERE seq_id = ?`, id)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
+	mempr := membership.Principal(*pr)
 
 	auths := make([]*membership.Auth, 0, 4)
 	rows, err := conn.QueryContext(ctx,
@@ -48,7 +63,7 @@ func (s *Membership) FetchPrincipalPayload(ctx context.Context, conn *sql.Conn, 
 		if err != nil {
 			return nil, err
 		}
-		a.Principal = pr
+		a.Principal = &mempr
 		auths = append(auths, a)
 	}
 
@@ -65,7 +80,7 @@ func (s *Membership) FetchPrincipalPayload(ctx context.Context, conn *sql.Conn, 
 			log.Println(err)
 			return nil, err
 		}
-		a.Principal = pr
+		a.Principal = &mempr
 		apikeys = append(apikeys, a)
 	}
 
@@ -84,7 +99,8 @@ func (s *Membership) FetchPrincipalPayload(ctx context.Context, conn *sql.Conn, 
 			log.Println(err)
 			return nil, err
 		}
-		groups = append(groups, r)
+		grp := membership.Group(*r)
+		groups = append(groups, &grp)
 		groupIDs = append(groupIDs, r.SeqID)
 	}
 
@@ -148,7 +164,7 @@ func (s *Membership) FetchPrincipalPayload(ctx context.Context, conn *sql.Conn, 
 	}
 
 	return &membership.PrincipalPayload{
-		Principal:   pr,
+		Principal:   &mempr,
 		Auths:       auths,
 		APIKeys:     apikeys,
 		Groups:      groups,
@@ -214,15 +230,27 @@ func (s *Membership) updatePrincipal(ctx context.Context, tx *db.Tx, pri *member
 }
 
 func (s *Membership) FindPrincipal(ctx context.Context, conn *sql.Conn, issuer, subject string) (*membership.Principal, error) {
-	row := conn.QueryRowContext(ctx, `SELECT p.seq_id, p.unique_id, p.name, p.description FROM auth AS a 
-  JOIN principal AS p ON a.principal_id = p.seq_id
-  WHERE a.issuer = ? AND a.subject = ?`, issuer, subject)
-	pr, err := scanPrincipalRow(row)
+	// 	row := conn.QueryRowContext(ctx, `SELECT p.seq_id, p.unique_id, p.name, p.description FROM auth AS a
+	//   JOIN principal AS p ON a.principal_id = p.seq_id
+	//   WHERE a.issuer = ? AND a.subject = ?`, issuer, subject)
+	// 	pr, err := scanPrincipalRow(row)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	return pr, nil
+
+	pr := &Principal{}
+	err := seacle.SelectRow(ctx, conn, pr,
+		`JOIN auth AS a ON a.principal_id = principal.seq_id WHERE a.issuer = ? AND a.subject = ?`,
+		issuer, subject)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
+	mempr := membership.Principal(*pr)
 
-	return pr, nil
+	return &mempr, nil
 }
 
 func (s *Membership) FetchAllPrincipal(ctx context.Context, conn *sql.Conn) ([]*membership.Principal, error) {

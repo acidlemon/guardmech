@@ -3,6 +3,7 @@ module github.com/acidlemon/guardmech
 go 1.12
 
 require (
+	github.com/acidlemon/seacle v0.0.0-20200708055131-dd716e37f106
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2 // indirect
@@ -16,10 +17,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/stretchr/testify v1.4.0 // indirect
-	golang.org/x/crypto v0.0.0-20190909091759-094676da4a83 // indirect
-	golang.org/x/net v0.0.0-20190909003024-a7b16738d86b // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
-	golang.org/x/sys v0.0.0-20190909082730-f460065e899a // indirect
 	google.golang.org/appengine v1.6.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.3.1 // indirect
 )
