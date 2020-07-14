@@ -123,9 +123,11 @@ export default {
       let params = new URLSearchParams()
       params.append('name', this.form.name)
       params.append('description', this.form.description)
-      axios.post('/guardmech/api/principal', params).then(response => {
+      axios.post('/guardmech/api/principal/' + this.$route.params.seq_id + '/new_key', params).then(response => {
         console.log(response)
         fetchPrincipal()
+      }).catch(error => {
+        console.log(error)
       })
     }
   }
