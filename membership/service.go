@@ -113,7 +113,7 @@ func (s *Service) FindPrincipal(ctx context.Context, conn *sql.Conn, issuer, sub
 }
 
 func (s *Service) FindPrincipalBySeqID(ctx context.Context, conn *sql.Conn, principalID int64) (*Principal, error) {
-	return s.repos.FindPrincipalBySeqID(ctx, conn, prinipalID)
+	return s.repos.FindPrincipalBySeqID(ctx, conn, principalID)
 }
 
 func (s *Service) FetchAllPrincipal(ctx context.Context, conn *sql.Conn) ([]*Principal, error) {
