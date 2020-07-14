@@ -1,7 +1,6 @@
 package admin
 
 import (
-	"context"
 	"database/sql"
 
 	"github.com/acidlemon/guardmech/db"
@@ -9,11 +8,13 @@ import (
 )
 
 type AdminService interface {
-	CreatePrincipal(context.Context, *db.Tx, string, string) (*membership.Principal, error)
-	CreateAPIKey(context.Context, *db.Tx, *membership.Principal, string, string) (*membership.APIKey, error)
+	CreatePrincipal(Context, *db.Tx, string, string) (*membership.Principal, error)
+	CreateAPIKey(Context, *db.Tx, *membership.Principal, string, string) (*membership.APIKey, error)
 
-	FetchAllPrincipal(context.Context, *sql.Conn) ([]*membership.Principal, error)
-	FetchAllRole(context.Context, *sql.Conn) ([]*membership.Role, error)
+	FindPrincipalBySeqID(Context, *sql.Conn, int64) (*membership.Principal, error)
+
+	FetchAllPrincipal(Context, *sql.Conn) ([]*membership.Principal, error)
+	FetchAllRole(Context, *sql.Conn) ([]*membership.Role, error)
 }
 
 type Usecase struct {
@@ -21,7 +22,7 @@ type Usecase struct {
 	svc   AdminService
 }
 
-func (u *Usecase) CreatePrincipal(ctx context.Context, name, description string) (*membership.Principal, error) {
+func (u *Usecase) CreatePrincipal(ctx Context, name, description string) (*membership.Principal, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
 		return nil, err
@@ -39,7 +40,7 @@ func (u *Usecase) CreatePrincipal(ctx context.Context, name, description string)
 	return pri, err
 }
 
-func (u *Usecase) ShowPrincipal(ctx context.Context, ID int64) (*membership.PrincipalPayload, error) {
+func (u *Usecase) ShowPrincipal(ctx Context, ID int64) (*membership.PrincipalPayload, error) {
 	conn, err := db.GetConn(ctx)
 	if err != nil {
 		return nil, err
@@ -50,7 +51,7 @@ func (u *Usecase) ShowPrincipal(ctx context.Context, ID int64) (*membership.Prin
 	return payload, err
 }
 
-func (u *Usecase) ListPrincipals(ctx context.Context) ([]*membership.Principal, error) {
+func (u *Usecase) ListPrincipals(ctx Context) ([]*membership.Principal, error) {
 	conn, err := db.GetConn(ctx)
 	if err != nil {
 		return nil, err
@@ -62,7 +63,7 @@ func (u *Usecase) ListPrincipals(ctx context.Context) ([]*membership.Principal, 
 	return list, err
 }
 
-func (u *Usecase) ListRoles(ctx context.Context) ([]*membership.Role, error) {
+func (u *Usecase) ListRoles(ctx Context) ([]*membership.Role, error) {
 	conn, err := db.GetConn(ctx)
 	if err != nil {
 		return nil, err
@@ -74,7 +75,7 @@ func (u *Usecase) ListRoles(ctx context.Context) ([]*membership.Role, error) {
 	return list, err
 }
 
-func (u *Usecase) CreateAPIKey(ctx context.Context, principalID int64, name, description string) (*membership.APIKey, error) {
+func (u *Usecase) CreateAPIKey(ctx Context, principalID int64, name, description string) (*membership.APIKey, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
 		return nil, err
@@ -82,9 +83,12 @@ func (u *Usecase) CreateAPIKey(ctx context.Context, principalID int64, name, des
 	defer conn.Close()
 	defer tx.AutoRollback()
 
-	pri, err := u.svc.
+	pri, err := u.svc.FindPrincipalBySeqID(ctx, conn, principalID)
+	if err != nil {
+		return nil, err
+	}
 
-	ap, err := u.svc.CreateAPIKey(ctx, tx, principalID, name, description)
+	ap, err := u.svc.CreateAPIKey(ctx, tx, pri, name, description)
 	if err != nil {
 		return nil, err
 	}

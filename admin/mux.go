@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -11,6 +12,8 @@ import (
 	"github.com/acidlemon/guardmech/membership"
 	"github.com/gorilla/mux"
 )
+
+type Context = context.Context
 
 type Mux struct {
 	usecase *Usecase
@@ -177,6 +180,8 @@ func errorJSON(w http.ResponseWriter, err error) {
 	if err != nil {
 		b = []byte(`{"error":"error occurred, additionally failed to marshal json"}`)
 	}
+
+	log.Println("500 Internal Server Error: ", string(b))
 
 	w.WriteHeader(500)
 	w.Write(b)
