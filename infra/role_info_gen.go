@@ -12,7 +12,7 @@ import (
 var _ seacle.Mappable = (*Role)(nil)
 
 func (p *Role) Table() string {
-	return "role_info AS role_info"
+	return "role_info"
 }
 
 func (p *Role) Columns() []string {
@@ -20,7 +20,7 @@ func (p *Role) Columns() []string {
 }
 
 func (p *Role) PrimaryKeys() []string {
-	return []string{"role_info.seq_id"}
+	return []string{"seq_id"}
 }
 
 func (p *Role) PrimaryValues() []interface{} {
@@ -28,7 +28,7 @@ func (p *Role) PrimaryValues() []interface{} {
 }
 
 func (p *Role) ValueColumns() []string {
-	return []string{"role_info.unique_id", "role_info.name", "role_info.description"}
+	return []string{"unique_id", "name", "description"}
 }
 
 func (p *Role) Values() []interface{} {

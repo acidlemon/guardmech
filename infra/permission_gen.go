@@ -12,7 +12,7 @@ import (
 var _ seacle.Mappable = (*Permission)(nil)
 
 func (p *Permission) Table() string {
-	return "permission AS permission"
+	return "permission"
 }
 
 func (p *Permission) Columns() []string {
@@ -20,7 +20,7 @@ func (p *Permission) Columns() []string {
 }
 
 func (p *Permission) PrimaryKeys() []string {
-	return []string{"permission.seq_id"}
+	return []string{"seq_id"}
 }
 
 func (p *Permission) PrimaryValues() []interface{} {
@@ -28,7 +28,7 @@ func (p *Permission) PrimaryValues() []interface{} {
 }
 
 func (p *Permission) ValueColumns() []string {
-	return []string{"permission.unique_id", "permission.name", "permission.description"}
+	return []string{"unique_id", "name", "description"}
 }
 
 func (p *Permission) Values() []interface{} {

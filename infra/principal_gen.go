@@ -12,7 +12,7 @@ import (
 var _ seacle.Mappable = (*Principal)(nil)
 
 func (p *Principal) Table() string {
-	return "principal AS principal"
+	return "principal"
 }
 
 func (p *Principal) Columns() []string {
@@ -20,7 +20,7 @@ func (p *Principal) Columns() []string {
 }
 
 func (p *Principal) PrimaryKeys() []string {
-	return []string{"principal.seq_id"}
+	return []string{"seq_id"}
 }
 
 func (p *Principal) PrimaryValues() []interface{} {
@@ -28,7 +28,7 @@ func (p *Principal) PrimaryValues() []interface{} {
 }
 
 func (p *Principal) ValueColumns() []string {
-	return []string{"principal.unique_id", "principal.name", "principal.description"}
+	return []string{"unique_id", "name", "description"}
 }
 
 func (p *Principal) Values() []interface{} {

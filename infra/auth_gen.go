@@ -12,7 +12,7 @@ import (
 var _ seacle.Mappable = (*Auth)(nil)
 
 func (p *Auth) Table() string {
-	return "auth AS auth"
+	return "auth"
 }
 
 func (p *Auth) Columns() []string {
@@ -20,7 +20,7 @@ func (p *Auth) Columns() []string {
 }
 
 func (p *Auth) PrimaryKeys() []string {
-	return []string{"auth.seq_id"}
+	return []string{"seq_id"}
 }
 
 func (p *Auth) PrimaryValues() []interface{} {
@@ -28,7 +28,7 @@ func (p *Auth) PrimaryValues() []interface{} {
 }
 
 func (p *Auth) ValueColumns() []string {
-	return []string{"auth.unique_id", "auth.issuer", "auth.subject", "auth.email", "auth.principal_id"}
+	return []string{"unique_id", "issuer", "subject", "email", "principal_id"}
 }
 
 func (p *Auth) Values() []interface{} {

@@ -12,7 +12,7 @@ import (
 var _ seacle.Mappable = (*APIKey)(nil)
 
 func (p *APIKey) Table() string {
-	return "api_key AS api_key"
+	return "api_key"
 }
 
 func (p *APIKey) Columns() []string {
@@ -20,7 +20,7 @@ func (p *APIKey) Columns() []string {
 }
 
 func (p *APIKey) PrimaryKeys() []string {
-	return []string{"api_key.seq_id"}
+	return []string{"seq_id"}
 }
 
 func (p *APIKey) PrimaryValues() []interface{} {
@@ -28,7 +28,7 @@ func (p *APIKey) PrimaryValues() []interface{} {
 }
 
 func (p *APIKey) ValueColumns() []string {
-	return []string{"api_key.unique_id", "api_key.token", "api_key.principal_id"}
+	return []string{"unique_id", "token", "principal_id"}
 }
 
 func (p *APIKey) Values() []interface{} {

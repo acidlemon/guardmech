@@ -12,7 +12,7 @@ import (
 var _ seacle.Mappable = (*Group)(nil)
 
 func (p *Group) Table() string {
-	return "group_info AS group_info"
+	return "group_info"
 }
 
 func (p *Group) Columns() []string {
@@ -20,7 +20,7 @@ func (p *Group) Columns() []string {
 }
 
 func (p *Group) PrimaryKeys() []string {
-	return []string{"group_info.seq_id"}
+	return []string{"seq_id"}
 }
 
 func (p *Group) PrimaryValues() []interface{} {
@@ -28,7 +28,7 @@ func (p *Group) PrimaryValues() []interface{} {
 }
 
 func (p *Group) ValueColumns() []string {
-	return []string{"group_info.unique_id", "group_info.name", "group_info.description"}
+	return []string{"unique_id", "name", "description"}
 }
 
 func (p *Group) Values() []interface{} {
