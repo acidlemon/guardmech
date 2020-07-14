@@ -16,7 +16,7 @@ func (p *Auth) Table() string {
 }
 
 func (p *Auth) Columns() []string {
-	return []string{"auth.seq_id", "auth.unique_id", "auth.issuer", "auth.subject", "auth.email"}
+	return []string{"auth.seq_id", "auth.unique_id", "auth.issuer", "auth.subject", "auth.email", "auth.principal_id"}
 }
 
 func (p *Auth) PrimaryKeys() []string {
@@ -28,11 +28,11 @@ func (p *Auth) PrimaryValues() []interface{} {
 }
 
 func (p *Auth) ValueColumns() []string {
-	return []string{"auth.unique_id", "auth.issuer", "auth.subject", "auth.email"}
+	return []string{"auth.unique_id", "auth.issuer", "auth.subject", "auth.email", "auth.principal_id"}
 }
 
 func (p *Auth) Values() []interface{} {
-	return []interface{}{p.UniqueID, p.Issuer, p.Subject, p.Email}
+	return []interface{}{p.UniqueID, p.Issuer, p.Subject, p.Email, p.PrincipalID}
 }
 
 func (p *Auth) Scan(r seacle.RowScanner) error {
@@ -41,8 +41,9 @@ func (p *Auth) Scan(r seacle.RowScanner) error {
 	var arg2 string
 	var arg3 string
 	var arg4 string
+	var arg5 int64
 
-	err := r.Scan(&arg0, &arg1, &arg2, &arg3)
+	err := r.Scan(&arg0, &arg1, &arg2, &arg3, &arg4, &arg5)
 	if err == sql.ErrNoRows {
 		return err
 	} else if err != nil {
@@ -55,6 +56,7 @@ func (p *Auth) Scan(r seacle.RowScanner) error {
 	p.Issuer = arg2
 	p.Subject = arg3
 	p.Email = arg4
+	p.PrincipalID = arg5
 
 	return nil
 }

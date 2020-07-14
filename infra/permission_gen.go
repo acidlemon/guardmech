@@ -16,7 +16,7 @@ func (p *Permission) Table() string {
 }
 
 func (p *Permission) Columns() []string {
-	return []string{"permission.seq_id", "permission.uuid", "permission.name", "permission.description"}
+	return []string{"permission.seq_id", "permission.unique_id", "permission.name", "permission.description"}
 }
 
 func (p *Permission) PrimaryKeys() []string {
@@ -28,7 +28,7 @@ func (p *Permission) PrimaryValues() []interface{} {
 }
 
 func (p *Permission) ValueColumns() []string {
-	return []string{"permission.uuid", "permission.name", "permission.description"}
+	return []string{"permission.unique_id", "permission.name", "permission.description"}
 }
 
 func (p *Permission) Values() []interface{} {
@@ -41,7 +41,7 @@ func (p *Permission) Scan(r seacle.RowScanner) error {
 	var arg2 string
 	var arg3 string
 
-	err := r.Scan(&arg0, &arg1, &arg2)
+	err := r.Scan(&arg0, &arg1, &arg2, &arg3)
 	if err == sql.ErrNoRows {
 		return err
 	} else if err != nil {

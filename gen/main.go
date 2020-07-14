@@ -52,16 +52,7 @@ func main() {
 		Tag: "json",
 	}
 
-	// files := []genset{
-	// 	{reflect.TypeOf(infra.Principal{}), "infra", "principal", "../infra/principal_gen.go"},
-	// 	{reflect.TypeOf(infra.Auth{}), "infra", "auth", "../infra/auth_gen.go"},
-	// 	{reflect.TypeOf(infra.APIKey{}), "infra", "api_key", "../infra/api_key_gen.go"},
-	// 	{reflect.TypeOf(infra.Group{}), "infra", "group", "../infra/group_gen.go"},
-	// 	{reflect.TypeOf(infra.Permission{}), "infra", "permission", "../infra/permission_gen.go"},
-	// }
-
 	sets := prepareGenset()
-
 	for _, s := range sets {
 		err := gen.Generate(s.tp, s.pkg, s.table, s.outfile)
 		if err != nil {

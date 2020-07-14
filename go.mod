@@ -3,7 +3,7 @@ module github.com/acidlemon/guardmech
 go 1.12
 
 require (
-	github.com/acidlemon/seacle v0.0.0-20200708055131-dd716e37f106
+	github.com/acidlemon/seacle v0.1.2-0.20200709081439-fcb4babde7ca
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2 // indirect

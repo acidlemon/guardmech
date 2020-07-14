@@ -1,12 +1,6 @@
 package infra
 
-import (
-	"database/sql"
-
-	"github.com/acidlemon/guardmech/membership"
-	"github.com/google/uuid"
-)
-
+/*
 type RowScanner interface {
 	Scan(dest ...interface{}) error
 }
@@ -110,3 +104,4 @@ func scanPermissionRow(r RowScanner) (*membership.Permission, error) {
 		Description: description,
 	}, nil
 }
+*/

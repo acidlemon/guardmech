@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/acidlemon/guardmech/infra"
+	"github.com/acidlemon/guardmech/membership"
 	"github.com/gorilla/mux"
 )
 
@@ -16,9 +17,11 @@ type Mux struct {
 }
 
 func NewMux() *Mux {
+	repos := &infra.Membership{}
 	am := &Mux{
 		usecase: &Usecase{
-			repos: &infra.Membership{},
+			repos: repos,
+			svc:   membership.NewService(repos),
 		},
 	}
 
@@ -32,7 +35,7 @@ func (a *Mux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.PrincipalGetHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.PrincipalPostHandler).Methods(http.MethodPost)
-	//	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}/new_key", a.CreateAPIKeyHandler)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
 	//	r.HandleFunc("/guardmech/api/role/{id:[0-9]+}", RoleHandler)
 	//	r.HandleFunc("/guardmech/api/permissions", ListPermissionHandler)
@@ -96,16 +99,43 @@ func (a *Mux) PrincipalPostHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (a *Mux) CreatePrincipalHandler(w http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodPost {
-		http.Error(w, `{"error":"invalid http method"}`, http.StatusMethodNotAllowed)
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	name := req.Form.Get("name")
+	description := req.Form.Get("description")
+
+	pri, err := a.usecase.CreatePrincipal(req.Context(), name, description)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	renderJSON(w, pri)
+}
+
+func (a *Mux) CreateAPIKeyHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	idStr := vars["id"]
+	var id int64
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		errorJSON(w, err)
+		return
 	}
 
 	// parameters
-	vars := mux.Vars(req)
-	name := vars["name"]
-	description := vars["description"]
+	err = req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	name := req.Form.Get("name")
+	description := req.Form.Get("description")
 
-	pri, err := a.usecase.CreatePrincipal(req.Context(), name, description)
+	pri, err := a.usecase.CreateAPIKey(req.Context(), id, name, description)
 	if err != nil {
 		errorJSON(w, err)
 		return

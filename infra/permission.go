@@ -6,6 +6,7 @@ import (
 
 	"github.com/acidlemon/guardmech/db"
 	"github.com/acidlemon/guardmech/membership"
+	"github.com/acidlemon/seacle"
 )
 
 type Permission membership.Permission
@@ -19,15 +20,9 @@ func (s *Membership) SavePermission(ctx context.Context, tx *db.Tx, pe *membersh
 }
 
 func (s *Membership) createPermission(ctx context.Context, tx *db.Tx, pe *membership.Permission) (int64, error) {
-	// new Principal
-	res, err := tx.ExecContext(ctx,
-		`INSERT INTO permission (unique_id, name, description) VALUES (?, ?, ?)`,
-		pe.UniqueID, pe.Name, pe.Description,
-	)
-	if err != nil {
-		return 0, err
-	}
-	seqID, err := res.LastInsertId()
+	// new Permission
+	perm := Permission(*pe)
+	seqID, err := seacle.Insert(ctx, tx, &perm)
 	if err != nil {
 		return 0, err
 	}
@@ -36,32 +31,30 @@ func (s *Membership) createPermission(ctx context.Context, tx *db.Tx, pe *member
 }
 
 func (s *Membership) updatePermission(ctx context.Context, tx *db.Tx, pe *membership.Permission) (int64, error) {
-	var seqID int64
-	row := tx.QueryRowContext(ctx,
-		`SELECT seq_id FROM permission WHERE unique_id = ?`,
-		pe.UniqueID,
-	)
-	err := row.Scan(&seqID)
+	permForUpdate := &Permission{}
+	err := seacle.SelectRow(ctx, tx, permForUpdate, `WHERE unique_id = ?`, pe.UniqueID)
 	if err != nil {
-		// TODO: fallback to createPermission?
+		// TODO: fallback to createRole
 		return 0, nil
 	}
 
-	if seqID != pe.SeqID {
+	if permForUpdate.SeqID != pe.SeqID {
 		// ???
-		return 0, fmt.Errorf("ID mismatched. seqID=%d, pe.SeqID=%d", seqID, pe.SeqID)
+		return 0, fmt.Errorf("ID mismatched. seqID=%d, r.SeqID=%d", permForUpdate.SeqID, pe.SeqID)
 	}
 
 	// lock row
-	row = tx.QueryRowContext(ctx,
-		`SELECT seq_id FROM permission FOR UPDATE WHERE seq_id = ?`, seqID)
-	err = row.Scan(&seqID)
+	err = seacle.SelectRow(ctx, tx, permForUpdate, `FOR UPDATE WHERE seq_id = ?`, permForUpdate.SeqID)
 	if err != nil {
-		return 0, nil
+		return 0, fmt.Errorf("failed to lock permission row: err=%s", err)
 	}
 
 	// update row
-	//tx.ExecContext(ctx, `UPDATE`)
+	perm := Permission(*pe)
+	err = seacle.Update(ctx, tx, &perm)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update permission row: err=%s", err)
+	}
 
-	return seqID, nil
+	return pe.SeqID, nil
 }

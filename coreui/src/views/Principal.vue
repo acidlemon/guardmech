@@ -33,8 +33,8 @@
           <p class="text-right floating-button">
             <b-button  v-b-modal.new-token variant="danger">Create New</b-button>
             <b-modal id="new-token" title="Create API Token" hide-footer>
-              <b-form @submit="onNewAPIKey">
-                <b-form-group id="input-group-1" label="Your Name:" label-for="input-1">
+              <b-form>
+                <b-form-group id="input-group-1" label="API Key Name" label-for="input-1">
                   <b-form-input
                     id="input-1"
                     v-model="form.name"
@@ -42,7 +42,13 @@
                     placeholder="Enter name"
                   ></b-form-input>
                 </b-form-group>
-                <b-button type="submit" variant="primary">Submit</b-button>
+                <b-form-group id="input-group-1" label="Description">
+                  <b-form-input
+                    id="input-2"
+                    v-model="form.description"
+                  ></b-form-input>
+                  </b-form-group>
+                <b-button variant="primary" @click="onNewAPIKey">Submit</b-button>
               </b-form>
             </b-modal>
           </p>
@@ -66,6 +72,7 @@ export default {
     return {
       form: {
         name: "",
+        description: "",
       },
       table_fields: {
         basic_info: [
@@ -93,23 +100,33 @@ export default {
     }
   },
   mounted() {
-    axios.get('/guardmech/api/principal/' + this.$route.params.seq_id ).then(response => {
-      console.log(response)
-
-      // basic info
-      const pri = response.data.principal
-      this.table_items.basic_info.push({ key: 'Unique ID', value: pri.unique_id})
-      this.table_items.basic_info.push({ key: 'Name', value: pri.name})
-      this.table_items.basic_info.push({ key: 'Description', value: pri.description})
-
-      // auths
-      this.table_items.auths = response.data.auths
-      this.table_items.api_keys = response.data.api_keys
-    })
+    this.fetchPrincipal()
   },
   methods: {
+    fetchPrincipal() {
+      axios.get('/guardmech/api/principal/' + this.$route.params.seq_id ).then(response => {
+        console.log(response)
+
+        // basic info
+        const pri = response.data.principal
+        this.table_items.basic_info.push({ key: 'Unique ID', value: pri.unique_id})
+        this.table_items.basic_info.push({ key: 'Name', value: pri.name})
+        this.table_items.basic_info.push({ key: 'Description', value: pri.description})
+
+        // auths
+        this.table_items.auths = response.data.auths
+        this.table_items.api_keys = response.data.api_keys
+      })
+    },
     onNewAPIKey() {
       console.log('onNewAPIKey')
+      let params = new URLSearchParams()
+      params.append('name', this.form.name)
+      params.append('description', this.form.description)
+      axios.post('/guardmech/api/principal', params).then(response => {
+        console.log(response)
+        fetchPrincipal()
+      })
     }
   }
 }

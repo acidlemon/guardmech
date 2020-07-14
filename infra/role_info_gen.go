@@ -16,7 +16,7 @@ func (p *Role) Table() string {
 }
 
 func (p *Role) Columns() []string {
-	return []string{"role_info.seq_id", "role_info.uuid", "role_info.name", "role_info.description"}
+	return []string{"role_info.seq_id", "role_info.unique_id", "role_info.name", "role_info.description"}
 }
 
 func (p *Role) PrimaryKeys() []string {
@@ -28,7 +28,7 @@ func (p *Role) PrimaryValues() []interface{} {
 }
 
 func (p *Role) ValueColumns() []string {
-	return []string{"role_info.uuid", "role_info.name", "role_info.description"}
+	return []string{"role_info.unique_id", "role_info.name", "role_info.description"}
 }
 
 func (p *Role) Values() []interface{} {
@@ -41,7 +41,7 @@ func (p *Role) Scan(r seacle.RowScanner) error {
 	var arg2 string
 	var arg3 string
 
-	err := r.Scan(&arg0, &arg1, &arg2)
+	err := r.Scan(&arg0, &arg1, &arg2, &arg3)
 	if err == sql.ErrNoRows {
 		return err
 	} else if err != nil {

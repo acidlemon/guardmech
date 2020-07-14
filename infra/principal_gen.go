@@ -41,7 +41,7 @@ func (p *Principal) Scan(r seacle.RowScanner) error {
 	var arg2 string
 	var arg3 string
 
-	err := r.Scan(&arg0, &arg1, &arg2)
+	err := r.Scan(&arg0, &arg1, &arg2, &arg3)
 	if err == sql.ErrNoRows {
 		return err
 	} else if err != nil {

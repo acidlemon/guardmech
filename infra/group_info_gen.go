@@ -16,7 +16,7 @@ func (p *Group) Table() string {
 }
 
 func (p *Group) Columns() []string {
-	return []string{"group_info.seq_id", "group_info.uuid", "group_info.name", "group_info.description"}
+	return []string{"group_info.seq_id", "group_info.unique_id", "group_info.name", "group_info.description"}
 }
 
 func (p *Group) PrimaryKeys() []string {
@@ -28,7 +28,7 @@ func (p *Group) PrimaryValues() []interface{} {
 }
 
 func (p *Group) ValueColumns() []string {
-	return []string{"group_info.uuid", "group_info.name", "group_info.description"}
+	return []string{"group_info.unique_id", "group_info.name", "group_info.description"}
 }
 
 func (p *Group) Values() []interface{} {
@@ -41,7 +41,7 @@ func (p *Group) Scan(r seacle.RowScanner) error {
 	var arg2 string
 	var arg3 string
 
-	err := r.Scan(&arg0, &arg1, &arg2)
+	err := r.Scan(&arg0, &arg1, &arg2, &arg3)
 	if err == sql.ErrNoRows {
 		return err
 	} else if err != nil {

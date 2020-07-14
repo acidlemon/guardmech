@@ -1,46 +1,64 @@
 package infra
 
-import "github.com/acidlemon/guardmech/membership"
+import (
+	"fmt"
 
-type APIKey membership.APIKey
+	"github.com/acidlemon/guardmech/db"
+	"github.com/acidlemon/guardmech/membership"
+	"github.com/acidlemon/seacle"
+)
 
-/*
-func (s *Membership) SaveAPIKey(ctx context.Context, tx *db.Tx, key *membership.APIKey) (int64, error) {
-	if key.SeqID == 0 {
-		return s.createAPIKey(ctx, tx, key)
+type APIKey struct {
+	membership.APIKey
+	PrincipalID int64
+}
+
+func (s *Membership) SaveAPIKey(ctx Context, tx *db.Tx, a *membership.APIKey) (int64, error) {
+	if a.SeqID == 0 {
+		return s.createAPIKey(ctx, tx, a)
 	} else {
-		return s.updateAPIKey(ctx, tx, key)
+		return s.updateAPIKey(ctx, tx, a)
 	}
 }
-*/
-/*
-   seq_id BIGINT NOT NULL auto_increment,
-   unique_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
-   principal_id BIGINT NOT NULL,
-   name VARCHAR(191) NOT NULL,
-   masked_token VARCHAR(255) CHARACTER SET utf8 NOT NULL,
-   salt VARCHAR(255) CHARACTER SET utf8 NOT NULL,
-   hashed_token VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
-*/
-/*
-func (s *Membership) createAPIKey(ctx context.Context, tx *db.Tx, key *membership.APIKey) (int64, error) {
-	// new Principal
-	res, err := tx.ExecContext(ctx,
-		`INSERT INTO api_key (unique_id, name, description) VALUES (?, ?, ?)`,
-		pri.UniqueID, pri.Name, pri.Description,
-	)
-	if err != nil {
-		return 0, err
-	}
-	seqID, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
 
+func (s *Membership) createAPIKey(ctx Context, tx *db.Tx, a *membership.APIKey) (int64, error) {
+	ap := APIKey{
+		*a, a.Principal.SeqID,
+	}
+	seqID, err := seacle.Insert(ctx, tx, &ap)
+	if err != nil {
+		return 0, err
+	}
 	return seqID, nil
 }
 
-func (s *Membership) updateAPIKey(ctx context.Context, tx *db.Tx, key *membership.APIKey) (int64, error) {
+func (s *Membership) updateAPIKey(ctx Context, tx *db.Tx, a *membership.APIKey) (int64, error) {
+	apForUpdate := &APIKey{}
+	err := seacle.SelectRow(ctx, tx, apForUpdate, `WHERE unique_id = ?`, a.UniqueID)
+	if err != nil {
+		// TODO: fallback to createAPIKey?
+		return 0, nil
+	}
 
+	if apForUpdate.SeqID != a.SeqID {
+		// ???
+		return 0, fmt.Errorf("ID mismatched. seqID=%d, a.SeqID=%d", apForUpdate.SeqID, a.SeqID)
+	}
+
+	// lock row
+	err = seacle.SelectRow(ctx, tx, apForUpdate, `FOR UPDATE WHERE seq_id = ?`, apForUpdate.SeqID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to lock api_key row: err=%s", err)
+	}
+
+	// update row
+	ap := APIKey{
+		*a, a.Principal.SeqID,
+	}
+	err = seacle.Update(ctx, tx, &ap)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update api_key row: err=%s", err)
+	}
+
+	return a.SeqID, nil
 }
-*/

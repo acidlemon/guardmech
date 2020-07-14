@@ -52,6 +52,22 @@ func (s *Service) CreateAuth(ctx context.Context, tx *db.Tx, owner *Principal, i
 	return a, nil
 }
 
+func (s *Service) CreateAPIKey(ctx context.Context, tx *db.Tx, owner *Principal, name, description string) (*APIKey, error) {
+	a := &APIKey{
+		UniqueID:  uuid.New(),
+		Token:     "powawa",
+		Principal: owner,
+	}
+
+	seqID, err := s.repos.SaveAPIKey(ctx, tx, a)
+	if err != nil {
+		return nil, err
+	}
+	a.SeqID = seqID
+
+	return a, nil
+}
+
 func (s *Service) CreateFirstPrincipal(ctx context.Context, conn *sql.Conn, idToken *OpenIDToken) (*Principal, error) {
 	tx, err := db.Begin(ctx, conn)
 	defer tx.AutoRollback()
@@ -94,6 +110,10 @@ func (s *Service) CreateFirstPrincipal(ctx context.Context, conn *sql.Conn, idTo
 }
 func (s *Service) FindPrincipal(ctx context.Context, conn *sql.Conn, issuer, subject string) (*Principal, error) {
 	return s.repos.FindPrincipal(ctx, conn, issuer, subject)
+}
+
+func (s *Service) FindPrincipalBySeqID(ctx context.Context, conn *sql.Conn, principalID int64) (*Principal, error) {
+	return s.repos.FindPrincipalBySeqID(ctx, conn, prinipalID)
 }
 
 func (s *Service) FetchAllPrincipal(ctx context.Context, conn *sql.Conn) ([]*Principal, error) {

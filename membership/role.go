@@ -13,7 +13,7 @@ const (
 
 type Role struct {
 	SeqID       int64
-	UniqueID    uuid.UUID `json:"uuid"`
+	UniqueID    uuid.UUID `json:"unique_id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 }
