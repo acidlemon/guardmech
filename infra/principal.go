@@ -30,6 +30,18 @@ func (s *Membership) HasPrincipal(ctx context.Context, conn *sql.Conn) (bool, er
 	return true, nil
 }
 
+func (s *Membership) FindPrincipalBySeqID(ctx context.Context, conn *sql.Conn, id int64) (*membership.Principal, error) {
+	pr := &Principal{}
+	err := seacle.SelectRow(ctx, conn, pr, `WHERE seq_id = ?`, id)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	mempr := membership.Principal(*pr)
+
+	return &mempr, nil
+}
+
 func (s *Membership) FetchPrincipalPayload(ctx context.Context, conn *sql.Conn, id int64) (*membership.PrincipalPayload, error) {
 	pr := &Principal{}
 	err := seacle.SelectRow(ctx, conn, pr, `WHERE seq_id = ?`, id)
