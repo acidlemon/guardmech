@@ -15,6 +15,11 @@ export default {
       icon: 'icon-drop'
     },
     {
+      name: 'Mapping Rules',
+      url: '/mapping_rules',
+      icon: 'icon-drop'
+    },
+    {
       name: 'Groups',
       url: '/groups',
       icon: 'icon-pencil'

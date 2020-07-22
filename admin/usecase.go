@@ -9,7 +9,7 @@ import (
 
 type AdminService interface {
 	CreatePrincipal(Context, *db.Tx, string, string) (*membership.Principal, error)
-	CreateAPIKey(Context, *db.Tx, *membership.Principal, string, string) (*membership.APIKey, string, error)
+	CreateAPIKey(Context, *db.Tx, *membership.Principal, string) (*membership.APIKey, string, error)
 
 	FindPrincipalBySeqID(Context, *sql.Conn, int64) (*membership.Principal, error)
 
@@ -75,7 +75,7 @@ func (u *Usecase) ListRoles(ctx Context) ([]*membership.Role, error) {
 	return list, err
 }
 
-func (u *Usecase) CreateAPIKey(ctx Context, principalID int64, name, description string) (*membership.APIKey, string, error) {
+func (u *Usecase) CreateAPIKey(ctx Context, principalID int64, name string) (*membership.APIKey, string, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
 		return nil, "", err
@@ -88,7 +88,7 @@ func (u *Usecase) CreateAPIKey(ctx Context, principalID int64, name, description
 		return nil, "", err
 	}
 
-	ap, rawToken, err := u.svc.CreateAPIKey(ctx, tx, pri, name, description)
+	ap, rawToken, err := u.svc.CreateAPIKey(ctx, tx, pri, name)
 	if err != nil {
 		return nil, "", err
 	}

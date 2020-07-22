@@ -92,7 +92,7 @@ func hashToken(token, salt []byte, stretching int) []byte {
 
 const stretchingCount = 4096 // like $6$12
 
-func (s *Service) CreateAPIKey(ctx context.Context, tx *db.Tx, owner *Principal, name, description string) (*APIKey, string, error) {
+func (s *Service) CreateAPIKey(ctx context.Context, tx *db.Tx, owner *Principal, name string) (*APIKey, string, error) {
 	// generate token
 
 	token := generateToken(36)
@@ -106,6 +106,7 @@ func (s *Service) CreateAPIKey(ctx context.Context, tx *db.Tx, owner *Principal,
 		MaskedToken: maskedToken,
 		HashedToken: hex.EncodeToString(hashedToken),
 		Salt:        salt,
+		Name:        name,
 		Principal:   owner,
 	}
 

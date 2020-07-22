@@ -21,6 +21,7 @@ const User = () => import('@/views/users/User')
 // Guardmech Views
 const Principals = () => import('@/views/Principals')
 const Principal = () => import('@/views/Principal')
+const MappingRules = () => import('@/views/MappingRules')
 const Groups = () => import('@/views/Groups')
 const Roles = () => import('@/views/Roles')
 const Permissions = () => import('@/views/Permissions')
@@ -52,6 +53,11 @@ export default new Router({
           path: 'principal/:seq_id',
           name: 'Principal',
           component: Principal
+        },
+        {
+          path: 'mapping_rules',
+          name: 'MappingRules',
+          component: MappingRules
         },
         {
           path: 'groups',

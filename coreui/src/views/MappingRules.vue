@@ -4,7 +4,7 @@
       <b-col lg="12">
         <b-card>
           <div slot="header">
-            Groups
+            Permissions
           </div>
           <b-table :items="items" :fields="fields">
             <template v-slot:cell(editable)="">
@@ -21,7 +21,7 @@
 import axios from 'axios'
 
 export default {
-  name: 'groups',
+  name: 'mapping-rules',
   data() {
     return {
       items: [
@@ -35,8 +35,8 @@ export default {
     }
   },
   mounted() {
-    axios.get('/guardmech/api/groups').then(response => {
-      let data = response.data.groups
+    axios.get('/guardmech/api/mapping_rules').then(response => {
+      let data = response.data.permissions
       //for (let d of data) {
       //  console.log(d)
       //  d["editable"] = true

@@ -136,9 +136,8 @@ func (a *Mux) CreateAPIKeyHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	name := req.Form.Get("name")
-	description := req.Form.Get("description")
 
-	ap, rawToken, err := a.usecase.CreateAPIKey(req.Context(), id, name, description)
+	ap, rawToken, err := a.usecase.CreateAPIKey(req.Context(), id, name)
 	if err != nil {
 		errorJSON(w, err)
 		return

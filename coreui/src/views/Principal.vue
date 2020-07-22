@@ -17,23 +17,24 @@
           </b-table>
 
 
-          <b-card>
-            <template v-slot:header>
-              <h4 class="mb-0">Authorizations</h4>
-            </template>
-            <b-table
-              striped
-              :items="table_items.auths"
-              :fields="table_fields.auths"
-              class="detail-table"
-            >
-            </b-table>
-          </b-card>
+          <h2>OpenID Connect Authorization Info</h2>
+          <b-table
+            striped
+            :items="table_items.auths"
+            :fields="table_fields.auths"
+            class="detail-table"
+          >
+          </b-table>
 
           <p class="text-right floating-button">
-            <b-button  v-b-modal.new-token variant="danger">Create New</b-button>
-            <b-modal id="new-token" title="Create API Token" hide-footer>
-              <b-form>
+            <b-button v-b-modal.new-token variant="danger">Create New</b-button>
+            <b-modal
+              id="new-token"
+              title="Create API Token"
+              hide-footer
+              @show="resetAPIKeyModal"
+            >
+              <b-form  @submit="onNewAPIKey">
                 <b-form-group id="input-group-1" label="API Key Name" label-for="input-1">
                   <b-form-input
                     id="input-1"
@@ -42,18 +43,71 @@
                     placeholder="Enter name"
                   ></b-form-input>
                 </b-form-group>
-                <b-form-group id="input-group-1" label="Description">
-                  <b-form-input
-                    id="input-2"
-                    v-model="form.description"
-                  ></b-form-input>
+                <template v-if="form.token">
+                  <b-form-group id="input-group-2" label="Issued Token" label-for="input-2">
+                    <b-input-group>
+                      <b-form-input
+                        id="input-2"
+                        type="text"
+                        v-model="form.token"
+                        disabled
+                      ></b-form-input>
+                      <b-input-group-append>
+                        <b-button variant="info" @click="onCopyNewAPIKey">Copy</b-button>
+                      </b-input-group-append>
+                    </b-input-group>
                   </b-form-group>
-                <b-button variant="primary" @click="onNewAPIKey">Submit</b-button>
+                  <b-alert variant="warning" show>Note: You can copy this raw token now only. After closing modal, you cannot confirm it.</b-alert>
+                  <b-button variant="secondary" @click="$bvModal.hide('new-token')">Close</b-button>
+                </template>
+                <template v-else-if="form.error">
+                  <b-alert variant="danger" show>{{ form.error }}</b-alert>
+                  <b-button variant="secondary" @click="$bvModal.hide('new-token')">Close</b-button>
+                </template>
+                <template v-else>
+                  <b-button type="submit" variant="primary">Submit</b-button>
+                </template>
               </b-form>
             </b-modal>
           </p>
           <h2>API Keys</h2>
-          <b-table title="API Keys" striped :items="table_items.api_keys" :fields="table_fields.api_keys">
+          <b-table
+            title="API Keys"
+            striped
+            :items="table_items.api_keys"
+            :fields="table_fields.api_keys"
+          >
+            <template v-slot:cell(masked_token)="data">
+              <span class="text-monospace">{{ data.value }}</span>
+            </template>
+
+          </b-table>
+
+          <h2>Groups</h2>
+          <b-table
+            striped
+            :items="table_items.groups"
+            :fields="table_fields.groups"
+            class="detail-table"
+          >
+          </b-table>
+
+          <h2>Roles</h2>
+          <b-table
+            striped
+            :items="table_items.roles"
+            :fields="table_fields.roles"
+            class="detail-table"
+          >
+          </b-table>
+
+          <h2>Permissions</h2>
+          <b-table
+            striped
+            :items="table_items.permissions"
+            :fields="table_fields.permissions"
+            class="detail-table"
+          >
           </b-table>
         </b-card>
       </b-col>
@@ -65,6 +119,24 @@
 <script>
 import axios from 'axios'
 
+async function fetchPrincipal(seq_id) {
+  const { data } = await axios.get('/guardmech/api/principal/' + seq_id )
+
+  return {
+    basic_info: [
+//      { key: 'Unique ID', value: data.principal.unique_id},
+      { key: 'Name', value: data.principal.name},
+      { key: 'Description', value: data.principal.description},
+    ],
+    auths: data.auths,
+    api_keys: data.api_keys,
+    groups: [],
+    roles: [],
+    permissions: [],
+  }
+}
+
+
 export default {
   name: 'principal',
   props: [],
@@ -72,7 +144,8 @@ export default {
     return {
       form: {
         name: "",
-        description: "",
+        token: "",
+        error: "",
       },
       table_fields: {
         basic_info: [
@@ -80,53 +153,65 @@ export default {
           {key: 'value', label: 'Value'},
         ],
         auths: [
-          {key: 'unique_id', label: 'Unique ID'},
+//          {key: 'unique_id', label: 'Unique ID'},
           {key: 'issuer', label: 'OIDC Issuer'},
           {key: 'subject', label: 'OIDC Sub'},
           {key: 'email', label: 'Email'},
         ],
         api_keys: [
-          {key: 'unique_id', label: 'Unique ID'},
+//          {key: 'unique_id', label: 'Unique ID'},
           {key: 'name', label: 'Token Name'},
           {key: 'masked_token', label: 'Token (Masked)'},
         ],
-      },
+        groups: [
+//          {key: 'unique_id', label: 'Unique ID'},
+          {key: 'name', label: 'Group Name'},
+        ],
+        roles: [
+//          {key: 'unique_id', label: 'Unique ID'},
+          {key: 'name', label: 'Role Name'},
+        ],
+        permissions: [
+//          {key: 'unique_id', label: 'Unique ID'},
+          {key: 'name', label: 'Permission Name'},
+        ],
+              },
       table_items: {
         basic_info: [],
         auths: [],
+        api_keys: [],
         groups: [],
-        basic_info: [],
+        roles: [],
+        permissions: [],
       },
     }
   },
-  mounted() {
-    this.fetchPrincipal()
+  async mounted() {
+    this.table_items = await fetchPrincipal(this.$route.params.seq_id)
   },
   methods: {
-    fetchPrincipal() {
-      axios.get('/guardmech/api/principal/' + this.$route.params.seq_id ).then(response => {
-        console.log(response)
-
-        // basic info
-        const pri = response.data.principal
-        this.table_items.basic_info.push({ key: 'Unique ID', value: pri.unique_id})
-        this.table_items.basic_info.push({ key: 'Name', value: pri.name})
-        this.table_items.basic_info.push({ key: 'Description', value: pri.description})
-
-        // auths
-        this.table_items.auths = response.data.auths
-        this.table_items.api_keys = response.data.api_keys
-      })
+    onCopyNewAPIKey() {
+      navigator.clipboard.writeText(this.form.token)
     },
-    onNewAPIKey() {
+    resetAPIKeyModal() {
+      this.form = {
+        name: "",
+        token: "",
+        error: "",
+      }
+    },
+    async onNewAPIKey(evt) {
+      evt.preventDefault()
       console.log('onNewAPIKey')
       let params = new URLSearchParams()
       params.append('name', this.form.name)
-      params.append('description', this.form.description)
-      axios.post('/guardmech/api/principal/' + this.$route.params.seq_id + '/new_key', params).then(response => {
+      axios.post('/guardmech/api/principal/' + this.$route.params.seq_id + '/new_key', params).then(async (response) => {
         console.log(response)
-        fetchPrincipal()
+        this.table_items = await fetchPrincipal(this.$route.params.seq_id)
+        this.form.token = response.data.token
+
       }).catch(error => {
+        this.form.error = error
         console.log(error)
       })
     }
@@ -142,3 +227,5 @@ export default {
   margin-bottom: 40px;
 }
 </style>
+
+undefined
