@@ -138,13 +138,18 @@ func (a *Mux) CreateAPIKeyHandler(w http.ResponseWriter, req *http.Request) {
 	name := req.Form.Get("name")
 	description := req.Form.Get("description")
 
-	pri, err := a.usecase.CreateAPIKey(req.Context(), id, name, description)
+	ap, rawToken, err := a.usecase.CreateAPIKey(req.Context(), id, name, description)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
-	renderJSON(w, pri)
+	result := map[string]interface{}{
+		"token":   rawToken,
+		"api_key": ap,
+	}
+
+	renderJSON(w, result)
 }
 
 func (a *Mux) ListRolesHandler(w http.ResponseWriter, req *http.Request) {

@@ -49,7 +49,7 @@ func main() {
 	log.Println("go!! generate!!")
 
 	gen := seacle.Generator{
-		Tag: "json",
+		Tag: "db",
 	}
 
 	sets := prepareGenset()

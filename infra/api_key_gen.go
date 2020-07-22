@@ -16,7 +16,7 @@ func (p *APIKey) Table() string {
 }
 
 func (p *APIKey) Columns() []string {
-	return []string{"api_key.seq_id", "api_key.unique_id", "api_key.token", "api_key.principal_id"}
+	return []string{"api_key.seq_id", "api_key.unique_id", "api_key.masked_token", "api_key.salt", "api_key.hashed_token", "api_key.principal_id"}
 }
 
 func (p *APIKey) PrimaryKeys() []string {
@@ -28,20 +28,22 @@ func (p *APIKey) PrimaryValues() []interface{} {
 }
 
 func (p *APIKey) ValueColumns() []string {
-	return []string{"unique_id", "token", "principal_id"}
+	return []string{"unique_id", "masked_token", "salt", "hashed_token", "principal_id"}
 }
 
 func (p *APIKey) Values() []interface{} {
-	return []interface{}{p.UniqueID, p.Token, p.PrincipalID}
+	return []interface{}{p.UniqueID, p.MaskedToken, p.Salt, p.HashedToken, p.PrincipalID}
 }
 
 func (p *APIKey) Scan(r seacle.RowScanner) error {
 	var arg0 int64
 	var arg1 uuid.UUID
 	var arg2 string
-	var arg3 int64
+	var arg3 string
+	var arg4 string
+	var arg5 int64
 
-	err := r.Scan(&arg0, &arg1, &arg2, &arg3)
+	err := r.Scan(&arg0, &arg1, &arg2, &arg3, &arg4, &arg5)
 	if err == sql.ErrNoRows {
 		return err
 	} else if err != nil {
@@ -51,8 +53,10 @@ func (p *APIKey) Scan(r seacle.RowScanner) error {
 
 	p.SeqID = arg0
 	p.UniqueID = arg1
-	p.Token = arg2
-	p.PrincipalID = arg3
+	p.MaskedToken = arg2
+	p.Salt = arg3
+	p.HashedToken = arg4
+	p.PrincipalID = arg5
 
 	return nil
 }

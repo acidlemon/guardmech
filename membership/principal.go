@@ -16,14 +16,7 @@ type Auth struct {
 	Issuer    string     `json:"issuer"`
 	Subject   string     `json:"subject"`
 	Email     string     `json:"email"`
-	Principal *Principal `json:"-"`
-}
-
-type APIKey struct {
-	SeqID     int64      `json:"seq_id"`
-	UniqueID  uuid.UUID  `json:"unique_id"`
-	Token     string     `json:"token"`
-	Principal *Principal `json:"-"`
+	Principal *Principal `json:"-" db:"-"`
 }
 
 type Principal struct {

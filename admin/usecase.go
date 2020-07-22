@@ -9,7 +9,7 @@ import (
 
 type AdminService interface {
 	CreatePrincipal(Context, *db.Tx, string, string) (*membership.Principal, error)
-	CreateAPIKey(Context, *db.Tx, *membership.Principal, string, string) (*membership.APIKey, error)
+	CreateAPIKey(Context, *db.Tx, *membership.Principal, string, string) (*membership.APIKey, string, error)
 
 	FindPrincipalBySeqID(Context, *sql.Conn, int64) (*membership.Principal, error)
 
@@ -75,25 +75,25 @@ func (u *Usecase) ListRoles(ctx Context) ([]*membership.Role, error) {
 	return list, err
 }
 
-func (u *Usecase) CreateAPIKey(ctx Context, principalID int64, name, description string) (*membership.APIKey, error) {
+func (u *Usecase) CreateAPIKey(ctx Context, principalID int64, name, description string) (*membership.APIKey, string, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer conn.Close()
 	defer tx.AutoRollback()
 
 	pri, err := u.svc.FindPrincipalBySeqID(ctx, conn, principalID)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	ap, err := u.svc.CreateAPIKey(ctx, tx, pri, name, description)
+	ap, rawToken, err := u.svc.CreateAPIKey(ctx, tx, pri, name, description)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	tx.Commit()
 
-	return ap, err
+	return ap, rawToken, err
 }

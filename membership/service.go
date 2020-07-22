@@ -2,7 +2,11 @@ package membership
 
 import (
 	"context"
+	"crypto/sha512"
 	"database/sql"
+	"encoding/hex"
+	"math/rand"
+	"strings"
 
 	"github.com/acidlemon/guardmech/db"
 	"github.com/google/uuid"
@@ -52,20 +56,66 @@ func (s *Service) CreateAuth(ctx context.Context, tx *db.Tx, owner *Principal, i
 	return a, nil
 }
 
-func (s *Service) CreateAPIKey(ctx context.Context, tx *db.Tx, owner *Principal, name, description string) (*APIKey, error) {
+var seedLetters = []byte("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_:")
+
+// randomized letter string
+func generateToken(length int) string {
+	randbytes := make([]byte, ((length + 3) * 3 / 4))
+	rand.Read(randbytes)
+
+	b := strings.Builder{}
+	limit := (length + 3) / 4
+	for loop := 0; loop < limit; loop++ {
+		idx := 3 * loop
+		p0, p1, p2, p3 := 0x3F&randbytes[idx], (0xC0&randbytes[idx])>>2|(0x0F&randbytes[idx+1]), (0xF0&randbytes[idx+1])>>2|(0x03&randbytes[idx+2]), 0xFC&randbytes[idx+2]>>2
+
+		b.WriteByte(seedLetters[p0])
+		b.WriteByte(seedLetters[p1])
+		b.WriteByte(seedLetters[p2])
+		b.WriteByte(seedLetters[p3])
+	}
+
+	return b.String()[:length]
+}
+
+func hashToken(token, salt []byte, stretching int) []byte {
+	input := make([]byte, 0, len(token)+len(salt))
+	input = append(input, token...)
+	input = append(input, salt...)
+	inter := sha512.Sum512(input)
+	for i := 0; i < stretching; i++ {
+		inter = sha512.Sum512(inter[:])
+	}
+
+	return inter[:]
+}
+
+const stretchingCount = 4096 // like $6$12
+
+func (s *Service) CreateAPIKey(ctx context.Context, tx *db.Tx, owner *Principal, name, description string) (*APIKey, string, error) {
+	// generate token
+
+	token := generateToken(36)
+	salt := generateToken(28)
+
+	maskedToken := token[:4] + strings.Repeat("*", len(token)-8) + token[len(token)-4:]
+	hashedToken := hashToken([]byte(token), []byte(salt), stretchingCount)
+
 	a := &APIKey{
-		UniqueID:  uuid.New(),
-		Token:     "powawa",
-		Principal: owner,
+		UniqueID:    uuid.New(),
+		MaskedToken: maskedToken,
+		HashedToken: hex.EncodeToString(hashedToken),
+		Salt:        salt,
+		Principal:   owner,
 	}
 
 	seqID, err := s.repos.SaveAPIKey(ctx, tx, a)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	a.SeqID = seqID
 
-	return a, nil
+	return a, token, nil // return raw token once
 }
 
 func (s *Service) CreateFirstPrincipal(ctx context.Context, conn *sql.Conn, idToken *OpenIDToken) (*Principal, error) {
