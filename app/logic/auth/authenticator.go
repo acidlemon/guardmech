@@ -10,7 +10,7 @@ import (
 
 	"github.com/acidlemon/guardmech/app/config"
 	"github.com/acidlemon/guardmech/oidconnect"
-	"github.com/coreos/go-oidc"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/k0kubun/pp"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
