@@ -1,9 +1,9 @@
 module github.com/acidlemon/guardmech
 
-go 1.12
+go 1.16
 
 require (
-	github.com/acidlemon/seacle v0.2.0
+	github.com/acidlemon/seacle v0.2.1
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2 // indirect
