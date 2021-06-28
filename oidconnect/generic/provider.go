@@ -1,0 +1,31 @@
+package generic
+
+import (
+	"context"
+
+	"github.com/coreos/go-oidc"
+	"golang.org/x/oauth2"
+)
+
+type Provider struct {
+	p *oidc.Provider
+}
+
+func New(ctx context.Context, issuer string) (*Provider, error) {
+	p, err := oidc.NewProvider(ctx, issuer)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Provider{
+		p: p,
+	}, nil
+}
+
+func (p *Provider) Verifier(config *oidc.Config) *oidc.IDTokenVerifier {
+	return p.p.Verifier(config)
+}
+
+func (p *Provider) Endpoint() oauth2.Endpoint {
+	return p.p.Endpoint()
+}

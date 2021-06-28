@@ -5,7 +5,7 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/acidlemon/guardmech/infra"
+	db "github.com/acidlemon/guardmech/persistence/db"
 	"github.com/acidlemon/seacle"
 )
 
@@ -23,21 +23,21 @@ func prepareGenset() []genset {
 		tp    reflect.Type
 		table string
 	}{
-		{reflect.TypeOf(infra.Principal{}), "principal"},
-		{reflect.TypeOf(infra.Auth{}), "auth"},
-		{reflect.TypeOf(infra.APIKey{}), "api_key"},
-		{reflect.TypeOf(infra.Group{}), "group_info"},
-		{reflect.TypeOf(infra.Permission{}), "permission"},
-		{reflect.TypeOf(infra.Role{}), "role_info"},
+		{reflect.TypeOf(db.PrincipalRow{}), "principal"},
+		{reflect.TypeOf(db.AuthOIDCRow{}), "auth_oidc"},
+		{reflect.TypeOf(db.AuthAPIKeyRow{}), "auth_api_key"},
+		{reflect.TypeOf(db.GroupRow{}), "group_info"},
+		{reflect.TypeOf(db.PermissionRow{}), "permission"},
+		{reflect.TypeOf(db.RoleRow{}), "role_info"},
 	}
 
 	result := []genset{}
 	for _, v := range set {
 		result = append(result, genset{
 			tp:      v.tp,
-			pkg:     "infra",
+			pkg:     "db",
 			table:   v.table,
-			outfile: fmt.Sprintf("../infra/%s_gen.go", v.table),
+			outfile: fmt.Sprintf("../persistence/db/%s_gen.go", v.table),
 		})
 	}
 

@@ -9,8 +9,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/acidlemon/guardmech/admin"
-	"github.com/acidlemon/guardmech/auth"
+	"github.com/acidlemon/guardmech/app/handler"
 )
 
 type GuardMech struct {
@@ -43,8 +42,9 @@ func (g *GuardMech) Run() error {
 	})
 	childMux.Handle("/guardmech/admin/", http.FileServer(http.Dir("dist")))
 
-	authMux := auth.NewMux()
-	adminMux := admin.NewMux()
+	//authMux := auth.NewMux()
+	authMux := handler.NewAuthMux()
+	adminMux := handler.NewAdminMux()
 
 	mux := http.NewServeMux()
 	mux.Handle("/auth/", authMux.Mux())
