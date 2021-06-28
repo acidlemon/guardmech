@@ -8,7 +8,12 @@ volumes:
 
 services:
   guardmech:
-    build: ./
+    build:
+      context: ./
+      dockerfile: Dockerfile.local
+    volumes:
+      - "./:/stash/src/github.com/acidlemon/guardmech"
+      - "../seacle:/stash/src/github.com/acidlemon/seacle"
     env_file: .env-guardmech
     depends_on: ["mysql"]
 
