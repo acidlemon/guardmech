@@ -56,7 +56,7 @@
           </p>
           <b-table :items="items" :fields="fields">
             <template v-slot:cell(action)="data">
-              <b-button variant="primary" :to="'principal/' + data.item.seq_id">情報</b-button>
+              <b-button variant="primary" :to="'principal/' + data.item.unique_id">情報</b-button>
             </template>
           </b-table>
         </b-card>
@@ -75,7 +75,7 @@ export default {
       items: [
       ],
       fields: [
-        {key: 'seq_id', label: 'ID'},
+        {key: 'unique_id', label: 'ID'},
         {key: 'name'},
         {key: 'description'},
         {key: 'action', label: ''},
@@ -94,7 +94,7 @@ export default {
       //  console.log(d)
       //  d["editable"] = true
       //}
-      this.items = data
+      this.items = data.map(d => d.principal)
     })
 
   }

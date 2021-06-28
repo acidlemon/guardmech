@@ -15,7 +15,7 @@ import (
 	"github.com/acidlemon/guardmech/oidconnect"
 	"github.com/acidlemon/guardmech/oidconnect/gsuite"
 	"github.com/acidlemon/guardmech/persistence"
-	oidc "github.com/coreos/go-oidc/v3/oidc"
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
@@ -32,14 +32,13 @@ func init() {
 
 type Authentication struct {
 	conf     *oauth2.Config
-	provider oidconnect.Membership
-	//	repos    membership.Repository
+	provider oidconnect.OIDCProvider
 }
 
 func NewAuthentication() *Authentication {
 	ctx := context.Background()
 	//	p, err := oidc.NewProvider(ctx, "https://accounts.google.com")
-	var p oidconnect.Membership
+	var p oidconnect.OIDCProvider
 	p, err := gsuite.New(ctx)
 	if err != nil {
 		// handle error
@@ -92,20 +91,21 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 	}
 
 	// if first user, set as owner
-	_, tx, err := db.GetTxConn(ctx)
+	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
 		reserr = systemError("Could not start transaction", err)
 		return
 	}
+	defer conn.Close()
 	defer tx.AutoRollback()
 
 	q := persistence.NewQuery(tx)
-	sv := membership.NewService(q)
+	manager := membership.NewManager(q)
 
 	// generate membership token
-	pri, err := sv.FindPrincipalByOIDC(ctx, token.Issuer, token.Sub)
+	pri, err := manager.FindPrincipalByOIDC(ctx, token.Issuer, token.Sub)
 	if err != nil {
-		list, err := sv.EnumeratePrincipalIDs(ctx)
+		list, err := manager.EnumeratePrincipalIDs(ctx)
 		if err != nil {
 			reserr = systemError("Failed to Check Principal", err)
 			return
@@ -118,14 +118,14 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 			cmd := persistence.NewCommand(tx)
 
 			var oidc *membership.OIDCAuthorization
-			pri, oidc, err = sv.CreatePrincipalFromOpenID(ctx, token)
+			pri, oidc, err = manager.CreatePrincipalFromOpenID(ctx, token)
 			if err != nil {
 				log.Println("failed to setup:", err.Error())
 				reserr = systemError("Failed to Setup", err)
 				return
 			}
 
-			r, perm, err := sv.SetupPrincipalAsOwner(ctx, pri)
+			r, perm, err := manager.SetupPrincipalAsOwner(ctx, pri)
 			if err != nil {
 				reserr = systemError("Failed to Setup", err)
 				return

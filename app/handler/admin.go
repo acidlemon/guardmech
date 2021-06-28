@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/acidlemon/guardmech/app/handler/payload"
 	"github.com/acidlemon/guardmech/app/usecase"
 	"github.com/gorilla/mux"
 )
@@ -20,7 +21,6 @@ type AdminMux struct {
 
 func NewAdminMux() *AdminMux {
 	u := usecase.NewAdministration()
-
 	am := &AdminMux{
 		u: u,
 	}
@@ -31,11 +31,11 @@ func NewAdminMux() *AdminMux {
 func (a *AdminMux) Mux() http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/guardmech/api/", a.ApiFallbackHandler)
-	// r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler)
+	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler)
 	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler)
-	// r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.GetPrincipalHandler).Methods(http.MethodGet)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.GetPrincipalHandler).Methods(http.MethodGet)
 	//	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
 
 	// r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
 	r.HandleFunc("/guardmech/api/role/new", a.CreateRoleHandler).Methods(http.MethodPost)
@@ -66,7 +66,6 @@ func (a *AdminMux) ApiFallbackHandler(w http.ResponseWriter, req *http.Request) 
 	io.WriteString(w, `{"message":"Hello World!"}`)
 }
 
-/*
 func (a *AdminMux) ListPrincipalsHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 	list, err := a.u.ListPrincipals(req.Context())
@@ -75,8 +74,13 @@ func (a *AdminMux) ListPrincipalsHandler(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
+	payloads := make([]*payload.PrincipalPayload, 0, len(list))
+	for _, v := range list {
+		payloads = append(payloads, payload.PrincipalPayloadFromEntity(v))
+	}
+
 	renderJSON(w, map[string]interface{}{
-		"principals": list,
+		"principals": payloads,
 	})
 }
 
@@ -84,23 +88,16 @@ func (a *AdminMux) GetPrincipalHandler(w http.ResponseWriter, req *http.Request)
 	// TODO permission check
 
 	vars := mux.Vars(req)
-	idStr := vars["id"]
-	var id int64
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id := vars["id"]
+	pri, err := a.u.ShowPrincipal(req.Context(), id)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
-	payload, err := a.u.ShowPrincipal(req.Context(), id)
-	if err != nil {
-		errorJSON(w, err)
-		return
-	}
-
-	renderJSON(w, payload)
+	p := payload.PrincipalPayloadFromEntity(pri)
+	renderJSON(w, p)
 }
-*/
 
 // func (a *Mux) UpdatePrincipalHandler(w http.ResponseWriter, req *http.Request) {
 // 	// TODO permission check
@@ -151,16 +148,9 @@ func (a *AdminMux) CreateAPIKeyHandler(w http.ResponseWriter, req *http.Request)
 	// TODO permission check
 
 	vars := mux.Vars(req)
-	idStr := vars["id"]
-	var id int64
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		errorJSON(w, err)
-		return
-	}
-
+	id := vars["id"]
 	// parameters
-	err = req.ParseForm()
+	err := req.ParseForm()
 	if err != nil {
 		errorJSON(w, err)
 		return

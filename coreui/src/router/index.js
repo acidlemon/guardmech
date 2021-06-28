@@ -50,7 +50,7 @@ export default new Router({
           component: Principals
         },
         {
-          path: 'principal/:seq_id',
+          path: 'principal/:id',
           name: 'Principal',
           component: Principal
         },

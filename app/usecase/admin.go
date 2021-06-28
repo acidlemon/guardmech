@@ -1,25 +1,26 @@
 package usecase
 
 import (
-	"database/sql"
+	"log"
 
 	"github.com/acidlemon/guardmech/app/logic/membership"
 	"github.com/acidlemon/guardmech/db"
+	"github.com/acidlemon/guardmech/persistence"
 )
 
-type AdminService interface {
-	CreatePrincipal(Context, *db.Tx, string, string) (*membership.Principal, error)
-	CreateAPIKey(Context, *db.Tx, *membership.Principal, string) (*membership.AuthAPIKey, string, error)
+// type AdminService interface {
+// 	CreatePrincipal(Context, *db.Tx, string, string) (*membership.Principal, error)
+// 	CreateAPIKey(Context, *db.Tx, *membership.Principal, string) (*membership.AuthAPIKey, string, error)
 
-	FindPrincipalBySeqID(Context, *sql.Conn, int64) (*membership.Principal, error)
+// 	FindPrincipalBySeqID(Context, *sql.Conn, int64) (*membership.Principal, error)
 
-	FetchAllPrincipal(Context, *sql.Conn) ([]*membership.Principal, error)
-	FetchAllRole(Context, *sql.Conn) ([]*membership.Role, error)
-}
+// 	FetchAllPrincipal(Context, *sql.Conn) ([]*membership.Principal, error)
+// 	FetchAllRole(Context, *sql.Conn) ([]*membership.Role, error)
+// }
 
 type Administration struct {
-	repos membership.Service
-	svc   AdminService
+	//repos membership.Manager
+	// svc   AdminService
 }
 
 func NewAdministration() *Administration {
@@ -34,40 +35,60 @@ func (u *Administration) CreatePrincipal(ctx Context, name, description string) 
 	defer conn.Close()
 	defer tx.AutoRollback()
 
-	pri, err := u.svc.CreatePrincipal(ctx, tx, name, description)
+	// pri, err := u.svc.CreatePrincipal(ctx, tx, name, description)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	tx.Commit()
+
+	return nil, err
+}
+
+func (u *Administration) ShowPrincipal(ctx Context, principalID string) (*membership.Principal, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	manager := membership.NewManager(q)
+
+	pri, err := manager.FindPrincipalByID(ctx, principalID)
 	if err != nil {
 		return nil, err
 	}
-
-	tx.Commit()
 
 	return pri, err
 }
 
-/*
-func (u *Administration) ShowPrincipal(ctx Context, ID int64) (*membership.Principal, error) {
-	conn, err := db.GetConn(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	payload, err := u.repos.FetchPrincipalPayload(ctx, conn, ID)
-	return payload, err
-}
-
 func (u *Administration) ListPrincipals(ctx Context) ([]*membership.Principal, error) {
-	conn, err := db.GetConn(ctx)
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	manager := membership.NewManager(q)
+
+	ids, err := manager.EnumeratePrincipalIDs(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close()
 
-	list, err := u.repos.FetchAllPrincipal(ctx, conn)
+	list, err := manager.FindPrincipals(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
 
-	return list, err
+	return list, nil
 }
 
+/*
 func (u *Administration) ListRoles(ctx Context) ([]*membership.Role, error) {
 	conn, err := db.GetConn(ctx)
 	if err != nil {
@@ -81,27 +102,36 @@ func (u *Administration) ListRoles(ctx Context) ([]*membership.Role, error) {
 }
 */
 
-func (u *Administration) CreateAPIKey(ctx Context, principalID int64, name string) (*membership.AuthAPIKey, string, error) {
+func (u *Administration) CreateAPIKey(ctx Context, principalID string, name string) (*membership.AuthAPIKey, string, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
-		return nil, "", err
+		return nil, "", systemError("Could not start transaction", err)
 	}
 	defer conn.Close()
 	defer tx.AutoRollback()
 
-	pri, err := u.svc.FindPrincipalBySeqID(ctx, conn, principalID)
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+	pri, err := manager.FindPrincipalByID(ctx, principalID)
 	if err != nil {
 		return nil, "", err
 	}
 
-	ap, rawToken, err := u.svc.CreateAPIKey(ctx, tx, pri, name)
+	apikey, rawToken, err := pri.CreateAPIKey(name)
 	if err != nil {
+		return nil, "", err
+	}
+
+	err = cmd.SaveAuthAPIKey(ctx, apikey, pri)
+	if err != nil {
+		log.Println("save error on SaveAuthAPIKey:", err)
 		return nil, "", err
 	}
 
 	tx.Commit()
 
-	return ap, rawToken, err
+	return apikey, rawToken, err
 }
 
 func (u *Administration) CreateRole(ctx Context) (*membership.Role, error) {

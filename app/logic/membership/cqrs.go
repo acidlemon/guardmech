@@ -19,4 +19,5 @@ type Command interface {
 	SaveRole(ctx Context, r *Role) error
 	SavePermission(ctx Context, perm *Permission) error
 	SaveAuthOIDC(ctx Context, oidc *OIDCAuthorization, pri *Principal) error
+	SaveAuthAPIKey(ctx Context, key *AuthAPIKey, pri *Principal) error
 }

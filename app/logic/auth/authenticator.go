@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/acidlemon/guardmech/app/config"
+	"github.com/acidlemon/guardmech/app/logic"
 	"github.com/acidlemon/guardmech/oidconnect"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/k0kubun/pp/v3"
@@ -20,25 +20,12 @@ import (
 type Query interface {
 }
 
-var randLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-func generateRandomString(length int, letters []rune) string {
-	b := strings.Builder{}
-	b.Grow(length)
-	lc := len(letters)
-
-	for i := 0; i < length; i++ {
-		b.WriteRune(letters[rand.Intn(lc)])
-	}
-	return b.String()
-}
-
 type Authenticator struct {
 	oidcConf *oauth2.Config
-	provider oidconnect.Membership
+	provider oidconnect.OIDCProvider
 }
 
-func NewAuthenticator(conf *oauth2.Config, provider oidconnect.Membership) *Authenticator {
+func NewAuthenticator(conf *oauth2.Config, provider oidconnect.OIDCProvider) *Authenticator {
 	return &Authenticator{
 		oidcConf: conf,
 		provider: provider,
@@ -47,7 +34,7 @@ func NewAuthenticator(conf *oauth2.Config, provider oidconnect.Membership) *Auth
 
 // OpenID Connectを利用した認証の開始
 func (a *Authenticator) StartAuthentication() (string, string, time.Time) {
-	state := generateRandomString(32, randLetters)
+	state := logic.GenerateRandomString(32)
 	url := a.oidcConf.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	expireAt := time.Now().Add(config.SessionLifeTime)
 	log.Println(url)

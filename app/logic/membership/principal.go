@@ -2,19 +2,15 @@ package membership
 
 import (
 	"context"
+	"log"
+	"strings"
 
+	"github.com/acidlemon/guardmech/app/logic"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Context = context.Context
-
-// type Auth struct {
-// 	AuthID    uuid.UUID
-// 	Issuer    string
-// 	Subject   string
-// 	Email     string
-// 	Principal *Principal
-// }
 
 type Principal struct {
 	PrincipalID uuid.UUID
@@ -92,6 +88,30 @@ func (p *Principal) Permissions() []*Permission {
 }
 
 // write
+
+func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
+	newToken := "gmch-" + logic.GenerateRandomString(43)
+
+	hashed, err := bcrypt.GenerateFromPassword([]byte(newToken), 12)
+	if err != nil {
+		log.Println("failed to run bcrypt. Maybe this is bug:", err)
+		return nil, "", err
+	}
+
+	masked := strings.Repeat("*", 44) + newToken[44:]
+
+	log.Println(newToken)
+	log.Println(masked)
+
+	key := &AuthAPIKey{
+		AuthAPIKeyID: uuid.New(),
+		Name:         name,
+		HashedToken:  string(hashed),
+		MaskedToken:  masked,
+	}
+
+	return key, newToken, nil
+}
 
 func (p *Principal) AttachNewRole(name, description string) (*Role, error) {
 	// create New Role

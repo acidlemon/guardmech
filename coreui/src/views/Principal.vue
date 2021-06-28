@@ -119,12 +119,12 @@
 <script>
 import axios from 'axios'
 
-async function fetchPrincipal(seq_id) {
-  const { data } = await axios.get('/guardmech/api/principal/' + seq_id )
+async function fetchPrincipal(id) {
+  const { data } = await axios.get('/guardmech/api/principal/' + id )
 
   return {
     basic_info: [
-//      { key: 'Unique ID', value: data.principal.unique_id},
+      { key: 'Unique ID', value: data.principal.unique_id},
       { key: 'Name', value: data.principal.name},
       { key: 'Description', value: data.principal.description},
     ],
@@ -153,26 +153,26 @@ export default {
           {key: 'value', label: 'Value'},
         ],
         auths: [
-//          {key: 'unique_id', label: 'Unique ID'},
+          {key: 'unique_id', label: 'Unique ID'},
           {key: 'issuer', label: 'OIDC Issuer'},
           {key: 'subject', label: 'OIDC Sub'},
           {key: 'email', label: 'Email'},
         ],
         api_keys: [
-//          {key: 'unique_id', label: 'Unique ID'},
+          {key: 'unique_id', label: 'Unique ID'},
           {key: 'name', label: 'Token Name'},
           {key: 'masked_token', label: 'Token (Masked)'},
         ],
         groups: [
-//          {key: 'unique_id', label: 'Unique ID'},
+          {key: 'unique_id', label: 'Unique ID'},
           {key: 'name', label: 'Group Name'},
         ],
         roles: [
-//          {key: 'unique_id', label: 'Unique ID'},
+          {key: 'unique_id', label: 'Unique ID'},
           {key: 'name', label: 'Role Name'},
         ],
         permissions: [
-//          {key: 'unique_id', label: 'Unique ID'},
+          {key: 'unique_id', label: 'Unique ID'},
           {key: 'name', label: 'Permission Name'},
         ],
               },
@@ -187,7 +187,8 @@ export default {
     }
   },
   async mounted() {
-    this.table_items = await fetchPrincipal(this.$route.params.seq_id)
+    console.log(this.$route.params)
+    this.table_items = await fetchPrincipal(this.$route.params.id)
   },
   methods: {
     onCopyNewAPIKey() {
@@ -205,9 +206,9 @@ export default {
       console.log('onNewAPIKey')
       let params = new URLSearchParams()
       params.append('name', this.form.name)
-      axios.post('/guardmech/api/principal/' + this.$route.params.seq_id + '/new_key', params).then(async (response) => {
+      axios.post('/guardmech/api/principal/' + this.$route.params.id + '/new_key', params).then(async (response) => {
         console.log(response)
-        this.table_items = await fetchPrincipal(this.$route.params.seq_id)
+        this.table_items = await fetchPrincipal(this.$route.params.id)
         this.form.token = response.data.token
 
       }).catch(error => {

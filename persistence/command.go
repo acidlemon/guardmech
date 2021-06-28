@@ -8,34 +8,32 @@ import (
 
 type command struct {
 	conn seacle.Executable
+	m    *db.Service
 }
 
 func NewCommand(conn seacle.Executable) entity.Command {
 	return &command{
 		conn: conn,
+		m:    &db.Service{},
 	}
 }
 
 func (c *command) SavePrincipal(ctx Context, pri *entity.Principal) error {
-	m := db.Service{}
-
-	return m.SavePrincipal(ctx, c.conn, pri)
+	return c.m.SavePrincipal(ctx, c.conn, pri)
 }
 
 func (c *command) SaveRole(ctx Context, r *entity.Role) error {
-	m := db.Service{}
-
-	return m.SaveRole(ctx, c.conn, r)
+	return c.m.SaveRole(ctx, c.conn, r)
 }
 
 func (c *command) SavePermission(ctx Context, perm *entity.Permission) error {
-	m := db.Service{}
-
-	return m.SavePermission(ctx, c.conn, perm)
+	return c.m.SavePermission(ctx, c.conn, perm)
 }
 
 func (c *command) SaveAuthOIDC(ctx Context, oidc *entity.OIDCAuthorization, pri *entity.Principal) error {
-	m := db.Service{}
+	return c.m.SaveAuthOIDC(ctx, c.conn, oidc, pri)
+}
 
-	return m.SaveAuthOIDC(ctx, c.conn, oidc, pri)
+func (c *command) SaveAuthAPIKey(ctx Context, key *entity.AuthAPIKey, pri *entity.Principal) error {
+	return c.m.SaveAuthAPIKey(ctx, c.conn, key, pri)
 }

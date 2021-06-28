@@ -25,7 +25,7 @@ func prepareGenset() []genset {
 	}{
 		{reflect.TypeOf(db.PrincipalRow{}), "principal"},
 		{reflect.TypeOf(db.AuthOIDCRow{}), "auth_oidc"},
-		{reflect.TypeOf(db.AuthAPIKeyRow{}), "auth_api_key"},
+		{reflect.TypeOf(db.AuthAPIKeyRow{}), "auth_apikey"},
 		{reflect.TypeOf(db.GroupRow{}), "group_info"},
 		{reflect.TypeOf(db.PermissionRow{}), "permission"},
 		{reflect.TypeOf(db.RoleRow{}), "role_info"},
