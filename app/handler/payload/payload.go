@@ -6,7 +6,7 @@ import (
 )
 
 type Auth struct {
-	UniqueID  uuid.UUID  `json:"unique_id"`
+	ID        uuid.UUID  `json:"id"`
 	Issuer    string     `json:"issuer"`
 	Subject   string     `json:"subject"`
 	Email     string     `json:"email"`
@@ -14,28 +14,31 @@ type Auth struct {
 }
 
 type Principal struct {
-	UniqueID    uuid.UUID `json:"unique_id"`
+	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 }
 
 type APIKey struct {
+	ID          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	MaskedToken string    `json:"masked_token"`
 }
 
 type Group struct {
-	UniqueID    uuid.UUID `json:"unique_id"`
+	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 }
 
 type Role struct {
-	UniqueID    uuid.UUID `json:"unique_id"`
+	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 }
 
 type Permission struct {
-	UniqueID    uuid.UUID `json:"unique_id"`
+	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 }
@@ -43,48 +46,69 @@ type Permission struct {
 type PrincipalPayload struct {
 	Principal   *Principal    `json:"principal"`
 	Auth        *Auth         `json:"auth_oidc"`
-	APIKeys     []*APIKey     `json:"auth_api_keys"`
+	APIKeys     []*APIKey     `json:"auth_apikeys"`
 	Groups      []*Group      `json:"groups"`
 	Roles       []*Role       `json:"roles"`
 	Permissions []*Permission `json:"permissions"`
 }
 
+func PrincipalFromEntity(pri *entity.Principal) *Principal {
+	return &Principal{
+		ID:          pri.PrincipalID,
+		Name:        pri.Name,
+		Description: pri.Description,
+	}
+}
+
 func PrincipalPayloadFromEntity(pri *entity.Principal) *PrincipalPayload {
+	oidcAuth := pri.OIDCAuthorization()
+	apikeys := pri.APIKeys()
 	gs := pri.Groups()
 	rs := pri.Roles()
 	perms := pri.Permissions()
 
 	result := &PrincipalPayload{
-		APIKeys:     []*APIKey{},
+		Principal: &Principal{
+			ID:          pri.PrincipalID,
+			Name:        pri.Name,
+			Description: pri.Description,
+		},
+		Auth: &Auth{
+			ID:      oidcAuth.OIDCAuthID,
+			Issuer:  oidcAuth.Issuer,
+			Subject: oidcAuth.Subject,
+			Email:   oidcAuth.Email,
+		},
+		APIKeys:     make([]*APIKey, 0, len(apikeys)),
 		Groups:      make([]*Group, 0, len(gs)),
 		Roles:       make([]*Role, 0, len(rs)),
 		Permissions: make([]*Permission, 0, len(perms)),
 	}
 
-	result.Principal = &Principal{
-		UniqueID:    pri.PrincipalID,
-		Name:        pri.Name,
-		Description: pri.Description,
+	for _, v := range apikeys {
+		result.APIKeys = append(result.APIKeys, &APIKey{
+			ID:          v.AuthAPIKeyID,
+			Name:        v.Name,
+			MaskedToken: v.MaskedToken,
+		})
 	}
-	result.Auth = &Auth{}
-
 	for _, v := range gs {
 		result.Groups = append(result.Groups, &Group{
-			UniqueID:    v.GroupID,
+			ID:          v.GroupID,
 			Name:        v.Name,
 			Description: v.Description,
 		})
 	}
 	for _, v := range rs {
 		result.Roles = append(result.Roles, &Role{
-			UniqueID:    v.RoleID,
+			ID:          v.RoleID,
 			Name:        v.Name,
 			Description: v.Description,
 		})
 	}
 	for _, v := range perms {
 		result.Permissions = append(result.Permissions, &Permission{
-			UniqueID:    v.PermissionID,
+			ID:          v.PermissionID,
 			Name:        v.Name,
 			Description: v.Description,
 		})

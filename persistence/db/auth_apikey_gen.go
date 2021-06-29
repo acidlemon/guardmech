@@ -34,6 +34,10 @@ func (p *AuthAPIKeyRow) Values() []interface{} {
 	return []interface{}{p.AuthAPIKeyID, p.Name, p.MaskedToken, p.HashedToken, p.PrincipalSeqID}
 }
 
+func (p *AuthAPIKeyRow) AutoIncrementColumn() string {
+	return "seq_id"
+}
+
 func (p *AuthAPIKeyRow) Scan(r seacle.RowScanner) error {
 	var arg0 int64
 	var arg1 string

@@ -34,6 +34,10 @@ func (p *GroupRow) Values() []interface{} {
 	return []interface{}{p.GroupID, p.Name, p.Description}
 }
 
+func (p *GroupRow) AutoIncrementColumn() string {
+	return "seq_id"
+}
+
 func (p *GroupRow) Scan(r seacle.RowScanner) error {
 	var arg0 int64
 	var arg1 string

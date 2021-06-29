@@ -8,10 +8,11 @@ import (
 	entity "github.com/acidlemon/guardmech/app/logic/membership"
 	"github.com/acidlemon/seacle"
 	"github.com/google/uuid"
+	"github.com/k0kubun/pp/v3"
 )
 
 type PrincipalRow struct {
-	SeqID       int64  `db:"seq_id,primary"`
+	SeqID       int64  `db:"seq_id,primary,auto_increment"`
 	PrincipalID string `db:"principal_id"`
 	Name        string `db:"name"`
 	Description string `db:"description"`
@@ -33,21 +34,8 @@ func (pri *PrincipalRow) ToEntity() *entity.Principal {
 }
 
 type Service struct {
+	q entity.Query
 }
-
-// func (s *Service) HasPrincipal(ctx context.Context, conn *sql.Conn) (bool, error) {
-// 	row := conn.QueryRowContext(ctx, `SELECT COUNT(*) AS cnt FROM principal`)
-// 	var cnt int
-// 	err := row.Scan(&cnt)
-// 	if err != nil {
-// 		return false, err
-// 	}
-//
-// 	if cnt == 0 {
-// 		return false, nil
-// 	}
-// 	return true, nil
-// }
 
 func (s *Service) FindPrincipalBySeqID(ctx Context, conn *sql.Conn, id int64) (*entity.Principal, error) {
 	pr := &PrincipalRow{}
@@ -61,127 +49,36 @@ func (s *Service) FindPrincipalBySeqID(ctx Context, conn *sql.Conn, id int64) (*
 	return mempr, nil
 }
 
-/*
-func (s *Membership) FetchPrincipalPayload(ctx Context, conn *sql.Conn, id int64) (*membership.PrincipalPayload, error) {
-	log.Println(string(debug.Stack()))
-
-	pr := &Principal{}
-	err := seacle.SelectRow(ctx, conn, pr, `WHERE seq_id = ?`, id)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	mempr := membership.Principal(*pr)
-
-	auths := make([]*Auth, 0, 4)
-	err = seacle.Select(ctx, conn, &auths, `WHERE principal_id = ?`, id)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	apikeys := make([]*APIKey, 0, 4)
-	err = seacle.Select(ctx, conn, &apikeys, `WHERE principal_id = ?`, id)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	groups := make([]*Group, 0, 8)
-	err = seacle.Select(ctx, conn, &groups,
-		`JOIN principal_group_map AS m ON group_info.seq_id = m.group_id WHERE m.principal_id = ?`, id)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	roles := make([]*Role, 0, 8)
-	err = seacle.Select(ctx, conn, &roles,
-		`JOIN principal_role_map AS m ON role_info.seq_id = m.role_id WHERE m.principal_id = ?`, id)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
-	if len(groups) > 0 {
-		groupIDs := make([]int64, 0, len(groups))
-		for _, v := range groups {
-			groupIDs = append(groupIDs, v.SeqID)
-		}
-
-		// append to roles
-		err = seacle.Select(ctx, conn, &roles,
-			`JOIN group_role_map AS m ON role_info.seq_id = m.role_id WHERE m.group_id IN (?)`, groupIDs)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-
-		roles = uniqRoles(roles)
-	}
-
-	perms := make([]*Permission, 0, 8)
-	if len(roles) > 0 {
-		err = seacle.Select(ctx, conn, &perms,
-			`JOIN role_permission_map AS m ON permission.seq_id = m.permission_id WHERE m.role_id IN (?)`, roleIDs(roles))
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-	}
-
-	// 詰め替え
-	memauths := make([]*entity.Auth, 0, len(auths))
-	for _, v := range auths {
-		a := membership.Auth(v.Auth)
-		a.Principal = &mempr
-		memauths = append(memauths, &a)
-	}
-	memapikeys := make([]*entity.APIKey, 0, len(apikeys))
-	for _, v := range apikeys {
-		a := membership.APIKey(v.APIKey)
-		a.Principal = &mempr
-		memapikeys = append(memapikeys, &a)
-	}
-	memgroups := make([]*entity.Group, 0, len(groups))
-	for _, v := range groups {
-		g := membership.Group(*v)
-		memgroups = append(memgroups, &g)
-	}
-	memroles := make([]*entity.Role, 0, len(roles))
-	for _, v := range roles {
-		r := membership.Role(*v)
-		memroles = append(memroles, &r)
-	}
-	memperms := make([]*entity.Permission, 0, len(perms))
-	for _, v := range perms {
-		pe := membership.Permission(*v)
-		memperms = append(memperms, &pe)
-	}
-
-	return &membership.PrincipalPayload{
-		Principal:   &mempr,
-		Auths:       memauths,
-		APIKeys:     memapikeys,
-		Groups:      memgroups,
-		Roles:       memroles,
-		Permissions: memperms,
-	}, nil
-}
-*/
-
 func (s *Service) SavePrincipal(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
 	row := &PrincipalRow{}
 	err := seacle.SelectRow(ctx, conn, row, "WHERE principal_id = ?", pri.PrincipalID.String())
 	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
 		return err
 	}
 
 	if err == sql.ErrNoRows {
-		return s.createPrincipal(ctx, conn, pri)
+		err = s.createPrincipal(ctx, conn, pri)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+		err = seacle.SelectRow(ctx, conn, row, "WHERE principal_id = ?", pri.PrincipalID.String())
 	} else {
-		return s.updatePrincipal(ctx, conn, pri, row)
+		err = s.updatePrincipal(ctx, conn, pri, row)
 	}
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	err = s.savePrincipalRole(ctx, conn, pri, row)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }
 
 func (s *Service) createPrincipal(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
@@ -196,7 +93,7 @@ func (s *Service) createPrincipal(ctx Context, conn seacle.Executable, pri *enti
 
 func (s *Service) updatePrincipal(ctx Context, conn seacle.Executable, pri *entity.Principal, row *PrincipalRow) error {
 	// lock row
-	err := seacle.SelectRow(ctx, conn, row, `FOR UPDATE WHERE seq_id = ?`, row.SeqID)
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
 		return fmt.Errorf("failed to lock principal row: err=%s", err)
 	}
@@ -212,6 +109,91 @@ func (s *Service) updatePrincipal(ctx Context, conn seacle.Executable, pri *enti
 	return nil
 }
 
+func (s *Service) savePrincipalRole(ctx Context, conn seacle.Executable, pri *entity.Principal, priRow *PrincipalRow) error {
+	roles := pri.Roles()
+	roleSeqIDs := make([]int64, 0, len(roles))
+	if len(roles) != 0 {
+		roleIDs := make([]string, 0, len(roles))
+		for _, v := range roles {
+			roleIDs = append(roleIDs, v.RoleID.String())
+		}
+		roleRows := []*RoleRow{}
+		err := seacle.Select(ctx, conn, &roleRows, `WHERE role_id IN (?)`, roleIDs)
+		if err != nil {
+			return err
+		}
+		for _, v := range roleRows {
+			roleSeqIDs = append(roleSeqIDs, v.SeqID)
+		}
+	}
+
+	priRoleMaps := []*PrincipalRoleMapRow{}
+	err := seacle.Select(ctx, conn, &priRoleMaps, `WHERE principal_seq_id = ?`, priRow.SeqID)
+	if err != nil {
+		return err
+	}
+
+	// added
+	if len(roles) != 0 {
+		added := []int64{}
+		for _, v := range roleSeqIDs {
+			found := false
+			for _, w := range priRoleMaps {
+				if v == w.RoleSeqID {
+					found = true
+					break
+				}
+			}
+			if !found {
+				added = append(added, v)
+			}
+		}
+		for _, roleSeqID := range added {
+			_, err = seacle.Insert(ctx, conn, &PrincipalRoleMapRow{
+				PrincipalSeqID: priRow.SeqID,
+				RoleSeqID:      roleSeqID,
+			})
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+		}
+	}
+
+	// deleted
+	if len(priRoleMaps) != 0 {
+		deleted := []int64{}
+		for _, v := range priRoleMaps {
+			found := false
+			for _, w := range roleSeqIDs {
+				if v.RoleSeqID == w {
+					found = true
+					break
+				}
+			}
+			if !found {
+				deleted = append(deleted, v.RoleSeqID)
+			}
+		}
+		for _, roleSeqID := range deleted {
+			err = seacle.Delete(ctx, conn, &PrincipalRoleMapRow{
+				PrincipalSeqID: priRow.SeqID,
+				RoleSeqID:      roleSeqID,
+			})
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) SavePrincipalGroup(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
+	return nil
+}
+
 func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalIDs []string) ([]*entity.Principal, error) {
 	pris := make([]*PrincipalRow, 0, 8)
 	err := seacle.Select(ctx, conn, &pris, `WHERE principal_id IN (?)`, principalIDs)
@@ -220,18 +202,62 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 		return nil, err
 	}
 
-	result := make([]*entity.Principal, 0, len(pris))
-
 	// seq_idを抽出
 	priSeqIDs := make([]int64, 0, len(pris))
 	for _, v := range pris {
-		result = append(result, v.ToEntity())
 		priSeqIDs = append(priSeqIDs, v.SeqID)
 	}
 
+	if len(priSeqIDs) == 0 {
+		return []*entity.Principal{}, nil
+	}
+
+	// AuthOIDC
+	oidcs := make([]*AuthOIDCRow, 0, len(pris))
+	authMap := map[int64]*entity.OIDCAuthorization{}
+	err = seacle.Select(ctx, conn, &oidcs, `WHERE principal_seq_id IN (?)`, priSeqIDs)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	for _, v := range oidcs {
+		authMap[v.PrincipalSeqID] = v.ToEntity()
+	}
+
+	// APIKey
+	apikeys := []*AuthAPIKeyRow{}
+	apikeyMap := map[int64][]*entity.AuthAPIKey{}
+	err = seacle.Select(ctx, conn, &apikeys, `WHERE principal_seq_id IN (?)`, priSeqIDs)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	for _, v := range apikeys {
+		if apikeyMap[v.PrincipalSeqID] == nil {
+			apikeyMap[v.PrincipalSeqID] = []*entity.AuthAPIKey{}
+		}
+		apikeyMap[v.PrincipalSeqID] = append(apikeyMap[v.PrincipalSeqID], v.ToEntity())
+	}
+
 	// Role
-	// rs := make([]*RoleRow, 0, 12)
-	// err = seacle.Select(ctx, conn, &rs, `JOIN `)
+	rolesMap, err := s.findRolesByPrincipalSeqID(ctx, conn, priSeqIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Group
+	groupsMap := map[int64][]*entity.Group{}
+
+	result := make([]*entity.Principal, 0, len(pris))
+	f := entity.NewFactory(s.q)
+	for _, v := range pris {
+		result = append(result, f.NewPrincipal(
+			uuid.MustParse(v.PrincipalID), v.Name, v.Description,
+			authMap[v.SeqID], apikeyMap[v.SeqID], rolesMap[v.SeqID], groupsMap[v.SeqID]))
+
+	}
+
+	pp.Print(result[0])
 
 	return result, nil
 }
@@ -272,19 +298,3 @@ func (s *Service) EnumeratePrincipalIDs(ctx Context, conn seacle.Selectable) ([]
 
 	return result, nil
 }
-
-// func (s *Service) FetchAllPrincipal(ctx Context, conn seacle.Selectable) ([]*membership.Principal, error) {
-// 	principals := make([]*Principal, 0, 4)
-// 	err := seacle.Select(ctx, conn, &principals, ``)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	result := []*membership.Principal{}
-// 	for _, v := range principals {
-// 		pr := membership.Principal(*v)
-// 		result = append(result, &pr)
-// 	}
-
-// 	return result, nil
-// }

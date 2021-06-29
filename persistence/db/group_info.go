@@ -1,7 +1,7 @@
 package db
 
 type GroupRow struct {
-	SeqID       int64  `db:"seq_id,primary"`
+	SeqID       int64  `db:"seq_id,primary,auto_increment"`
 	GroupID     string `db:"group_id"`
 	Name        string `db:"name"`
 	Description string `db:"description"`
@@ -41,7 +41,7 @@ func (s *Service) updateGroup(ctx context.Context, tx *db.Tx, gr *membership.Gro
 	}
 
 	// lock row
-	err = seacle.SelectRow(ctx, tx, groupForUpdate, `FOR UPDATE WHERE seq_id = ?`, groupForUpdate.SeqID)
+	err = seacle.SelectRow(ctx, tx, groupForUpdate, `WHERE seq_id = ? FOR UPDATE`, groupForUpdate.SeqID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to lock role row: err=%s", err)
 	}

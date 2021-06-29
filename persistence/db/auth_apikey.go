@@ -7,10 +7,11 @@ import (
 
 	entity "github.com/acidlemon/guardmech/app/logic/membership"
 	"github.com/acidlemon/seacle"
+	"github.com/google/uuid"
 )
 
 type AuthAPIKeyRow struct {
-	SeqID          int64  `db:"seq_id,primary"`
+	SeqID          int64  `db:"seq_id,primary,auto_increment"`
 	AuthAPIKeyID   string `db:"auth_apikey_id"`
 	Name           string `db:"name"`
 	MaskedToken    string `db:"masked_token"`
@@ -25,6 +26,15 @@ func authAPIKeyRowFromEntity(a *entity.AuthAPIKey, principalSeqID int64) *AuthAP
 		MaskedToken:    a.MaskedToken,
 		HashedToken:    a.HashedToken,
 		PrincipalSeqID: principalSeqID,
+	}
+}
+
+func (a *AuthAPIKeyRow) ToEntity() *entity.AuthAPIKey {
+	return &entity.AuthAPIKey{
+		AuthAPIKeyID: uuid.MustParse(a.AuthAPIKeyID),
+		Name:         a.Name,
+		MaskedToken:  a.MaskedToken,
+		HashedToken:  a.HashedToken,
 	}
 }
 
@@ -60,7 +70,7 @@ func (s *Service) createAuthAPIKey(ctx Context, conn seacle.Executable, a *entit
 
 func (s *Service) updateAuthAPIKey(ctx Context, conn seacle.Executable, a *entity.AuthAPIKey, priSeqID int64, row *AuthAPIKeyRow) error {
 	// lock row
-	err := seacle.SelectRow(ctx, conn, row, `FOR UPDATE WHERE seq_id = ?`, row.SeqID)
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
 		return fmt.Errorf("failed to lock api_key row: err=%s", err)
 	}

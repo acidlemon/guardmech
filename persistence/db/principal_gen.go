@@ -34,6 +34,10 @@ func (p *PrincipalRow) Values() []interface{} {
 	return []interface{}{p.PrincipalID, p.Name, p.Description}
 }
 
+func (p *PrincipalRow) AutoIncrementColumn() string {
+	return "seq_id"
+}
+
 func (p *PrincipalRow) Scan(r seacle.RowScanner) error {
 	var arg0 int64
 	var arg1 string

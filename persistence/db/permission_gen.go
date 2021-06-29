@@ -34,6 +34,10 @@ func (p *PermissionRow) Values() []interface{} {
 	return []interface{}{p.PermissionID, p.Name, p.Description}
 }
 
+func (p *PermissionRow) AutoIncrementColumn() string {
+	return "seq_id"
+}
+
 func (p *PermissionRow) Scan(r seacle.RowScanner) error {
 	var arg0 int64
 	var arg1 string

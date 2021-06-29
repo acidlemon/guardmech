@@ -7,26 +7,37 @@ import (
 
 	entity "github.com/acidlemon/guardmech/app/logic/membership"
 	"github.com/acidlemon/seacle"
+	"github.com/google/uuid"
 )
 
 type AuthOIDCRow struct {
-	SeqID       int64  `db:"seq_id,primary"`
-	AuthOIDCID  string `db:"auth_oidc_id"`
-	Issuer      string `db:"issuer"`
-	Subject     string `db:"subject"`
-	Email       string `db:"email"`
-	Name        string `db:"name"`
-	PrincipalID int64  `db:"principal_seq_id"`
+	SeqID          int64  `db:"seq_id,primary,auto_increment"`
+	AuthOIDCID     string `db:"auth_oidc_id"`
+	Issuer         string `db:"issuer"`
+	Subject        string `db:"subject"`
+	Email          string `db:"email"`
+	Name           string `db:"name"`
+	PrincipalSeqID int64  `db:"principal_seq_id"`
 }
 
 func authOIDCRowFromEntity(a *entity.OIDCAuthorization, principalSeqID int64) *AuthOIDCRow {
 	return &AuthOIDCRow{
-		AuthOIDCID:  a.OIDCAuthID.String(),
-		Issuer:      a.Issuer,
-		Subject:     a.Subject,
-		Email:       a.Email,
-		Name:        a.Name,
-		PrincipalID: principalSeqID,
+		AuthOIDCID:     a.OIDCAuthID.String(),
+		Issuer:         a.Issuer,
+		Subject:        a.Subject,
+		Email:          a.Email,
+		Name:           a.Name,
+		PrincipalSeqID: principalSeqID,
+	}
+}
+
+func (a *AuthOIDCRow) ToEntity() *entity.OIDCAuthorization {
+	return &entity.OIDCAuthorization{
+		OIDCAuthID: uuid.MustParse(a.AuthOIDCID),
+		Issuer:     a.Issuer,
+		Subject:    a.Subject,
+		Email:      a.Email,
+		Name:       a.Name,
 	}
 }
 
@@ -62,7 +73,7 @@ func (s *Service) createAuthOIDC(ctx Context, conn seacle.Executable, a *entity.
 
 func (s *Service) updateAuthOIDC(ctx Context, conn seacle.Executable, a *entity.OIDCAuthorization, priSeqID int64, row *AuthOIDCRow) error {
 	// lock row
-	err := seacle.SelectRow(ctx, conn, row, `FOR UPDATE WHERE seq_id = ?`, row.SeqID)
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
 		return fmt.Errorf("failed to lock auth row: err=%s", err)
 	}
@@ -72,7 +83,7 @@ func (s *Service) updateAuthOIDC(ctx Context, conn seacle.Executable, a *entity.
 	row.Subject = a.Subject
 	row.Email = a.Email
 	row.Name = a.Name
-	row.PrincipalID = priSeqID
+	row.PrincipalSeqID = priSeqID
 	err = seacle.Update(ctx, conn, row)
 	if err != nil {
 		return fmt.Errorf("failed to update auth row: err=%s", err)

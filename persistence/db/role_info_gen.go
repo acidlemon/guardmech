@@ -34,6 +34,10 @@ func (p *RoleRow) Values() []interface{} {
 	return []interface{}{p.RoleID, p.Name, p.Description}
 }
 
+func (p *RoleRow) AutoIncrementColumn() string {
+	return "seq_id"
+}
+
 func (p *RoleRow) Scan(r seacle.RowScanner) error {
 	var arg0 int64
 	var arg1 string

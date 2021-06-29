@@ -131,11 +131,11 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 				return
 			}
 
-			err = cmd.SavePrincipal(ctx, pri)
+			err = cmd.SavePermission(ctx, perm)
 			log.Println(err)
 			err = cmd.SaveRole(ctx, r)
 			log.Println(err)
-			err = cmd.SavePermission(ctx, perm)
+			err = cmd.SavePrincipal(ctx, pri)
 			log.Println(err)
 			err = cmd.SaveAuthOIDC(ctx, oidc, pri)
 			log.Println(err)

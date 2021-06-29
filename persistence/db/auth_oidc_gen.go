@@ -31,7 +31,11 @@ func (p *AuthOIDCRow) ValueColumns() []string {
 }
 
 func (p *AuthOIDCRow) Values() []interface{} {
-	return []interface{}{p.AuthOIDCID, p.Issuer, p.Subject, p.Email, p.Name, p.PrincipalID}
+	return []interface{}{p.AuthOIDCID, p.Issuer, p.Subject, p.Email, p.Name, p.PrincipalSeqID}
+}
+
+func (p *AuthOIDCRow) AutoIncrementColumn() string {
+	return "seq_id"
 }
 
 func (p *AuthOIDCRow) Scan(r seacle.RowScanner) error {
@@ -57,7 +61,7 @@ func (p *AuthOIDCRow) Scan(r seacle.RowScanner) error {
 	p.Subject = arg3
 	p.Email = arg4
 	p.Name = arg5
-	p.PrincipalID = arg6
+	p.PrincipalSeqID = arg6
 
 	return nil
 }

@@ -17,10 +17,10 @@ type Principal struct {
 	Name        string
 	Description string
 
-	roles  []*Role
-	groups []*Group
-	auth   *OIDCAuthorization
-	// apiKeys []*
+	auth    *OIDCAuthorization
+	apiKeys []*AuthAPIKey
+	roles   []*Role
+	groups  []*Group
 }
 
 func (p *Principal) Roles() []*Role {
@@ -87,8 +87,22 @@ func (p *Principal) Permissions() []*Permission {
 	return result
 }
 
-// write
+// return OpenID Connect Authorization info. May be nil.
+func (p *Principal) OIDCAuthorization() *OIDCAuthorization {
+	return p.auth
+}
 
+func (p *Principal) APIKeys() []*AuthAPIKey {
+	if len(p.apiKeys) == 0 {
+		return []*AuthAPIKey{}
+	}
+
+	return p.apiKeys
+}
+
+//-- write
+
+// Add New APIKey
 func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
 	newToken := "gmch-" + logic.GenerateRandomString(43)
 
@@ -98,10 +112,7 @@ func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
 		return nil, "", err
 	}
 
-	masked := strings.Repeat("*", 44) + newToken[44:]
-
-	log.Println(newToken)
-	log.Println(masked)
+	masked := strings.Repeat("*", 20) + newToken[44:]
 
 	key := &AuthAPIKey{
 		AuthAPIKeyID: uuid.New(),

@@ -74,8 +74,8 @@
           <b-table
             title="API Keys"
             striped
-            :items="table_items.api_keys"
-            :fields="table_fields.api_keys"
+            :items="table_items.apikeys"
+            :fields="table_fields.apikeys"
           >
             <template v-slot:cell(masked_token)="data">
               <span class="text-monospace">{{ data.value }}</span>
@@ -124,15 +124,14 @@ async function fetchPrincipal(id) {
 
   return {
     basic_info: [
-      { key: 'Unique ID', value: data.principal.unique_id},
       { key: 'Name', value: data.principal.name},
       { key: 'Description', value: data.principal.description},
     ],
-    auths: data.auths,
-    api_keys: data.api_keys,
-    groups: [],
-    roles: [],
-    permissions: [],
+    auths: [data.auth_oidc],
+    apikeys: data.auth_apikeys,
+    groups: data.groups,
+    roles: data.roles,
+    permissions: data.permissions,
   }
 }
 
@@ -153,33 +152,31 @@ export default {
           {key: 'value', label: 'Value'},
         ],
         auths: [
-          {key: 'unique_id', label: 'Unique ID'},
           {key: 'issuer', label: 'OIDC Issuer'},
           {key: 'subject', label: 'OIDC Sub'},
           {key: 'email', label: 'Email'},
         ],
-        api_keys: [
-          {key: 'unique_id', label: 'Unique ID'},
+        apikeys: [
           {key: 'name', label: 'Token Name'},
           {key: 'masked_token', label: 'Token (Masked)'},
         ],
         groups: [
-          {key: 'unique_id', label: 'Unique ID'},
           {key: 'name', label: 'Group Name'},
+          {key: 'description', label: 'Description'},
         ],
         roles: [
-          {key: 'unique_id', label: 'Unique ID'},
           {key: 'name', label: 'Role Name'},
+          {key: 'description', label: 'Description'},
         ],
         permissions: [
-          {key: 'unique_id', label: 'Unique ID'},
           {key: 'name', label: 'Permission Name'},
+          {key: 'description', label: 'Description'},
         ],
               },
       table_items: {
         basic_info: [],
         auths: [],
-        api_keys: [],
+        apikeys: [],
         groups: [],
         roles: [],
         permissions: [],
@@ -187,7 +184,6 @@ export default {
     }
   },
   async mounted() {
-    console.log(this.$route.params)
     this.table_items = await fetchPrincipal(this.$route.params.id)
   },
   methods: {
@@ -203,7 +199,6 @@ export default {
     },
     async onNewAPIKey(evt) {
       evt.preventDefault()
-      console.log('onNewAPIKey')
       let params = new URLSearchParams()
       params.append('name', this.form.name)
       axios.post('/guardmech/api/principal/' + this.$route.params.id + '/new_key', params).then(async (response) => {
