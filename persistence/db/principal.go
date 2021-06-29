@@ -8,7 +8,6 @@ import (
 	entity "github.com/acidlemon/guardmech/app/logic/membership"
 	"github.com/acidlemon/seacle"
 	"github.com/google/uuid"
-	"github.com/k0kubun/pp/v3"
 )
 
 type PrincipalRow struct {
@@ -256,8 +255,6 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 			authMap[v.SeqID], apikeyMap[v.SeqID], rolesMap[v.SeqID], groupsMap[v.SeqID]))
 
 	}
-
-	pp.Print(result[0])
 
 	return result, nil
 }

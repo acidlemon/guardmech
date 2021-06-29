@@ -111,8 +111,6 @@ func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 		ExpireAt: expireAt,
 	}
 
-	//pp.Print(session)
-
 	http.SetCookie(w, session.MakeCookie(req, sessionKey, config.CookieLifeTime))
 	http.Redirect(w, req, path, http.StatusFound)
 }

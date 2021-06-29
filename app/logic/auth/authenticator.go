@@ -11,7 +11,6 @@ import (
 	"github.com/acidlemon/guardmech/app/logic"
 	"github.com/acidlemon/guardmech/oidconnect"
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/k0kubun/pp/v3"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
@@ -49,8 +48,6 @@ func (a *Authenticator) VerifyAuthentication(ctx context.Context, code string) (
 	if err != nil {
 		return nil, err
 	}
-
-	pp.Print(oauth2Token)
 
 	// Extract the ID Token from OAuth2 token.
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
