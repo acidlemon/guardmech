@@ -71,6 +71,12 @@ func (s *Service) SavePrincipal(ctx Context, conn seacle.Executable, pri *entity
 		return err
 	}
 
+	err = s.savePrincipalGroup(ctx, conn, pri, row)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
 	err = s.savePrincipalRole(ctx, conn, pri, row)
 	if err != nil {
 		log.Println(err)
@@ -164,7 +170,59 @@ func (s *Service) savePrincipalRole(ctx Context, conn seacle.Executable, pri *en
 	return nil
 }
 
-func (s *Service) SavePrincipalGroup(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
+func (s *Service) savePrincipalGroup(ctx Context, conn seacle.Executable, pri *entity.Principal, priRow *PrincipalRow) error {
+	groups := pri.Groups()
+	groupSeqIDs := make([]int64, 0, len(groups))
+	if len(groups) != 0 {
+		groupIDs := make([]string, 0, len(groups))
+		for _, v := range groups {
+			groupIDs = append(groupIDs, v.GroupID.String())
+		}
+		groupRows := []*GroupRow{}
+		err := seacle.Select(ctx, conn, &groupRows, `WHERE group_id IN (?)`, groupIDs)
+		if err != nil {
+			return err
+		}
+		for _, v := range groupRows {
+			groupSeqIDs = append(groupSeqIDs, v.SeqID)
+		}
+	}
+
+	priGroupMaps := []*PrincipalGroupMapRow{}
+	err := seacle.Select(ctx, conn, &priGroupMaps, `WHERE principal_seq_id = ?`, priRow.SeqID)
+	if err != nil {
+		return err
+	}
+	args := make([]relationRow, 0, len(priGroupMaps))
+	for _, v := range priGroupMaps {
+		args = append(args, v)
+	}
+
+	added, deleted := compareSeqID(groupSeqIDs, args)
+	if len(added) != 0 {
+		for _, groupSeqID := range added {
+			_, err = seacle.Insert(ctx, conn, &PrincipalGroupMapRow{
+				PrincipalSeqID: priRow.SeqID,
+				GroupSeqID:     groupSeqID,
+			})
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+		}
+	}
+	if len(deleted) != 0 {
+		for _, groupSeqID := range deleted {
+			err = seacle.Delete(ctx, conn, &PrincipalGroupMapRow{
+				PrincipalSeqID: priRow.SeqID,
+				GroupSeqID:     groupSeqID,
+			})
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+		}
+	}
 	return nil
 }
 
@@ -220,7 +278,10 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 	}
 
 	// Group
-	groupsMap := map[int64][]*entity.Group{}
+	groupsMap, err := s.findGroupsByPrincipalSeqID(ctx, conn, priSeqIDs)
+	if err != nil {
+		return nil, err
+	}
 
 	result := make([]*entity.Principal, 0, len(pris))
 	f := entity.NewFactory(s.q)

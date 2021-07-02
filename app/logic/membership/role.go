@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	RoleOwner   = "_Guardmech-Owner"
-	RoleOwnerID = "b8cc3e1a-867e-4c2d-b163-c9feb5683388"
+	RoleOwnerName        = "_Guardmech-Owner"
+	RoleOwnerDescription = "Owner principal of guardmech"
+	RoleOwnerID          = "b8cc3e1a-867e-4c2d-b163-c9feb5683388"
 )
 
 type Role struct {
@@ -17,9 +18,9 @@ type Role struct {
 	permissions []*Permission
 }
 
-func newRole(name, description string) (*Role, error) {
+func newRole(name, description string) *Role {
 	roleID := uuid.New()
-	if name == RoleOwner {
+	if name == RoleOwnerName {
 		roleID = uuid.MustParse(RoleOwnerID)
 	}
 
@@ -29,7 +30,7 @@ func newRole(name, description string) (*Role, error) {
 		Description: description,
 	}
 
-	return r, nil
+	return r
 }
 
 func (r *Role) Permissions() []*Permission {

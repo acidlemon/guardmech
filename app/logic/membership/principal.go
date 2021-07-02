@@ -124,21 +124,46 @@ func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
 	return key, newToken, nil
 }
 
-func (p *Principal) AttachNewRole(name, description string) (*Role, error) {
-	// create New Role
-	r, err := newRole(name, description)
+func (p *Principal) AttachNewGroup(name, description string) (*Group, error) {
+	// create New Group
+	g := newGroup(name, description)
+	err := p.AttachGroup(g)
 	if err != nil {
 		return nil, err
 	}
-	err = p.AttachRole(r)
+	return g, nil
+}
+
+func (p *Principal) AttachGroup(g *Group) error {
+	for _, v := range p.groups {
+		if v.GroupID == g.GroupID {
+			// already exists
+			return nil // TODO error?
+		}
+	}
+
+	p.groups = append(p.groups, g)
+	return nil
+}
+
+func (p *Principal) AttachNewRole(name, description string) (*Role, error) {
+	// create New Role
+	r := newRole(name, description)
+	err := p.AttachRole(r)
 	if err != nil {
 		return nil, err
 	}
 	return r, nil
 }
 func (p *Principal) AttachRole(r *Role) error {
-	p.roles = append(p.roles, r)
+	for _, v := range p.roles {
+		if v.RoleID == r.RoleID {
+			// already exists
+			return nil // TODO error?
+		}
+	}
 
+	p.roles = append(p.roles, r)
 	return nil
 }
 

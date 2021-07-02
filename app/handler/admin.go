@@ -333,8 +333,13 @@ func (a *AdminMux) ListGroupsHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	groups := make([]*payload.Group, 0, len(list))
+	for _, v := range list {
+		groups = append(groups, payload.GroupFromEntity(v))
+	}
+
 	renderJSON(w, map[string]interface{}{
-		"groups": list,
+		"groups": groups,
 	})
 }
 

@@ -125,7 +125,7 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 				return
 			}
 
-			r, perm, err := manager.SetupPrincipalAsOwner(ctx, pri)
+			g, r, perm, err := manager.SetupPrincipalAsOwner(ctx, pri)
 			if err != nil {
 				reserr = systemError("Failed to Setup", err)
 				return
@@ -134,6 +134,8 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 			err = cmd.SavePermission(ctx, perm)
 			log.Println(err)
 			err = cmd.SaveRole(ctx, r)
+			log.Println(err)
+			err = cmd.SaveGroup(ctx, g)
 			log.Println(err)
 			err = cmd.SavePrincipal(ctx, pri)
 			log.Println(err)

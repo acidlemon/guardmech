@@ -22,6 +22,10 @@ func (c *command) SavePrincipal(ctx Context, pri *entity.Principal) error {
 	return c.m.SavePrincipal(ctx, c.conn, pri)
 }
 
+func (c *command) SaveGroup(ctx Context, g *entity.Group) error {
+	return c.m.SaveGroup(ctx, c.conn, g)
+}
+
 func (c *command) SaveRole(ctx Context, r *entity.Role) error {
 	return c.m.SaveRole(ctx, c.conn, r)
 }

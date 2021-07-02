@@ -86,20 +86,46 @@ func (s *Manager) CreatePrincipalFromAPIKey(ctx Context, apiKey string) (*Princi
 	return &Principal{}, nil
 }
 
-func (s *Manager) SetupPrincipalAsOwner(ctx Context, pri *Principal) (*Role, *Permission, error) {
-
-	r, err := pri.AttachNewRole(RoleOwner, "")
+func (s *Manager) SetupPrincipalAsOwner(ctx Context, pri *Principal) (*Group, *Role, *Permission, error) {
+	g, err := pri.AttachNewGroup(GroupOwnerName, GroupOwnerDescription)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	perm, err := r.AttachNewPermission(ctx, PermissionOwner, "")
+	r, err := g.AttachNewRole(RoleOwnerName, RoleOwnerDescription)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return r, perm, nil
+	perm, err := r.AttachNewPermission(ctx, PermissionOwnerName, PermissionOwnerDescription)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
+	return g, r, perm, nil
+
+}
+
+func (s *Manager) EnumerateGroupIDs(ctx Context) ([]string, error) {
+	IDs, err := s.q.EnumerateGroupIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(IDs) == 0 {
+		return []string{}, nil
+	}
+
+	result := make([]string, 0, len(IDs))
+	for _, u := range IDs {
+		result = append(result, u.String())
+	}
+
+	return result, nil
+}
+
+func (s *Manager) FindGroups(ctx Context, ids []string) ([]*Group, error) {
+	return s.q.FindGroups(ctx, ids)
 }
 
 func (s *Manager) EnumerateRoleIDs(ctx Context) ([]string, error) {

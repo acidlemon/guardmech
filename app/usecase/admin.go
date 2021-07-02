@@ -154,7 +154,27 @@ func (u *Administration) UpdateMappingRule(ctx Context, id int64) (*membership.M
 	return nil, nil
 }
 func (u *Administration) ListGroups(ctx Context) ([]*membership.Group, error) {
-	return nil, nil
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	manager := membership.NewManager(q)
+
+	ids, err := manager.EnumerateGroupIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	list, err := manager.FindGroups(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return list, nil
 }
 func (u *Administration) CreateGroup(ctx Context) (*membership.Group, error) {
 	return nil, nil
