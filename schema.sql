@@ -66,6 +66,16 @@ CREATE TABLE IF NOT EXISTS permission (
     PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS mapping_rule (
+    seq_id BIGINT NOT NULL auto_increment,
+    mapping_rule_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
+    type INT NOT NULL, -- 1=domain, 2=group
+    detail VARCHAR(255) NOT NULL,
+    name VARCHAR(191) NOT NULL UNIQUE,
+    description TEXT(2048),
+    PRIMARY KEY (seq_id)
+) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- N:M relations
 
