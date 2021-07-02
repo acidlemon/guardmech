@@ -68,17 +68,8 @@ func PrincipalPayloadFromEntity(pri *entity.Principal) *PrincipalPayload {
 	perms := pri.Permissions()
 
 	result := &PrincipalPayload{
-		Principal: &Principal{
-			ID:          pri.PrincipalID,
-			Name:        pri.Name,
-			Description: pri.Description,
-		},
-		Auth: &Auth{
-			ID:      oidcAuth.OIDCAuthID,
-			Issuer:  oidcAuth.Issuer,
-			Subject: oidcAuth.Subject,
-			Email:   oidcAuth.Email,
-		},
+		Principal:   PrincipalFromEntity(pri),
+		Auth:        AuthFromEntity(oidcAuth),
 		APIKeys:     make([]*APIKey, 0, len(apikeys)),
 		Groups:      make([]*Group, 0, len(gs)),
 		Roles:       make([]*Role, 0, len(rs)),
@@ -86,33 +77,58 @@ func PrincipalPayloadFromEntity(pri *entity.Principal) *PrincipalPayload {
 	}
 
 	for _, v := range apikeys {
-		result.APIKeys = append(result.APIKeys, &APIKey{
-			ID:          v.AuthAPIKeyID,
-			Name:        v.Name,
-			MaskedToken: v.MaskedToken,
-		})
+		result.APIKeys = append(result.APIKeys, APIKeyFromEntity(v))
 	}
 	for _, v := range gs {
-		result.Groups = append(result.Groups, &Group{
-			ID:          v.GroupID,
-			Name:        v.Name,
-			Description: v.Description,
-		})
+		result.Groups = append(result.Groups, GroupFromEntity(v))
 	}
 	for _, v := range rs {
-		result.Roles = append(result.Roles, &Role{
-			ID:          v.RoleID,
-			Name:        v.Name,
-			Description: v.Description,
-		})
+		result.Roles = append(result.Roles, RoleFromEntity(v))
 	}
 	for _, v := range perms {
-		result.Permissions = append(result.Permissions, &Permission{
-			ID:          v.PermissionID,
-			Name:        v.Name,
-			Description: v.Description,
-		})
+		result.Permissions = append(result.Permissions, PermissionFromEntity(v))
 	}
 
 	return result
+}
+
+func AuthFromEntity(a *entity.OIDCAuthorization) *Auth {
+	return &Auth{
+		ID:      a.OIDCAuthID,
+		Issuer:  a.Issuer,
+		Subject: a.Subject,
+		Email:   a.Email,
+	}
+}
+
+func APIKeyFromEntity(a *entity.AuthAPIKey) *APIKey {
+	return &APIKey{
+		ID:          a.AuthAPIKeyID,
+		Name:        a.Name,
+		MaskedToken: a.MaskedToken,
+	}
+}
+
+func RoleFromEntity(r *entity.Role) *Role {
+	return &Role{
+		ID:          r.RoleID,
+		Name:        r.Name,
+		Description: r.Description,
+	}
+}
+
+func GroupFromEntity(g *entity.Group) *Group {
+	return &Group{
+		ID:          g.GroupID,
+		Name:        g.Name,
+		Description: g.Description,
+	}
+}
+
+func PermissionFromEntity(perm *entity.Permission) *Permission {
+	return &Permission{
+		ID:          perm.PermissionID,
+		Name:        perm.Name,
+		Description: perm.Description,
+	}
 }

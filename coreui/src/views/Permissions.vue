@@ -27,7 +27,6 @@ export default {
       items: [
       ],
       fields: [
-        {key: 'id'},
         {key: 'name'},
         {key: 'description'},
         {key: 'editable', label: 'hoge'},

@@ -166,7 +166,27 @@ func (u *Administration) UpdateGroup(ctx Context) (*membership.Group, error) {
 	return nil, nil
 }
 func (u *Administration) ListPermissions(ctx Context) ([]*membership.Permission, error) {
-	return nil, nil
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	manager := membership.NewManager(q)
+
+	ids, err := manager.EnumeratePermissionIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	list, err := manager.FindPermissions(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return list, nil
 }
 func (u *Administration) CreatePermission(ctx Context) (*membership.Permission, error) {
 	return nil, nil

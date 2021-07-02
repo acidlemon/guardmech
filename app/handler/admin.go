@@ -34,28 +34,28 @@ func (a *AdminMux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler)
 	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.GetPrincipalHandler).Methods(http.MethodGet)
-	//	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
+	//	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
 
 	r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
 	r.HandleFunc("/guardmech/api/role/new", a.CreateRoleHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/role/{id:[0-9]+}", a.GetRoleHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/role/{id:[0-9]+}", a.UpdateRoleHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.GetRoleHandler).Methods(http.MethodGet)
+	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.UpdateRoleHandler).Methods(http.MethodPost)
 
 	// r.HandleFunc("/guardmech/api/rules", a.ListRulesHandler)
 	// r.HandleFunc("/guardmech/api/rule/new", a.CreateRuleHandler).Methods(http.MethodPost)
-	// r.HandleFunc("/guardmech/api/rule/{id:[0-9]+}", a.GetRuleHandler).Methods(http.MethodGet)
-	// r.HandleFunc("/guardmech/api/rule/{id:[0-9]+}", a.UpdateRuleHandler).Methods(http.MethodPost)
+	// r.HandleFunc("/guardmech/api/rule/{id:[0-9a-f-]+}", a.GetRuleHandler).Methods(http.MethodGet)
+	// r.HandleFunc("/guardmech/api/rule/{id:[0-9a-f-]+}", a.UpdateRuleHandler).Methods(http.MethodPost)
 
 	r.HandleFunc("/guardmech/api/groups", a.ListGroupsHandler)
 	r.HandleFunc("/guardmech/api/group/new", a.CreateGroupHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/group/{id:[0-9]+}", a.GetGroupHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/group/{id:[0-9]+}", a.UpdateGroupHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.GetGroupHandler).Methods(http.MethodGet)
+	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.UpdateGroupHandler).Methods(http.MethodPost)
 
 	r.HandleFunc("/guardmech/api/permissions", a.ListPermissionsHandler)
 	r.HandleFunc("/guardmech/api/permission/new", a.CreatePermissionHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/permission/{id:[0-9]+}", a.PermissionGetHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/permission/{id:[0-9]+}", a.PermissionPostHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.PermissionGetHandler).Methods(http.MethodGet)
+	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.PermissionPostHandler).Methods(http.MethodPost)
 
 	return r
 }
@@ -180,8 +180,13 @@ func (a *AdminMux) ListRolesHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	roles := make([]*payload.Role, 0, len(list))
+	for _, v := range list {
+		roles = append(roles, payload.RoleFromEntity(v))
+	}
+
 	renderJSON(w, map[string]interface{}{
-		"roles": list,
+		"roles": roles,
 	})
 }
 
@@ -329,7 +334,7 @@ func (a *AdminMux) ListGroupsHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"roles": list,
+		"groups": list,
 	})
 }
 
@@ -343,7 +348,7 @@ func (a *AdminMux) CreateGroupHandler(w http.ResponseWriter, req *http.Request) 
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"roles": list,
+		"groups": list,
 	})
 }
 
@@ -357,7 +362,7 @@ func (a *AdminMux) GetGroupHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"roles": list,
+		"groups": list,
 	})
 }
 
@@ -371,7 +376,7 @@ func (a *AdminMux) UpdateGroupHandler(w http.ResponseWriter, req *http.Request) 
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"roles": list,
+		"groups": list,
 	})
 }
 
@@ -384,8 +389,13 @@ func (a *AdminMux) ListPermissionsHandler(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
+	permissions := make([]*payload.Permission, 0, len(list))
+	for _, v := range list {
+		permissions = append(permissions, payload.PermissionFromEntity(v))
+	}
+
 	renderJSON(w, map[string]interface{}{
-		"roles": list,
+		"permissions": permissions,
 	})
 }
 
@@ -413,7 +423,7 @@ func (a *AdminMux) PermissionGetHandler(w http.ResponseWriter, req *http.Request
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"roles": list,
+		"permissions": list,
 	})
 }
 
@@ -427,7 +437,7 @@ func (a *AdminMux) PermissionPostHandler(w http.ResponseWriter, req *http.Reques
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"roles": list,
+		"permissions": list,
 	})
 }
 

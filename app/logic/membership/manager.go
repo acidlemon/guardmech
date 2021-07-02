@@ -123,3 +123,25 @@ func (s *Manager) EnumerateRoleIDs(ctx Context) ([]string, error) {
 func (s *Manager) FindRoles(ctx Context, ids []string) ([]*Role, error) {
 	return s.q.FindRoles(ctx, ids)
 }
+
+func (s *Manager) EnumeratePermissionIDs(ctx Context) ([]string, error) {
+	IDs, err := s.q.EnumeratePermissionIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(IDs) == 0 {
+		return []string{}, nil
+	}
+
+	result := make([]string, 0, len(IDs))
+	for _, u := range IDs {
+		result = append(result, u.String())
+	}
+
+	return result, nil
+}
+
+func (s *Manager) FindPermissions(ctx Context, ids []string) ([]*Permission, error) {
+	return s.q.FindPermissions(ctx, ids)
+}

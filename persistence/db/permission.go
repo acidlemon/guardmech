@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	entity "github.com/acidlemon/guardmech/app/logic/membership"
 	"github.com/acidlemon/seacle"
@@ -72,4 +73,35 @@ func (s *Service) updatePermission(ctx Context, conn seacle.Executable, perm *en
 	}
 
 	return nil
+}
+
+func (s *Service) FindPermissions(ctx Context, conn seacle.Selectable, permissionIDs []string) ([]*entity.Permission, error) {
+	permRows := make([]*PermissionRow, 0, 8)
+	err := seacle.Select(ctx, conn, &permRows, `WHERE permission_id IN (?)`, permissionIDs)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	perms := []*entity.Permission{}
+	for _, v := range permRows {
+		perms = append(perms, v.ToEntity())
+	}
+	return perms, nil
+}
+
+func (s *Service) EnumeratePermissionIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
+	perms := make([]*PermissionRow, 0, 8)
+	err := seacle.Select(ctx, conn, &perms, "")
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	result := make([]string, 0, len(perms))
+	for _, v := range perms {
+		result = append(result, v.PermissionID)
+	}
+
+	return result, nil
 }
