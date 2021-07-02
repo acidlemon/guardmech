@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/acidlemon/guardmech/app/handler/payload"
 	"github.com/acidlemon/guardmech/app/usecase"
+	"github.com/acidlemon/guardmech/app/usecase/payload"
 	"github.com/gorilla/mux"
 )
 

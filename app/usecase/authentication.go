@@ -11,6 +11,7 @@ import (
 	"github.com/acidlemon/guardmech/app/config"
 	"github.com/acidlemon/guardmech/app/logic/auth"
 	"github.com/acidlemon/guardmech/app/logic/membership"
+	"github.com/acidlemon/guardmech/app/usecase/payload"
 	"github.com/acidlemon/guardmech/db"
 	"github.com/acidlemon/guardmech/oidconnect"
 	"github.com/acidlemon/guardmech/oidconnect/gsuite"
@@ -54,7 +55,6 @@ func NewAuthentication() *Authentication {
 			Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
 		},
 		provider: p,
-		//		repos:    &infra.Membership{},
 	}
 }
 
@@ -153,6 +153,8 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 		return
 	}
 
+	p := payload.PrincipalPayloadFromEntity(pri)
+
 	now := time.Now()
 	is = &IDSession{
 		Issuer:  token.Issuer,
@@ -160,7 +162,7 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 		Email:   token.Email,
 		Membership: MembershipToken{
 			NextCheck: now.Add(1 * time.Minute), // TODO 使わなそう
-			Principal: pri,
+			Principal: p,
 		},
 	}
 
@@ -170,7 +172,7 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 	return
 }
 
-func (u *Authentication) Authorization(ctx Context, is *IDSession) (string, *membership.Principal, error) {
+func (u *Authentication) Authorization(ctx Context, is *IDSession) (string, *payload.PrincipalPayload, error) {
 
 	return is.Email, is.Membership.Principal, nil
 }

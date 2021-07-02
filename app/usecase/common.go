@@ -28,6 +28,14 @@ func (e Error) Error() string {
 	return fmt.Sprintf("%s", e.message)
 }
 
+func (e Error) Type() ErrorType {
+	return e.kind
+}
+
+func (e Error) Detail() error {
+	return e.wrap
+}
+
 func systemError(msg string, err error) error {
 	return Error{
 		kind:    SystemError,

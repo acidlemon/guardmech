@@ -7,7 +7,7 @@ import (
 
 	"encoding/json"
 
-	"github.com/acidlemon/guardmech/app/logic/membership"
+	"github.com/acidlemon/guardmech/app/usecase/payload"
 )
 
 type IDSession struct {
@@ -18,8 +18,8 @@ type IDSession struct {
 }
 
 type MembershipToken struct {
-	NextCheck time.Time             `json:"next_check"`
-	Principal *membership.Principal `json:"principal"`
+	NextCheck time.Time                 `json:"next_check"`
+	Principal *payload.PrincipalPayload `json:"principal"`
 }
 
 const IDSeparator string = "('-'o)"

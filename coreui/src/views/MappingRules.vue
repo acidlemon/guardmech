@@ -4,7 +4,7 @@
       <b-col lg="12">
         <b-card>
           <div slot="header">
-            Permissions
+            Mapping Rules
           </div>
           <b-table :items="items" :fields="fields">
             <template v-slot:cell(editable)="">

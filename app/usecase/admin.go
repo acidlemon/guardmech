@@ -8,19 +8,7 @@ import (
 	"github.com/acidlemon/guardmech/persistence"
 )
 
-// type AdminService interface {
-// 	CreatePrincipal(Context, *db.Tx, string, string) (*membership.Principal, error)
-// 	CreateAPIKey(Context, *db.Tx, *membership.Principal, string) (*membership.AuthAPIKey, string, error)
-
-// 	FindPrincipalBySeqID(Context, *sql.Conn, int64) (*membership.Principal, error)
-
-// 	FetchAllPrincipal(Context, *sql.Conn) ([]*membership.Principal, error)
-// 	FetchAllRole(Context, *sql.Conn) ([]*membership.Role, error)
-// }
-
 type Administration struct {
-	//repos membership.Manager
-	// svc   AdminService
 }
 
 func NewAdministration() *Administration {
@@ -87,20 +75,6 @@ func (u *Administration) ListPrincipals(ctx Context) ([]*membership.Principal, e
 
 	return list, nil
 }
-
-/*
-func (u *Administration) ListRoles(ctx Context) ([]*membership.Role, error) {
-	conn, err := db.GetConn(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-
-	list, err := u.repos.FetchAllRole(ctx, conn)
-
-	return list, err
-}
-*/
 
 func (u *Administration) CreateAPIKey(ctx Context, principalID string, name string) (*membership.AuthAPIKey, string, error) {
 	conn, tx, err := db.GetTxConn(ctx)
