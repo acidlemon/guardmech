@@ -45,51 +45,18 @@ func (s *Service) findRolesByPrincipalSeqID(ctx Context, conn seacle.Selectable,
 		roleSeqIDs = append(roleSeqIDs, v.RoleSeqID)
 	}
 
-	// permissions
-	rolePermMaps := []*RolePermissionMapRow{}
-	permMap := map[int64][]*entity.Permission{} // RoleSeqID -> []Permission map
-	err = seacle.Select(ctx, conn, &rolePermMaps, `WHERE role_seq_id IN (?)`, roleSeqIDs)
+	roleMap, err := s.findRoles(ctx, conn, roleSeqIDs)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
-	if len(rolePermMaps) != 0 {
-		permSeqIDMap := map[int64]int64{} // PermissionSeqID -> RoleSeqID map
-		permSeqIDs := []int64{}
-		for _, v := range rolePermMaps {
-			permSeqIDMap[v.PermissionSeqID] = v.RoleSeqID
-			permSeqIDs = append(permSeqIDs, v.PermissionSeqID)
-		}
 
-		perms := []*PermissionRow{}
-		err = seacle.Select(ctx, conn, &perms, `WHERE seq_id IN (?)`, permSeqIDs)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		for _, v := range perms {
-			roleSeqID := permSeqIDMap[v.SeqID]
-			permMap[roleSeqID] = append(permMap[roleSeqID], v.ToEntity())
-		}
-	}
-
-	// roles
-	roles := []*RoleRow{}
-	roleMap := map[int64][]*entity.Role{}
-	err = seacle.Select(ctx, conn, &roles, `WHERE seq_id IN (?)`, roleSeqIDs)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	f := entity.NewFactory(s.q)
-	for _, v := range roles {
-		roleSeqID := v.SeqID
+	result := map[int64][]*entity.Role{}
+	for roleSeqID, r := range roleMap {
 		principalSeqID := roleSeqIDMap[roleSeqID]
-		r := f.NewRole(uuid.MustParse(v.RoleID), v.Name, v.Description, permMap[v.SeqID])
-		roleMap[principalSeqID] = append(roleMap[principalSeqID], r)
+		result[principalSeqID] = append(result[principalSeqID], r)
 	}
 
-	return roleMap, nil
+	return result, nil
 }
 
 func (s *Service) SaveRole(ctx context.Context, conn seacle.Executable, r *entity.Role) error {
@@ -175,22 +142,13 @@ func (s *Service) saveRolePermission(ctx Context, conn seacle.Executable, r *ent
 	if err != nil {
 		return err
 	}
+	args := make([]relationRow, 0, len(rolePermMaps))
+	for _, v := range rolePermMaps {
+		args = append(args, v)
+	}
 
-	// added
-	if len(perms) != 0 {
-		added := []int64{}
-		for _, v := range permSeqIDs {
-			found := false
-			for _, w := range rolePermMaps {
-				if v == w.PermissionSeqID {
-					found = true
-					break
-				}
-			}
-			if !found {
-				added = append(added, v)
-			}
-		}
+	added, deleted := compareSeqID(permSeqIDs, args)
+	if len(added) != 0 {
 		for _, permSeqID := range added {
 			_, err = seacle.Insert(ctx, conn, &RolePermissionMapRow{
 				RoleSeqID:       roleRow.SeqID,
@@ -202,22 +160,7 @@ func (s *Service) saveRolePermission(ctx Context, conn seacle.Executable, r *ent
 			}
 		}
 	}
-
-	// deleted
-	if len(rolePermMaps) != 0 {
-		deleted := []int64{}
-		for _, v := range rolePermMaps {
-			found := false
-			for _, w := range permSeqIDs {
-				if v.PermissionSeqID == w {
-					found = true
-					break
-				}
-			}
-			if !found {
-				deleted = append(deleted, v.PermissionSeqID)
-			}
-		}
+	if len(deleted) != 0 {
 		for _, permSeqID := range deleted {
 			err = seacle.Delete(ctx, conn, &RolePermissionMapRow{
 				RoleSeqID:       roleRow.SeqID,
@@ -231,4 +174,98 @@ func (s *Service) saveRolePermission(ctx Context, conn seacle.Executable, r *ent
 	}
 
 	return nil
+}
+
+func (s *Service) FindRoles(ctx Context, conn seacle.Selectable, roleIDs []string) ([]*entity.Role, error) {
+	roleRows := make([]*RoleRow, 0, 8)
+	err := seacle.Select(ctx, conn, &roleRows, `WHERE role_id IN (?)`, roleIDs)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	// seq_idを抽出
+	roleSeqIDs := make([]int64, 0, len(roleRows))
+	for _, v := range roleRows {
+		roleSeqIDs = append(roleSeqIDs, v.SeqID)
+	}
+	if len(roleSeqIDs) == 0 {
+		return []*entity.Role{}, nil
+	}
+
+	roleMap, err := s.findRoles(ctx, conn, roleSeqIDs)
+	if err != nil {
+		return nil, err
+	}
+	roles := []*entity.Role{}
+	for _, v := range roleMap {
+		roles = append(roles, v)
+	}
+	return roles, nil
+}
+
+func (s *Service) EnumerateRoleIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
+	roles := make([]*RoleRow, 0, 8)
+	err := seacle.Select(ctx, conn, &roles, "")
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	result := make([]string, 0, len(roles))
+	for _, v := range roles {
+		result = append(result, v.RoleID)
+	}
+
+	return result, nil
+}
+
+// findRoles returns SeqID -> *entity.Role map
+func (s *Service) findRoles(ctx Context, conn seacle.Selectable, roleSeqIDs []int64) (map[int64]*entity.Role, error) {
+	if len(roleSeqIDs) == 0 {
+		return map[int64]*entity.Role{}, nil
+	}
+
+	// permissions
+	rolePermMaps := []*RolePermissionMapRow{}
+	permMap := map[int64][]*entity.Permission{} // RoleSeqID -> []Permission map
+	err := seacle.Select(ctx, conn, &rolePermMaps, `WHERE role_seq_id IN (?)`, roleSeqIDs)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	if len(rolePermMaps) != 0 {
+		permSeqIDMap := map[int64]int64{} // PermissionSeqID -> RoleSeqID map
+		permSeqIDs := []int64{}
+		for _, v := range rolePermMaps {
+			permSeqIDMap[v.PermissionSeqID] = v.RoleSeqID
+			permSeqIDs = append(permSeqIDs, v.PermissionSeqID)
+		}
+
+		perms := []*PermissionRow{}
+		err = seacle.Select(ctx, conn, &perms, `WHERE seq_id IN (?)`, permSeqIDs)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		for _, v := range perms {
+			roleSeqID := permSeqIDMap[v.SeqID]
+			permMap[roleSeqID] = append(permMap[roleSeqID], v.ToEntity())
+		}
+	}
+
+	roleRows := []*RoleRow{}
+	roleMap := map[int64]*entity.Role{}
+	err = seacle.Select(ctx, conn, &roleRows, `WHERE seq_id IN (?)`, roleSeqIDs)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	f := entity.NewFactory(s.q)
+	for _, v := range roleRows {
+		r := f.NewRole(uuid.MustParse(v.RoleID), v.Name, v.Description, permMap[v.SeqID])
+		roleMap[v.SeqID] = r
+	}
+
+	return roleMap, nil
 }

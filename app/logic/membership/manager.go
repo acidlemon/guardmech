@@ -101,3 +101,25 @@ func (s *Manager) SetupPrincipalAsOwner(ctx Context, pri *Principal) (*Role, *Pe
 	return r, perm, nil
 
 }
+
+func (s *Manager) EnumerateRoleIDs(ctx Context) ([]string, error) {
+	IDs, err := s.q.EnumerateRoleIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(IDs) == 0 {
+		return []string{}, nil
+	}
+
+	result := make([]string, 0, len(IDs))
+	for _, u := range IDs {
+		result = append(result, u.String())
+	}
+
+	return result, nil
+}
+
+func (s *Manager) FindRoles(ctx Context, ids []string) ([]*Role, error) {
+	return s.q.FindRoles(ctx, ids)
+}

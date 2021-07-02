@@ -37,7 +37,7 @@ func (a *AdminMux) Mux() http.Handler {
 	//	r.HandleFunc("/guardmech/api/principal/{id:[0-9]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
 
-	// r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
+	r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
 	r.HandleFunc("/guardmech/api/role/new", a.CreateRoleHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/role/{id:[0-9]+}", a.GetRoleHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/role/{id:[0-9]+}", a.UpdateRoleHandler).Methods(http.MethodPost)
@@ -171,7 +171,6 @@ func (a *AdminMux) CreateAPIKeyHandler(w http.ResponseWriter, req *http.Request)
 	renderJSON(w, result)
 }
 
-/*
 func (a *AdminMux) ListRolesHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 
@@ -185,7 +184,7 @@ func (a *AdminMux) ListRolesHandler(w http.ResponseWriter, req *http.Request) {
 		"roles": list,
 	})
 }
-*/
+
 func (a *AdminMux) CreateRoleHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 

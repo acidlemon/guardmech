@@ -108,6 +108,30 @@ func (u *Administration) CreateAPIKey(ctx Context, principalID string, name stri
 	return apikey, rawToken, err
 }
 
+func (u *Administration) ListRoles(ctx Context) ([]*membership.Role, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	manager := membership.NewManager(q)
+
+	ids, err := manager.EnumerateRoleIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	list, err := manager.FindRoles(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return list, nil
+}
+
 func (u *Administration) CreateRole(ctx Context) (*membership.Role, error) {
 	return nil, nil
 }

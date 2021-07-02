@@ -131,22 +131,13 @@ func (s *Service) savePrincipalRole(ctx Context, conn seacle.Executable, pri *en
 	if err != nil {
 		return err
 	}
+	args := make([]relationRow, 0, len(priRoleMaps))
+	for _, v := range priRoleMaps {
+		args = append(args, v)
+	}
 
-	// added
-	if len(roles) != 0 {
-		added := []int64{}
-		for _, v := range roleSeqIDs {
-			found := false
-			for _, w := range priRoleMaps {
-				if v == w.RoleSeqID {
-					found = true
-					break
-				}
-			}
-			if !found {
-				added = append(added, v)
-			}
-		}
+	added, deleted := compareSeqID(roleSeqIDs, args)
+	if len(added) != 0 {
 		for _, roleSeqID := range added {
 			_, err = seacle.Insert(ctx, conn, &PrincipalRoleMapRow{
 				PrincipalSeqID: priRow.SeqID,
@@ -158,22 +149,7 @@ func (s *Service) savePrincipalRole(ctx Context, conn seacle.Executable, pri *en
 			}
 		}
 	}
-
-	// deleted
-	if len(priRoleMaps) != 0 {
-		deleted := []int64{}
-		for _, v := range priRoleMaps {
-			found := false
-			for _, w := range roleSeqIDs {
-				if v.RoleSeqID == w {
-					found = true
-					break
-				}
-			}
-			if !found {
-				deleted = append(deleted, v.RoleSeqID)
-			}
-		}
+	if len(deleted) != 0 {
 		for _, roleSeqID := range deleted {
 			err = seacle.Delete(ctx, conn, &PrincipalRoleMapRow{
 				PrincipalSeqID: priRow.SeqID,
@@ -185,7 +161,6 @@ func (s *Service) savePrincipalRole(ctx Context, conn seacle.Executable, pri *en
 			}
 		}
 	}
-
 	return nil
 }
 

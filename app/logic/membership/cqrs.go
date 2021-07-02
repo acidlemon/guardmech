@@ -9,9 +9,12 @@ import (
 var ErrNoEntry = errors.New("no such entry")
 
 type Query interface {
-	FindPrincipals(ctx Context, id []string) ([]*Principal, error)
+	FindPrincipals(ctx Context, ids []string) ([]*Principal, error)
 	FindPrincipalIDByOIDC(ctx Context, issuer, subject string) (*Principal, error)
 	EnumeratePrincipalIDs(ctx Context) ([]uuid.UUID, error)
+
+	FindRoles(ctx Context, ids []string) ([]*Role, error)
+	EnumerateRoleIDs(ctx Context) ([]uuid.UUID, error)
 }
 
 type Command interface {
