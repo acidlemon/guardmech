@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/acidlemon/guardmech/app/usecase"
 	"github.com/acidlemon/guardmech/app/usecase/payload"
@@ -42,10 +41,10 @@ func (a *AdminMux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.GetRoleHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.UpdateRoleHandler).Methods(http.MethodPost)
 
-	// r.HandleFunc("/guardmech/api/rules", a.ListRulesHandler)
-	// r.HandleFunc("/guardmech/api/rule/new", a.CreateRuleHandler).Methods(http.MethodPost)
-	// r.HandleFunc("/guardmech/api/rule/{id:[0-9a-f-]+}", a.GetRuleHandler).Methods(http.MethodGet)
-	// r.HandleFunc("/guardmech/api/rule/{id:[0-9a-f-]+}", a.UpdateRuleHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/mapping_rules", a.ListMappingRulesHandler)
+	r.HandleFunc("/guardmech/api/mapping_rule/new", a.CreateMappingRuleHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/mapping_rule/{id:[0-9a-f-]+}", a.GetMappingRuleHandler).Methods(http.MethodGet)
+	r.HandleFunc("/guardmech/api/mapping_rule/{id:[0-9a-f-]+}", a.UpdateMappingRuleHandler).Methods(http.MethodPost)
 
 	r.HandleFunc("/guardmech/api/groups", a.ListGroupsHandler)
 	r.HandleFunc("/guardmech/api/group/new", a.CreateGroupHandler).Methods(http.MethodPost)
@@ -208,13 +207,7 @@ func (a *AdminMux) GetRoleHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 
 	vars := mux.Vars(req)
-	idStr := vars["id"]
-	var id int64
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		errorJSON(w, err)
-		return
-	}
+	id := vars["id"]
 
 	role, err := a.u.FetchRole(req.Context(), id)
 	if err != nil {
@@ -231,13 +224,7 @@ func (a *AdminMux) UpdateRoleHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 
 	vars := mux.Vars(req)
-	idStr := vars["id"]
-	var id int64
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		errorJSON(w, err)
-		return
-	}
+	id := vars["id"]
 
 	list, err := a.u.UpdateRole(req.Context(), id)
 	if err != nil {
@@ -282,13 +269,7 @@ func (a *AdminMux) GetMappingRuleHandler(w http.ResponseWriter, req *http.Reques
 	// TODO permission check
 
 	vars := mux.Vars(req)
-	idStr := vars["id"]
-	var id int64
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		errorJSON(w, err)
-		return
-	}
+	id := vars["id"]
 
 	rule, err := a.u.FetchMappingRule(req.Context(), id)
 	if err != nil {
@@ -305,13 +286,7 @@ func (a *AdminMux) UpdateMappingRuleHandler(w http.ResponseWriter, req *http.Req
 	// TODO permission check
 
 	vars := mux.Vars(req)
-	idStr := vars["id"]
-	var id int64
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		errorJSON(w, err)
-		return
-	}
+	id := vars["id"]
 
 	rule, err := a.u.UpdateMappingRule(req.Context(), id)
 	if err != nil {

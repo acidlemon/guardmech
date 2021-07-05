@@ -98,3 +98,21 @@ func (q *query) EnumeratePermissionIDs(ctx Context) ([]uuid.UUID, error) {
 
 	return result, nil
 }
+
+func (q *query) FindMappingRules(ctx Context, ids []string) ([]*entity.MappingRule, error) {
+	return q.m.FindMappingRules(ctx, q.conn, ids)
+}
+
+func (q *query) EnumerateMappingRuleIDs(ctx Context) ([]uuid.UUID, error) {
+	ids, err := q.m.EnumerateMappingRuleIDs(ctx, q.conn)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]uuid.UUID, 0, len(ids))
+	for _, v := range ids {
+		result = append(result, uuid.MustParse(v))
+	}
+
+	return result, nil
+}

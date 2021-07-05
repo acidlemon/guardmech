@@ -171,3 +171,25 @@ func (s *Manager) EnumeratePermissionIDs(ctx Context) ([]string, error) {
 func (s *Manager) FindPermissions(ctx Context, ids []string) ([]*Permission, error) {
 	return s.q.FindPermissions(ctx, ids)
 }
+
+func (s *Manager) EnumerateMappingRuleIDs(ctx Context) ([]string, error) {
+	IDs, err := s.q.EnumerateMappingRuleIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(IDs) == 0 {
+		return []string{}, nil
+	}
+
+	result := make([]string, 0, len(IDs))
+	for _, u := range IDs {
+		result = append(result, u.String())
+	}
+
+	return result, nil
+}
+
+func (s *Manager) FindMappingRules(ctx Context, ids []string) ([]*MappingRule, error) {
+	return s.q.FindMappingRules(ctx, ids)
+}

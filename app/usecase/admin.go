@@ -135,22 +135,42 @@ func (u *Administration) ListRoles(ctx Context) ([]*membership.Role, error) {
 func (u *Administration) CreateRole(ctx Context) (*membership.Role, error) {
 	return nil, nil
 }
-func (u *Administration) FetchRole(ctx Context, id int64) (*membership.Role, error) {
+func (u *Administration) FetchRole(ctx Context, id string) (*membership.Role, error) {
 	return nil, nil
 }
-func (u *Administration) UpdateRole(ctx Context, id int64) (*membership.Role, error) {
+func (u *Administration) UpdateRole(ctx Context, id string) (*membership.Role, error) {
 	return nil, nil
 }
 func (u *Administration) ListMappingRules(ctx Context) ([]*membership.MappingRule, error) {
-	return nil, nil
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	manager := membership.NewManager(q)
+
+	ids, err := manager.EnumerateMappingRuleIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	list, err := manager.FindMappingRules(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	return list, nil
 }
 func (u *Administration) CreateMappingRule(ctx Context) (*membership.MappingRule, error) {
 	return nil, nil
 }
-func (u *Administration) FetchMappingRule(ctx Context, id int64) (*membership.MappingRule, error) {
+func (u *Administration) FetchMappingRule(ctx Context, id string) (*membership.MappingRule, error) {
 	return nil, nil
 }
-func (u *Administration) UpdateMappingRule(ctx Context, id int64) (*membership.MappingRule, error) {
+func (u *Administration) UpdateMappingRule(ctx Context, id string) (*membership.MappingRule, error) {
 	return nil, nil
 }
 func (u *Administration) ListGroups(ctx Context) ([]*membership.Group, error) {

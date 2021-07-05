@@ -184,6 +184,10 @@ func (s *Service) saveRolePermission(ctx Context, conn seacle.Executable, r *ent
 }
 
 func (s *Service) FindRoles(ctx Context, conn seacle.Selectable, roleIDs []string) ([]*entity.Role, error) {
+	if len(roleIDs) == 0 {
+		return []*entity.Role{}, nil
+	}
+
 	roleRows := make([]*RoleRow, 0, 8)
 	err := seacle.Select(ctx, conn, &roleRows, `WHERE role_id IN (?)`, roleIDs)
 	if err != nil {

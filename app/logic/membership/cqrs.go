@@ -21,6 +21,9 @@ type Query interface {
 
 	FindPermissions(ctx Context, ids []string) ([]*Permission, error)
 	EnumeratePermissionIDs(ctx Context) ([]uuid.UUID, error)
+
+	FindMappingRules(ctx Context, ids []string) ([]*MappingRule, error)
+	EnumerateMappingRuleIDs(ctx Context) ([]uuid.UUID, error)
 }
 
 type Command interface {

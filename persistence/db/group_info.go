@@ -176,6 +176,10 @@ func (s *Service) saveGroupRole(ctx Context, conn seacle.Executable, g *entity.G
 }
 
 func (s *Service) FindGroups(ctx Context, conn seacle.Selectable, groupIDs []string) ([]*entity.Group, error) {
+	if len(groupIDs) == 0 {
+		return []*entity.Group{}, nil
+	}
+
 	groupRows := make([]*GroupRow, 0, 8)
 	err := seacle.Select(ctx, conn, &groupRows, `WHERE group_id IN (?)`, groupIDs)
 	if err != nil {

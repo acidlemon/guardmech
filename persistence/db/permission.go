@@ -76,6 +76,10 @@ func (s *Service) updatePermission(ctx Context, conn seacle.Executable, perm *en
 }
 
 func (s *Service) FindPermissions(ctx Context, conn seacle.Selectable, permissionIDs []string) ([]*entity.Permission, error) {
+	if len(permissionIDs) == 0 {
+		return []*entity.Permission{}, nil
+	}
+
 	permRows := make([]*PermissionRow, 0, 8)
 	err := seacle.Select(ctx, conn, &permRows, `WHERE permission_id IN (?)`, permissionIDs)
 	if err != nil {

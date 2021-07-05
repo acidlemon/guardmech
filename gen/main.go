@@ -29,6 +29,7 @@ func prepareGenset() []genset {
 		{reflect.TypeOf(db.GroupRow{}), "group_info"},
 		{reflect.TypeOf(db.PermissionRow{}), "permission"},
 		{reflect.TypeOf(db.RoleRow{}), "role_info"},
+		{reflect.TypeOf(db.MappingRuleRow{}), "mapping_rule"},
 
 		{reflect.TypeOf(db.PrincipalGroupMapRow{}), "principal_group_map"},
 		{reflect.TypeOf(db.PrincipalRoleMapRow{}), "principal_role_map"},

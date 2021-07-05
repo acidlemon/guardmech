@@ -227,6 +227,10 @@ func (s *Service) savePrincipalGroup(ctx Context, conn seacle.Executable, pri *e
 }
 
 func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalIDs []string) ([]*entity.Principal, error) {
+	if len(principalIDs) == 0 {
+		return []*entity.Principal{}, nil
+	}
+
 	pris := make([]*PrincipalRow, 0, 8)
 	err := seacle.Select(ctx, conn, &pris, `WHERE principal_id IN (?)`, principalIDs)
 	if err != nil {
