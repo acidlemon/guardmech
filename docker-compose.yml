@@ -18,9 +18,10 @@ services:
     depends_on: ["mysql"]
 
   frontend:
-    image: guardmech-frontend
+    build:
+      context: ./frontend
     volumes:
-      - "./coreui:/coreui"
+      - "./frontend:/frontend"
 
   nginx:
     image: nginx
