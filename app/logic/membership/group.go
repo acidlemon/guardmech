@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	GroupOwnerName        = "_GuardmechOwner"
+	GroupOwnerName        = "_GuardmechOwnerGroup"
 	GroupOwnerDescription = "Owner group of guardmech"
 	GroupOwnerID          = "6f43787e-1a18-42dc-86dc-78c81c681bda"
 )

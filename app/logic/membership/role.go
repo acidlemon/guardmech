@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	RoleOwnerName        = "_Guardmech-Owner"
+	RoleOwnerName        = "_GuardmechOwnerRole"
 	RoleOwnerDescription = "Owner principal of guardmech"
 	RoleOwnerID          = "b8cc3e1a-867e-4c2d-b163-c9feb5683388"
 )
