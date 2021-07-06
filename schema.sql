@@ -1,77 +1,107 @@
 -- authorization is reserved word...
-CREATE TABLE IF NOT EXISTS auth (
-    id BIGINT NOT NULL auto_increment,
-    principal_id BIGINT NOT NULL,
+CREATE TABLE IF NOT EXISTS auth_oidc (
+    seq_id BIGINT NOT NULL auto_increment,
+    auth_oidc_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
+    principal_seq_id BIGINT NOT NULL,
     issuer VARCHAR(255) CHARACTER SET utf8 NOT NULL,
     subject VARCHAR(255) CHARACTER SET utf8 NOT NULL,
     email VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
-    PRIMARY KEY (id),
+    name VARCHAR(191) NOT NULL,
+    PRIMARY KEY (seq_id),
     UNIQUE uniq_issuer_subject (issuer,subject)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS api_key (
-    id BIGINT NOT NULL auto_increment,
-    principal_id BIGINT NOT NULL,
-    token VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
-    PRIMARY KEY (id)
+CREATE TABLE IF NOT EXISTS auth_apikey (
+    seq_id BIGINT NOT NULL auto_increment,
+    auth_apikey_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
+    principal_seq_id BIGINT NOT NULL,
+    name VARCHAR(191) NOT NULL,
+    masked_token VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+    salt VARCHAR(255) CHARACTER SET utf8 NOT NULL,
+    hashed_token VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
+    PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS principal (
-    id BIGINT NOT NULL auto_increment,
+    seq_id BIGINT NOT NULL auto_increment,
+    principal_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
     name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
-    PRIMARY KEY (id)
+    PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- group is reserved word...
 CREATE TABLE IF NOT EXISTS group_info (
-    id BIGINT NOT NULL auto_increment,
+    seq_id BIGINT NOT NULL auto_increment,
+    group_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
     name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
-    PRIMARY KEY (id)
+    PRIMARY KEY (seq_id)
+) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS group_rule (
+    seq_id BIGINT NOT NULL auto_increment,
+    group_rule_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
+    name VARCHAR(191) NOT NULL UNIQUE,
+    description TEXT(2048),
+    rule_type INTEGER NOT NULL, /* 1=specific domain, 2=whole domain, 3=member of  */
+    condition TEXT(4096),
+    PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- role is reserved word...
 CREATE TABLE IF NOT EXISTS role_info (
-    id BIGINT NOT NULL auto_increment,
+    seq_id BIGINT NOT NULL auto_increment,
+    role_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
     name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
-    PRIMARY KEY (id)
+    PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS permission (
-    id BIGINT NOT NULL auto_increment,
+    seq_id BIGINT NOT NULL auto_increment,
+    permission_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
     name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
-    PRIMARY KEY (id)
+    PRIMARY KEY (seq_id)
+) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS mapping_rule (
+    seq_id BIGINT NOT NULL auto_increment,
+    mapping_rule_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
+    type INT NOT NULL, -- 1=domain, 2=group
+    detail VARCHAR(255) NOT NULL,
+    name VARCHAR(191) NOT NULL UNIQUE,
+    description TEXT(2048),
+    PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 -- N:M relations
 
 CREATE TABLE IF NOT EXISTS principal_group_map (
-    principal_id BIGINT NOT NULL,
-    group_id BIGINT NOT NULL,
+    principal_seq_id BIGINT NOT NULL,
+    group_seq_id BIGINT NOT NULL,
     manager BOOLEAN DEFAULT FALSE,
-    PRIMARY KEY (principal_id, group_id)
+    PRIMARY KEY (principal_seq_id, group_seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS principal_role_map (
-    principal_id BIGINT NOT NULL,
-    role_id BIGINT NOT NULL,
-    PRIMARY KEY (principal_id, role_id)
+    principal_seq_id BIGINT NOT NULL,
+    role_seq_id BIGINT NOT NULL,
+    PRIMARY KEY (principal_seq_id, role_seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS group_role_map (
-    group_id BIGINT NOT NULL,
-    role_id BIGINT NOT NULL,
-    PRIMARY KEY (group_id, role_id)
+    group_seq_id BIGINT NOT NULL,
+    role_seq_id BIGINT NOT NULL,
+    PRIMARY KEY (group_seq_id, role_seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS role_permission_map (
-    role_id BIGINT NOT NULL,
-    permission_id BIGINT NOT NULL,
-    PRIMARY KEY (role_id, permission_id)
+    role_seq_id BIGINT NOT NULL,
+    permission_seq_id BIGINT NOT NULL,
+    PRIMARY KEY (role_seq_id, permission_seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
 

@@ -8,22 +8,19 @@ import (
 	"log"
 	"net"
 	"net/http"
+
+	"github.com/acidlemon/guardmech/app/handler"
+	_ "github.com/k0kubun/pp/v3" // for development
 )
-
-
 
 type GuardMech struct {
 }
 
 func New() *GuardMech {
-	gm := &GuardMech{
-	}
+	gm := &GuardMech{}
 
 	return gm
 }
-
-
-
 
 func (g *GuardMech) Run() error {
 	listener, err := net.Listen("tcp", "0.0.0.0:2989")
@@ -46,7 +43,9 @@ func (g *GuardMech) Run() error {
 	})
 	childMux.Handle("/guardmech/admin/", http.FileServer(http.Dir("dist")))
 
-	authMux := NewAuthMux()
+	//authMux := auth.NewMux()
+	authMux := handler.NewAuthMux()
+	adminMux := handler.NewAdminMux()
 
 	mux := http.NewServeMux()
 	mux.Handle("/auth/", authMux.Mux())
@@ -54,7 +53,7 @@ func (g *GuardMech) Run() error {
 		log.Println("guardmech request")
 		childMux.ServeHTTP(w, req)
 	})
-	mux.Handle("/guardmech/api/", ApiMux())
+	mux.Handle("/guardmech/api/", adminMux.Mux())
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("catch all:", req.URL.Path)
 	})
@@ -64,7 +63,6 @@ func (g *GuardMech) Run() error {
 
 func (g *GuardMech) ReverseProxy(w http.ResponseWriter, req *http.Request) {
 }
-
 
 func WrapServerError(res *http.Response, err error) {
 	res.StatusCode = http.StatusInternalServerError
@@ -85,4 +83,3 @@ func WrapServerError(res *http.Response, err error) {
 	b := []byte(fmt.Sprintf(html, err.Error()))
 	res.Body = ioutil.NopCloser(bytes.NewReader(b))
 }
-
