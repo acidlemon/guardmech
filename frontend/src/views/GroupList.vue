@@ -2,7 +2,7 @@
   <div>
     <h2>Group List</h2>
     <section>
-      <BButton variant="danger">Create New</BButton>
+      <NewGroupModal />
     </section>
     <section>
       <BTable :data="groups" :columns="columns" variant="primary">
@@ -21,11 +21,13 @@ import { Group } from '@/types/api'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
+import NewGroupModal from '@/components/modals/NewGroupModal.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
+    NewGroupModal,
   },
   setup() {
     const groups = ref<BTableRow[]>([])

@@ -2,7 +2,7 @@
   <div>
     <h2>Permission List</h2>
     <section>
-      <BButton variant="danger">Create New</BButton>
+      <NewPermissionModal />
     </section>
     <section>
       <BTable :data="permissions" :columns="columns" variant="primary">
@@ -20,12 +20,14 @@ import axios from 'axios'
 import { Permission } from '@/types/api'
 
 import BButton from '@/components/bootstrap/BButton.vue'
+import NewPermissionModal from '@/components/modals/NewPermissionModal.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
+    NewPermissionModal,
   },
   setup() {
     const permissions = ref<BTableRow[]>([])

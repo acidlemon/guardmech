@@ -2,7 +2,7 @@
   <div>
     <h2>Role List</h2>
     <section>
-      <BButton variant="danger">Create New</BButton>
+      <NewRoleModal />
     </section>
     <section>
       <BTable :data="roles" :columns="columns" variant="primary">
@@ -21,11 +21,13 @@ import { Role } from '@/types/api'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
+import NewRoleModal from '@/components/modals/NewRoleModal.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
+    NewRoleModal,
   },
   setup() {
     const roles = ref<BTableRow[]>([])

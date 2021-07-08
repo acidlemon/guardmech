@@ -1,5 +1,23 @@
 export type PrincipalPayload = {
   principal: Principal
+  auth_oidc: AuthOIDC
+  auth_apikeys: AuthAPIKey[]
+  groups: Group[]
+  roles: Role[]
+  permissions: Permission[]
+}
+
+export type AuthOIDC = {
+  id: string
+  issuer: string
+  subject: string
+  email: string
+}
+
+export type AuthAPIKey = {
+  id: string
+  name: string
+  masked_token: string
 }
 
 export type Principal = {

@@ -11,9 +11,9 @@ const (
 )
 
 type Permission struct {
-	PermissionID uuid.UUID `json:"unique_id"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
+	PermissionID uuid.UUID
+	Name         string
+	Description  string
 }
 
 func newPermission(name, description string) *Permission {

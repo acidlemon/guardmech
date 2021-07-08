@@ -86,6 +86,38 @@ func (s *Manager) CreatePrincipalFromAPIKey(ctx Context, apiKey string) (*Princi
 	return &Principal{}, nil
 }
 
+func (s *Manager) CreatePrincipal(ctx Context, name, description string) (*Principal, error) {
+	return &Principal{
+		PrincipalID: uuid.New(),
+		Name:        name,
+		Description: description,
+	}, nil
+}
+
+func (s *Manager) CreateRole(ctx Context, name, description string) (*Role, error) {
+	return &Role{
+		RoleID:      uuid.New(),
+		Name:        name,
+		Description: description,
+	}, nil
+}
+
+func (s *Manager) CreateGroup(ctx Context, name, description string) (*Group, error) {
+	return &Group{
+		GroupID:     uuid.New(),
+		Name:        name,
+		Description: description,
+	}, nil
+}
+
+func (s *Manager) CreatePermission(ctx Context, name, description string) (*Permission, error) {
+	return &Permission{
+		PermissionID: uuid.New(),
+		Name:         name,
+		Description:  description,
+	}, nil
+}
+
 func (s *Manager) SetupPrincipalAsOwner(ctx Context, pri *Principal) (*Group, *Role, *Permission, error) {
 	g, err := pri.AttachNewGroup(GroupOwnerName, GroupOwnerDescription)
 	if err != nil {

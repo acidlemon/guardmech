@@ -30,14 +30,14 @@ func NewAdminMux() *AdminMux {
 func (a *AdminMux) Mux() http.Handler {
 	r := mux.NewRouter()
 	r.HandleFunc("/guardmech/api/", a.ApiFallbackHandler)
-	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler)
-	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler)
+	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.GetPrincipalHandler).Methods(http.MethodGet)
-	//	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
+	//r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
 
+	r.HandleFunc("/guardmech/api/role", a.CreateRoleHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
-	r.HandleFunc("/guardmech/api/role/new", a.CreateRoleHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.GetRoleHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.UpdateRoleHandler).Methods(http.MethodPost)
 
@@ -46,13 +46,13 @@ func (a *AdminMux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/mapping_rule/{id:[0-9a-f-]+}", a.GetMappingRuleHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/mapping_rule/{id:[0-9a-f-]+}", a.UpdateMappingRuleHandler).Methods(http.MethodPost)
 
+	r.HandleFunc("/guardmech/api/group", a.CreateGroupHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/groups", a.ListGroupsHandler)
-	r.HandleFunc("/guardmech/api/group/new", a.CreateGroupHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.GetGroupHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.UpdateGroupHandler).Methods(http.MethodPost)
 
+	r.HandleFunc("/guardmech/api/permission", a.CreatePermissionHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/permissions", a.ListPermissionsHandler)
-	r.HandleFunc("/guardmech/api/permission/new", a.CreatePermissionHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.PermissionGetHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.PermissionPostHandler).Methods(http.MethodPost)
 
@@ -95,7 +95,9 @@ func (a *AdminMux) GetPrincipalHandler(w http.ResponseWriter, req *http.Request)
 	}
 
 	p := payload.PrincipalPayloadFromEntity(pri)
-	renderJSON(w, p)
+	renderJSON(w, map[string]interface{}{
+		"principal": p,
+	})
 }
 
 // func (a *Mux) UpdatePrincipalHandler(w http.ResponseWriter, req *http.Request) {
@@ -140,7 +142,10 @@ func (a *AdminMux) CreatePrincipalHandler(w http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	renderJSON(w, pri)
+	p := payload.PrincipalPayloadFromEntity(pri)
+	renderJSON(w, map[string]interface{}{
+		"principal": p,
+	})
 }
 
 func (a *AdminMux) CreateAPIKeyHandler(w http.ResponseWriter, req *http.Request) {
@@ -192,7 +197,15 @@ func (a *AdminMux) ListRolesHandler(w http.ResponseWriter, req *http.Request) {
 func (a *AdminMux) CreateRoleHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 
-	role, err := a.u.CreateRole(req.Context())
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	name := req.Form.Get("name")
+	description := req.Form.Get("description")
+
+	role, err := a.u.CreateRole(req.Context(), name, description)
 	if err != nil {
 		errorJSON(w, err)
 		return
@@ -320,15 +333,22 @@ func (a *AdminMux) ListGroupsHandler(w http.ResponseWriter, req *http.Request) {
 
 func (a *AdminMux) CreateGroupHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	name := req.Form.Get("name")
+	description := req.Form.Get("description")
 
-	list, err := a.u.CreateGroup(req.Context())
+	g, err := a.u.CreateGroup(req.Context(), name, description)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"groups": list,
+		"group": g,
 	})
 }
 
@@ -382,14 +402,22 @@ func (a *AdminMux) ListPermissionsHandler(w http.ResponseWriter, req *http.Reque
 func (a *AdminMux) CreatePermissionHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 
-	list, err := a.u.CreatePermission(req.Context())
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	name := req.Form.Get("name")
+	description := req.Form.Get("description")
+
+	permission, err := a.u.CreatePermission(req.Context(), name, description)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"permission": list,
+		"permission": permission,
 	})
 }
 

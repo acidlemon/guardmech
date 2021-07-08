@@ -2,7 +2,7 @@
   <div>
     <h2>Principal List</h2>
     <section>
-      <BButton variant="danger">Create New</BButton>
+      <NewPrincipalModal />
     </section>
     <section>
       <BTable :data="principals" :columns="columns" variant="primary">
@@ -21,11 +21,13 @@ import { PrincipalPayload } from '@/types/api'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
+import NewPrincipalModal from '@/components/modals/NewPrincipalModal.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
+    NewPrincipalModal,
   },
   setup() {
     const principals = ref<BTableRow[]>([])
@@ -48,4 +50,3 @@ export default defineComponent({
   },
 })
 </script>
-

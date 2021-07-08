@@ -93,6 +93,10 @@ func PrincipalPayloadFromEntity(pri *entity.Principal) *PrincipalPayload {
 }
 
 func AuthFromEntity(a *entity.OIDCAuthorization) *Auth {
+	if a == nil {
+		return nil
+	}
+
 	return &Auth{
 		ID:      a.OIDCAuthID,
 		Issuer:  a.Issuer,
