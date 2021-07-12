@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/acidlemon/guardmech/app/logic/membership"
@@ -259,8 +260,26 @@ func (u *Administration) CreateGroup(ctx Context, name, description string) (*me
 
 	return g, nil
 }
-func (u *Administration) FetchGroup(ctx Context) (*membership.Group, error) {
-	return nil, nil
+func (u *Administration) FetchGroup(ctx Context, id string) (*membership.Group, error) {
+	conn, err := db.GetConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	q := persistence.NewQuery(conn)
+	manager := membership.NewManager(q)
+
+	groups, err := manager.FindGroups(ctx, []string{id})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(groups) == 0 {
+		return nil, fmt.Errorf("group not found")
+	}
+
+	return groups[0], nil
 }
 func (u *Administration) UpdateGroup(ctx Context) (*membership.Group, error) {
 	return nil, nil

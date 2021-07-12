@@ -347,22 +347,27 @@ func (a *AdminMux) CreateGroupHandler(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
+	group := payload.GroupFromEntity(g)
 	renderJSON(w, map[string]interface{}{
-		"group": g,
+		"group": group,
 	})
 }
 
 func (a *AdminMux) GetGroupHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 
-	list, err := a.u.FetchGroup(req.Context())
+	vars := mux.Vars(req)
+	id := vars["id"]
+
+	g, err := a.u.FetchGroup(req.Context(), id)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
+	group := payload.GroupFromEntity(g)
 	renderJSON(w, map[string]interface{}{
-		"groups": list,
+		"group": group,
 	})
 }
 

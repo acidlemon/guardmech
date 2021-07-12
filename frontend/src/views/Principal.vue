@@ -62,7 +62,6 @@ export default defineComponent({
   setup(_, context: SetupContext) {
     const router = useRouter()
     const id = router.currentRoute.value.params['id']
-    console.log(id)
 
     const principal = ref<PrincipalPayload>()
 
