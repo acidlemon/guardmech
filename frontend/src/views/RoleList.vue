@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="container">
     <h2>Role List</h2>
     <section>
       <NewRoleModal />

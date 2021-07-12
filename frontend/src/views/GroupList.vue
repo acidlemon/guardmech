@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="container">
     <h2>Group List</h2>
     <section>
       <NewGroupModal />

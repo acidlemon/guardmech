@@ -33,13 +33,15 @@ func (a *AdminMux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.GetPrincipalHandler).Methods(http.MethodGet)
-	//r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.DeletePrincipalHandler).Methods(http.MethodDelete)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
 
 	r.HandleFunc("/guardmech/api/role", a.CreateRoleHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
 	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.GetRoleHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.UpdateRoleHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.DeleteRoleHandler).Methods(http.MethodDelete)
 
 	r.HandleFunc("/guardmech/api/mapping_rules", a.ListMappingRulesHandler)
 	r.HandleFunc("/guardmech/api/mapping_rule/new", a.CreateMappingRuleHandler).Methods(http.MethodPost)
@@ -55,7 +57,8 @@ func (a *AdminMux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/permission", a.CreatePermissionHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/permissions", a.ListPermissionsHandler)
 	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.PermissionGetHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.PermissionPostHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.UpdatePermissionHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.DeletePermissionHandler).Methods(http.MethodDelete)
 
 	return r
 }
@@ -101,30 +104,41 @@ func (a *AdminMux) GetPrincipalHandler(w http.ResponseWriter, req *http.Request)
 	})
 }
 
-// func (a *Mux) UpdatePrincipalHandler(w http.ResponseWriter, req *http.Request) {
-// 	// TODO permission check
+func (a *AdminMux) UpdatePrincipalHandler(w http.ResponseWriter, req *http.Request) {
+	// TODO permission check
 
-// 	vars := mux.Vars(req)
-// 	idStr := vars["id"]
-// 	var id int64
-// 	id, err := strconv.ParseInt(idStr, 10, 64)
-// 	if err != nil {
-// 		errorJSON(w, err)
-// 		return
-// 	}
+	// vars := mux.Vars(req)
+	// id := vars["id"]
 
-// 	name := vars["name"]
-// 	description := vars["description"]
-// 	log.Println("POST id=", id)
+	// name := vars["name"]
+	// description := vars["description"]
 
-// 	pri, err := a.u.UpdatePrincipal(req.Context(), name, description)
-// 	if err != nil {
-// 		errorJSON(w, err)
-// 		return
-// 	}
+	// pri, err := a.u.UpdatePrincipal(req.Context(), name, description)
+	// if err != nil {
+	// 	errorJSON(w, err)
+	// 	return
+	// }
 
-// 	renderJSON(w, pri)
-// }
+	// renderJSON(w, pri)
+
+}
+
+func (a *AdminMux) DeletePrincipalHandler(w http.ResponseWriter, req *http.Request) {
+	// TODO permission check
+
+	vars := mux.Vars(req)
+	id := vars["id"]
+
+	err := a.u.DeletePrincipal(req.Context(), id)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	renderJSON(w, map[string]interface{}{
+		"result": "ok",
+	})
+}
 
 func (a *AdminMux) CreatePrincipalHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
@@ -248,6 +262,23 @@ func (a *AdminMux) UpdateRoleHandler(w http.ResponseWriter, req *http.Request) {
 
 	renderJSON(w, map[string]interface{}{
 		"roles": list,
+	})
+}
+
+func (a *AdminMux) DeleteRoleHandler(w http.ResponseWriter, req *http.Request) {
+	// TODO permission check
+
+	vars := mux.Vars(req)
+	id := vars["id"]
+
+	err := a.u.DeleteRole(req.Context(), id)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	renderJSON(w, map[string]interface{}{
+		"result": "ok",
 	})
 }
 
@@ -458,7 +489,7 @@ func (a *AdminMux) PermissionGetHandler(w http.ResponseWriter, req *http.Request
 	})
 }
 
-func (a *AdminMux) PermissionPostHandler(w http.ResponseWriter, req *http.Request) {
+func (a *AdminMux) UpdatePermissionHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO permission check
 
 	list, err := a.u.UpdatePermission(req.Context())
@@ -469,6 +500,23 @@ func (a *AdminMux) PermissionPostHandler(w http.ResponseWriter, req *http.Reques
 
 	renderJSON(w, map[string]interface{}{
 		"permissions": list,
+	})
+}
+
+func (a *AdminMux) DeletePermissionHandler(w http.ResponseWriter, req *http.Request) {
+	// TODO permission check
+
+	vars := mux.Vars(req)
+	id := vars["id"]
+
+	err := a.u.DeletePermission(req.Context(), id)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	renderJSON(w, map[string]interface{}{
+		"result": "ok",
 	})
 }
 

@@ -25,6 +25,6 @@ export default defineComponent({
 .header {
   background: #F8F8F8;
   padding: 20px;
-
+  margin-bottom: 20px;
 }
 </style>

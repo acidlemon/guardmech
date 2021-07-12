@@ -87,6 +87,39 @@ func (u *Administration) ListPrincipals(ctx Context) ([]*membership.Principal, e
 	return list, nil
 }
 
+func (u *Administration) DeletePrincipal(ctx Context, id string) error {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+
+	pris, err := manager.FindPrincipals(ctx, []string{id})
+	if err != nil {
+		return err
+	}
+
+	if len(pris) == 0 {
+		return fmt.Errorf("principal not found")
+	}
+
+	pri := pris[0]
+	err = cmd.DeletePrincipal(ctx, pri)
+	if err != nil {
+		log.Println("failed to delete principal")
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
 func (u *Administration) CreateAPIKey(ctx Context, principalID string, name string) (*membership.AuthAPIKey, string, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
@@ -178,6 +211,39 @@ func (u *Administration) FetchRole(ctx Context, id string) (*membership.Role, er
 func (u *Administration) UpdateRole(ctx Context, id string) (*membership.Role, error) {
 	return nil, nil
 }
+func (u *Administration) DeleteRole(ctx Context, id string) error {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+
+	roles, err := manager.FindRoles(ctx, []string{id})
+	if err != nil {
+		return err
+	}
+
+	if len(roles) == 0 {
+		return fmt.Errorf("role not found")
+	}
+
+	r := roles[0]
+	err = cmd.DeleteRole(ctx, r)
+	if err != nil {
+		log.Println("failed to delete role")
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
 func (u *Administration) ListMappingRules(ctx Context) ([]*membership.MappingRule, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
@@ -308,7 +374,7 @@ func (u *Administration) DeleteGroup(ctx Context, id string) error {
 	g := groups[0]
 	err = cmd.DeleteGroup(ctx, g)
 	if err != nil {
-		log.Println("failed to save new group")
+		log.Println("failed to delete group")
 		return err
 	}
 
@@ -372,4 +438,36 @@ func (u *Administration) FetchPermission(ctx Context) (*membership.Permission, e
 }
 func (u *Administration) UpdatePermission(ctx Context) (*membership.Permission, error) {
 	return nil, nil
+}
+func (u *Administration) DeletePermission(ctx Context, id string) error {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+
+	perms, err := manager.FindPermissions(ctx, []string{id})
+	if err != nil {
+		return err
+	}
+
+	if len(perms) == 0 {
+		return fmt.Errorf("permission not found")
+	}
+
+	perm := perms[0]
+	err = cmd.DeletePermission(ctx, perm)
+	if err != nil {
+		log.Println("failed to delete permission")
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
 }

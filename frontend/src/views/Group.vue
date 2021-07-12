@@ -73,8 +73,6 @@ export default defineComponent({
       deleteGroup()
     })
     const deleteGroup = (async () => {
-      console.log('delete')
-      console.log(id)
       const res = await axios.delete('/api/group/' + id)
       console.log(res)
     })

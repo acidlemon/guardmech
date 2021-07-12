@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="container">
     <h2>Mapping Rule List</h2>
     <section>
       <BButton variant="danger">Create New</BButton>

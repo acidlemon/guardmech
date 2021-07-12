@@ -1,8 +1,8 @@
 <template>
-  <div>
+  <div class="container">
     <h2>Principal List</h2>
     <section>
-      <NewPrincipalModal />
+      <NewPrincipalModal @completed="created"/>
     </section>
     <section>
       <BTable :data="principals" :columns="columns">
@@ -37,15 +37,24 @@ export default defineComponent({
       { key: 'action', label: '' },
     ])
 
-    onMounted(async () => {
+    const fetchList = (async () => {
       const res = await axios.get('/api/principals')
       const payload = res.data.principals as PrincipalPayload[]
       principals.value = payload.map(d => d.principal)
     })
 
+    onMounted(() => {
+      fetchList()
+    })
+
+    const created = (() => {
+      fetchList()
+    })
+
     return {
       columns,
       principals,
+      created,
     }
   },
 })

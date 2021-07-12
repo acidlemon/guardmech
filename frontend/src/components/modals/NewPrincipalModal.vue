@@ -11,7 +11,7 @@
 </template>
 
 <script lang="ts">
-import { ref, defineComponent } from 'vue'
+import { ref, defineComponent, SetupContext } from 'vue'
 import axios from 'axios'
 import BModal from '@/components/bootstrap/BModal.vue'
 import BInput from '@/components/bootstrap/BInput.vue'
@@ -23,7 +23,8 @@ export default defineComponent({
     BModal,
     BInput,
   },
-  setup() {
+  emits: ['completed'],
+  setup(_, context: SetupContext) {
     const name = ref('')
     const description = ref('')
 
@@ -33,8 +34,14 @@ export default defineComponent({
         description,
       })
       const res = await axios.post('/api/principal', params)
+      if (!res.data.principal) {
+        // failed
+        // TODO alert modal
 
-      console.log(res)
+        return
+      }
+
+      context.emit('completed')
     }
 
     const proceeded = (() => {
