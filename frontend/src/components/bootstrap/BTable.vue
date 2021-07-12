@@ -1,7 +1,9 @@
 <template>
-  <table :class="tableVariant">
+  <table class="table table-striped">
     <thead>
-      <th scope="col" v-for="h in columns" :key="h.key">{{ h.label }}</th>
+      <tr>
+        <th scope="col" v-for="h in columns" :key="h.key">{{ h.label }}</th>
+      </tr>
     </thead>
     <tbody>
       <tr v-for="row in data" :key="row">
@@ -49,7 +51,7 @@ export default defineComponent({
     },
     variant: {
       type: String,
-      default: "",
+      default: '',
     }
   },
   setup(props: Props, context: SetupContext) {

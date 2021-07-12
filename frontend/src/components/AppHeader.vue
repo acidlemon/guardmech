@@ -1,7 +1,9 @@
 <template>
-  <header>
-    <h2>Guardmech Control Panel</h2>
-    <AppMenu />
+  <header class="header">
+    <div class="container">
+      <h2>Guardmech Control Panel</h2>
+      <AppMenu />
+    </div>
   </header>
 </template>
 
@@ -18,3 +20,11 @@ export default defineComponent({
   },
 })
 </script>
+
+<style scoped>
+.header {
+  background: #F8F8F8;
+  padding: 20px;
+
+}
+</style>
