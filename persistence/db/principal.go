@@ -57,14 +57,14 @@ func (s *Service) SavePrincipal(ctx Context, conn seacle.Executable, pri *entity
 	}
 
 	if err == sql.ErrNoRows {
-		err = s.createPrincipal(ctx, conn, pri)
+		err = s.createPrincipalRow(ctx, conn, pri)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
 		err = seacle.SelectRow(ctx, conn, row, "WHERE principal_id = ?", pri.PrincipalID.String())
 	} else {
-		err = s.updatePrincipal(ctx, conn, pri, row)
+		err = s.updatePrincipalRow(ctx, conn, pri, row)
 	}
 	if err != nil {
 		log.Println(err)
@@ -86,7 +86,26 @@ func (s *Service) SavePrincipal(ctx Context, conn seacle.Executable, pri *entity
 	return nil
 }
 
-func (s *Service) createPrincipal(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
+func (s *Service) DeletePrincipal(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
+	row := &PrincipalRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE principal_id = ?", pri.PrincipalID.String())
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil
+	} else {
+		err = s.deletePrincipalRow(ctx, conn, pri, row)
+	}
+
+	// TODO delete PrincipalGroup / PrincipalRole
+
+	return err
+}
+
+func (s *Service) createPrincipalRow(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
 	row := principalRowFromEntity(pri)
 	_, err := seacle.Insert(ctx, conn, row)
 	if err != nil {
@@ -96,7 +115,7 @@ func (s *Service) createPrincipal(ctx Context, conn seacle.Executable, pri *enti
 	return nil
 }
 
-func (s *Service) updatePrincipal(ctx Context, conn seacle.Executable, pri *entity.Principal, row *PrincipalRow) error {
+func (s *Service) updatePrincipalRow(ctx Context, conn seacle.Executable, pri *entity.Principal, row *PrincipalRow) error {
 	// lock row
 	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
@@ -107,6 +126,22 @@ func (s *Service) updatePrincipal(ctx Context, conn seacle.Executable, pri *enti
 	row.Name = pri.Name
 	row.Description = pri.Description
 	err = seacle.Update(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to update principal row: err=%s", err)
+	}
+
+	return nil
+}
+
+func (s *Service) deletePrincipalRow(ctx Context, conn seacle.Executable, pri *entity.Principal, row *PrincipalRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock principal row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
 	if err != nil {
 		return fmt.Errorf("failed to update principal row: err=%s", err)
 	}

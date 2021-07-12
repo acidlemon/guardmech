@@ -5,7 +5,7 @@
       <NewPrincipalModal />
     </section>
     <section>
-      <BTable :data="principals" :columns="columns" variant="primary">
+      <BTable :data="principals" :columns="columns">
         <template #cell(action)="data">
           <BButton v-if="data?.row" :link="`/principal/${data.row.id}`" >View</BButton>
         </template>

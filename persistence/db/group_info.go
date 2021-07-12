@@ -67,14 +67,14 @@ func (s *Service) SaveGroup(ctx context.Context, conn seacle.Executable, g *enti
 		return err
 	}
 	if err == sql.ErrNoRows {
-		err = s.createGroup(ctx, conn, g)
+		err = s.createGroupRow(ctx, conn, g)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
 		err = seacle.SelectRow(ctx, conn, row, "WHERE group_id = ?", g.GroupID.String())
 	} else {
-		err = s.updateGroup(ctx, conn, g, row)
+		err = s.updateGroupRow(ctx, conn, g, row)
 	}
 
 	if err != nil {
@@ -91,7 +91,25 @@ func (s *Service) SaveGroup(ctx context.Context, conn seacle.Executable, g *enti
 	return nil
 }
 
-func (s *Service) createGroup(ctx context.Context, conn seacle.Executable, g *entity.Group) error {
+func (s *Service) DeleteGroup(ctx context.Context, conn seacle.Executable, g *entity.Group) error {
+	row := &GroupRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE group_id = ?", g.GroupID.String())
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+	if err == sql.ErrNoRows {
+		return nil
+	} else {
+		err = s.deleteGroupRow(ctx, conn, g, row)
+	}
+
+	// TODO delete group-role
+
+	return err
+}
+
+func (s *Service) createGroupRow(ctx context.Context, conn seacle.Executable, g *entity.Group) error {
 	row := groupRowFromEntity(g)
 	_, err := seacle.Insert(ctx, conn, row)
 	if err != nil {
@@ -101,7 +119,7 @@ func (s *Service) createGroup(ctx context.Context, conn seacle.Executable, g *en
 	return nil
 }
 
-func (s *Service) updateGroup(ctx context.Context, conn seacle.Executable, g *entity.Group, row *GroupRow) error {
+func (s *Service) updateGroupRow(ctx context.Context, conn seacle.Executable, g *entity.Group, row *GroupRow) error {
 	// lock row
 	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
@@ -114,6 +132,22 @@ func (s *Service) updateGroup(ctx context.Context, conn seacle.Executable, g *en
 	err = seacle.Update(ctx, conn, row)
 	if err != nil {
 		return fmt.Errorf("failed to update role row: err=%s", err)
+	}
+
+	return nil
+}
+
+func (s *Service) deleteGroupRow(ctx context.Context, conn seacle.Executable, g *entity.Group, row *GroupRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock role row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to delete role row: err=%s", err)
 	}
 
 	return nil

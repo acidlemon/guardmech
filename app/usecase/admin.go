@@ -284,6 +284,39 @@ func (u *Administration) FetchGroup(ctx Context, id string) (*membership.Group, 
 func (u *Administration) UpdateGroup(ctx Context) (*membership.Group, error) {
 	return nil, nil
 }
+func (u *Administration) DeleteGroup(ctx Context, id string) error {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+
+	groups, err := manager.FindGroups(ctx, []string{id})
+	if err != nil {
+		return err
+	}
+
+	if len(groups) == 0 {
+		return fmt.Errorf("group not found")
+	}
+
+	g := groups[0]
+	err = cmd.DeleteGroup(ctx, g)
+	if err != nil {
+		log.Println("failed to save new group")
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
 func (u *Administration) ListPermissions(ctx Context) ([]*membership.Permission, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {

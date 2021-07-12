@@ -2,7 +2,7 @@
   <div>
     <button
       type="button"
-      class="button btn-primary"
+      :class="`btn ${openButtonVariant}`"
       data-bs-toggle="modal"
       :data-bs-target="`#${targetId}`"
     >
@@ -23,12 +23,12 @@
             <template v-if="modalType === 'close'">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </template>
-            <template v-if="modalType === 'ok-cancel'">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-              <button type="button" class="btn btn-success" data-bs-dismiss="modal" @click="proceeded">Save</button>
+            <template v-if="modalType === 'confirm-cancel'">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ cancelTitle }}</button>
+              <button type="button" :class="`btn ${confirmButtonVariant}`" data-bs-dismiss="modal" @click="proceeded">{{ confirmTitle }}</button>
             </template>
             <template v-if="modalType === 'confirm'">
-              <button type="button" class="btn btn-success" data-bs-dismiss="modal" @click="proceeded">Save</button>
+              <button type="button" :class="`btn ${confirmButtonVariant}`" data-bs-dismiss="modal" @click="proceeded">{{ confirmTitle }}</button>
             </template>
           </div>
         </div>
@@ -38,16 +38,20 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, SetupContext } from 'vue'
+import { computed, defineComponent, SetupContext } from 'vue'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 
-type ModalType = 'close' | 'ok-cancel' | 'confirm'
+type ModalType = 'close' | 'confirm-cancel' | 'confirm'
 
 type Props = {
   buttonTitle: string
+  buttonVariant: string
   modalTitle: string
   modalType: ModalType
+  confirmTitle: string
+  confirmVariant: string
+  cancelTitle: string
 }
 
 export default defineComponent({
@@ -60,6 +64,10 @@ export default defineComponent({
       type: String,
       default: 'Open modal',
     },
+    buttonVariant: {
+      type: String,
+      default: 'primary',
+    },
     modalTitle: {
       type: String,
       default: '',
@@ -67,10 +75,36 @@ export default defineComponent({
     modalType: {
       type: String as () => ModalType,
       default: 'close',
-    }
+    },
+    confirmTitle: {
+      type: String,
+      default: 'Save',
+    },
+    confirmVariant: {
+      type: String,
+      default: 'success',
+    },
+    cancelTitle: {
+      type: String,
+      default: 'Close',
+    },
   },
-  setup(_: Props, context: SetupContext) {
+  setup(props: Props, context: SetupContext) {
     const targetId = 'tg' + Math.random().toString(32).substring(2)
+
+    const openButtonVariant = computed(() => {
+      if (props.buttonVariant) {
+        return `btn-${props.buttonVariant}`
+      }
+      return 'btn-primary'
+    })
+
+    const confirmButtonVariant = computed(() => {
+      if (props.confirmVariant) {
+        return `btn-${props.confirmVariant}`
+      }
+      return 'btn-primary'
+    })
 
     const proceeded = (() => {
       context.emit('proceeded')
@@ -79,6 +113,8 @@ export default defineComponent({
     return {
       targetId,
       proceeded,
+      openButtonVariant,
+      confirmButtonVariant,
     }
   },
 })

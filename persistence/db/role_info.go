@@ -75,14 +75,14 @@ func (s *Service) SaveRole(ctx context.Context, conn seacle.Executable, r *entit
 	}
 
 	if err == sql.ErrNoRows {
-		err = s.createRole(ctx, conn, r)
+		err = s.createRoleRow(ctx, conn, r)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
 		err = seacle.SelectRow(ctx, conn, row, "WHERE role_id = ?", r.RoleID.String())
 	} else {
-		err = s.updateRole(ctx, conn, r, row)
+		err = s.updateRoleRow(ctx, conn, r, row)
 	}
 	if err != nil {
 		log.Println(err)
@@ -98,7 +98,26 @@ func (s *Service) SaveRole(ctx context.Context, conn seacle.Executable, r *entit
 	return nil
 }
 
-func (s *Service) createRole(ctx context.Context, conn seacle.Executable, r *entity.Role) error {
+func (s *Service) DeleteRole(ctx context.Context, conn seacle.Executable, r *entity.Role) error {
+	row := &RoleRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE role_id = ?", r.RoleID.String())
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil
+	} else {
+		err = s.deleteRoleRow(ctx, conn, r, row)
+	}
+
+	// TODO delete RolePermission
+
+	return err
+}
+
+func (s *Service) createRoleRow(ctx context.Context, conn seacle.Executable, r *entity.Role) error {
 	row := roleRowFromEntity(r)
 	_, err := seacle.Insert(ctx, conn, row)
 	if err != nil {
@@ -108,7 +127,7 @@ func (s *Service) createRole(ctx context.Context, conn seacle.Executable, r *ent
 	return nil
 }
 
-func (s *Service) updateRole(ctx context.Context, conn seacle.Executable, r *entity.Role, row *RoleRow) error {
+func (s *Service) updateRoleRow(ctx context.Context, conn seacle.Executable, r *entity.Role, row *RoleRow) error {
 	// lock row
 	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
@@ -119,6 +138,22 @@ func (s *Service) updateRole(ctx context.Context, conn seacle.Executable, r *ent
 	row.Name = r.Name
 	row.Description = r.Description
 	err = seacle.Update(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to update role row: err=%s", err)
+	}
+
+	return nil
+}
+
+func (s *Service) deleteRoleRow(ctx context.Context, conn seacle.Executable, r *entity.Role, row *RoleRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock role row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
 	if err != nil {
 		return fmt.Errorf("failed to update role row: err=%s", err)
 	}

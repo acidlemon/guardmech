@@ -33,4 +33,9 @@ type Command interface {
 	SavePermission(ctx Context, perm *Permission) error
 	SaveAuthOIDC(ctx Context, oidc *OIDCAuthorization, pri *Principal) error
 	SaveAuthAPIKey(ctx Context, key *AuthAPIKey, pri *Principal) error
+
+	DeletePrincipal(ctx Context, pri *Principal) error
+	DeleteGroup(ctx Context, g *Group) error
+	DeleteRole(ctx Context, r *Role) error
+	DeletePermission(ctx Context, perm *Permission) error
 }

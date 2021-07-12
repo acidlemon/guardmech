@@ -1,7 +1,7 @@
 <template>
   <BModal
     button-title="Create New"
-    modal-type="ok-cancel"
+    modal-type="confirm-cancel"
     modal-title="Create New Principal"
     @proceeded="proceeded"
   >

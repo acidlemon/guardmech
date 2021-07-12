@@ -41,3 +41,19 @@ func (c *command) SaveAuthOIDC(ctx Context, oidc *entity.OIDCAuthorization, pri 
 func (c *command) SaveAuthAPIKey(ctx Context, key *entity.AuthAPIKey, pri *entity.Principal) error {
 	return c.m.SaveAuthAPIKey(ctx, c.conn, key, pri)
 }
+
+func (c *command) DeletePrincipal(ctx Context, pri *entity.Principal) error {
+	return c.m.DeletePrincipal(ctx, c.conn, pri)
+}
+
+func (c *command) DeleteGroup(ctx Context, g *entity.Group) error {
+	return c.m.DeleteGroup(ctx, c.conn, g)
+}
+
+func (c *command) DeleteRole(ctx Context, r *entity.Role) error {
+	return c.m.DeleteRole(ctx, c.conn, r)
+}
+
+func (c *command) DeletePermission(ctx Context, perm *entity.Permission) error {
+	return c.m.DeletePermission(ctx, c.conn, perm)
+}

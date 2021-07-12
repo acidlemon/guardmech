@@ -50,6 +50,7 @@ func (a *AdminMux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/groups", a.ListGroupsHandler)
 	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.GetGroupHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.UpdateGroupHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.DeleteGroupHandler).Methods(http.MethodDelete)
 
 	r.HandleFunc("/guardmech/api/permission", a.CreatePermissionHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/permissions", a.ListPermissionsHandler)
@@ -382,6 +383,23 @@ func (a *AdminMux) UpdateGroupHandler(w http.ResponseWriter, req *http.Request) 
 
 	renderJSON(w, map[string]interface{}{
 		"groups": list,
+	})
+}
+
+func (a *AdminMux) DeleteGroupHandler(w http.ResponseWriter, req *http.Request) {
+	// TODO permission check
+
+	vars := mux.Vars(req)
+	id := vars["id"]
+
+	err := a.u.DeleteGroup(req.Context(), id)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	renderJSON(w, map[string]interface{}{
+		"result": "ok",
 	})
 }
 

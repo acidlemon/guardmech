@@ -41,13 +41,27 @@ func (s *Service) SavePermission(ctx Context, conn seacle.Executable, perm *enti
 	}
 
 	if err == sql.ErrNoRows {
-		return s.createPermission(ctx, conn, perm)
+		return s.createPermissionRow(ctx, conn, perm)
 	} else {
-		return s.updatePermission(ctx, conn, perm, row)
+		return s.updatePermissionRow(ctx, conn, perm, row)
 	}
 }
 
-func (s *Service) createPermission(ctx Context, conn seacle.Executable, perm *entity.Permission) error {
+func (s *Service) DeletePermission(ctx Context, conn seacle.Executable, perm *entity.Permission) error {
+	row := &PermissionRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE permission_id = ?", perm.PermissionID.String())
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil // do nothing
+	}
+
+	return s.deletePermissionRow(ctx, conn, perm, row)
+}
+
+func (s *Service) createPermissionRow(ctx Context, conn seacle.Executable, perm *entity.Permission) error {
 	row := permissionRowFromEntity(perm)
 	_, err := seacle.Insert(ctx, conn, row)
 	if err != nil {
@@ -57,7 +71,7 @@ func (s *Service) createPermission(ctx Context, conn seacle.Executable, perm *en
 	return nil
 }
 
-func (s *Service) updatePermission(ctx Context, conn seacle.Executable, perm *entity.Permission, row *PermissionRow) error {
+func (s *Service) updatePermissionRow(ctx Context, conn seacle.Executable, perm *entity.Permission, row *PermissionRow) error {
 	// lock row
 	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
@@ -70,6 +84,22 @@ func (s *Service) updatePermission(ctx Context, conn seacle.Executable, perm *en
 	err = seacle.Update(ctx, conn, row)
 	if err != nil {
 		return fmt.Errorf("failed to update permission row: err=%s", err)
+	}
+
+	return nil
+}
+
+func (s *Service) deletePermissionRow(ctx Context, conn seacle.Executable, perm *entity.Permission, row *PermissionRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock permission row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to delete permission row: err=%s", err)
 	}
 
 	return nil
