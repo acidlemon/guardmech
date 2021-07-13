@@ -111,11 +111,11 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 			return
 		}
 
+		cmd := persistence.NewCommand(tx)
+
 		if len(list) == 0 {
 			// 最初のユーザー
 			log.Println("No User!! Entering setup mode.")
-
-			cmd := persistence.NewCommand(tx)
 
 			var oidc *membership.OIDCAuthorization
 			pri, oidc, err = manager.CreatePrincipalFromOpenID(ctx, token)
@@ -131,21 +131,44 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 				return
 			}
 
-			err = cmd.SavePermission(ctx, perm)
-			log.Println(err)
-			err = cmd.SaveRole(ctx, r)
-			log.Println(err)
-			err = cmd.SaveGroup(ctx, g)
-			log.Println(err)
-			err = cmd.SavePrincipal(ctx, pri)
-			log.Println(err)
-			err = cmd.SaveAuthOIDC(ctx, oidc, pri)
-			log.Println(err)
+			cmd.SavePermission(ctx, perm)
+			cmd.SaveRole(ctx, r)
+			cmd.SaveGroup(ctx, g)
+			cmd.SavePrincipal(ctx, pri)
+			cmd.SaveAuthOIDC(ctx, oidc, pri)
+			if cmd.Error() != nil {
+				reserr = systemError("Failed to save item", err)
+				return
+			}
 
 		} else {
 			// TODO ここで2人目以降のユーザを追加するための処理が必要
-			reserr = verificationError("Could Not Find Principal", err)
-			return
+			rules, err := manager.EnumerateMappingRules(ctx)
+			if err != nil {
+				reserr = systemError("Failed to enumerate mapping rules", err)
+				return
+			}
+
+			ruleman := membership.NewMappingRuleManager(rules)
+			rule, err := ruleman.FindMatchedRule(token)
+			if err != nil {
+				reserr = verificationError("You have no matching rules.", err)
+				return
+			}
+
+			pri, oidc, err := manager.CreatePrincipalFromRule(ctx, token, rule)
+			if err != nil {
+				log.Println("failed to prepare principal:", err.Error())
+				reserr = systemError("Failed to create principal", err)
+			}
+
+			cmd.SavePrincipal(ctx, pri)
+			cmd.SaveAuthOIDC(ctx, oidc, pri)
+			if cmd.Error() != nil {
+				reserr = systemError("Failed to save item", err)
+				return
+			}
+
 		}
 	}
 

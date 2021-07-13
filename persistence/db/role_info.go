@@ -25,13 +25,14 @@ func roleRowFromEntity(r *entity.Role) *RoleRow {
 		Description: r.Description,
 	}
 }
-func (r *RoleRow) ToEntity() *entity.Role {
-	return &entity.Role{
-		RoleID:      uuid.MustParse(r.RoleID),
-		Name:        r.Name,
-		Description: r.Description,
-	}
-}
+
+// func (r *RoleRow) ToEntity() *entity.Role {
+// 	return &entity.Role{
+// 		RoleID:      uuid.MustParse(r.RoleID),
+// 		Name:        r.Name,
+// 		Description: r.Description,
+// 	}
+// }
 
 func (s *Service) findRolesByPrincipalSeqID(ctx Context, conn seacle.Selectable, priSeqIDs []int64) (map[int64][]*entity.Role, error) {
 	priRoleMaps := []*PrincipalRoleMapRow{}

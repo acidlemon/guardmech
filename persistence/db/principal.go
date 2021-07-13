@@ -273,14 +273,14 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 		return nil, err
 	}
 
+	if len(pris) == 0 {
+		return []*entity.Principal{}, nil
+	}
+
 	// seq_idを抽出
 	priSeqIDs := make([]int64, 0, len(pris))
 	for _, v := range pris {
 		priSeqIDs = append(priSeqIDs, v.SeqID)
-	}
-
-	if len(priSeqIDs) == 0 {
-		return []*entity.Principal{}, nil
 	}
 
 	// AuthOIDC

@@ -8,33 +8,44 @@ import (
 	"github.com/google/uuid"
 )
 
+const AssociatedTypeGroup = 1
+const AssociatedTypeRole = 2
+
 type MappingRuleRow struct {
-	SeqID         int64  `db:"seq_id,primary,auto_increment"`
-	MappingRuleID string `db:"mapping_rule_id"`
-	Type          int    `db:"type"`
-	Detail        string `db:"detail"`
-	Name          string `db:"name"`
-	Description   string `db:"description"`
+	SeqID           int64  `db:"seq_id,primary,auto_increment"`
+	MappingRuleID   string `db:"mapping_rule_id"`
+	RuleType        int    `db:"rule_type"`
+	Detail          string `db:"detail"`
+	Name            string `db:"name"`
+	Description     string `db:"description"`
+	Priority        int    `db:"priority"`
+	AssociationType int    `db:"association_type"`
+	AssociationID   string `db:"association_id"`
 }
 
 func mappingRuleRowFromEntity(m *entity.MappingRule) *MappingRuleRow {
-	return &MappingRuleRow{
+	row := &MappingRuleRow{
 		MappingRuleID: m.MappingRuleID.String(),
-		Type:          int(m.Type),
+		RuleType:      int(m.RuleType),
 		Detail:        m.Detail,
 		Name:          m.Name,
 		Description:   m.Description,
+		Priority:      m.Priority,
 	}
-}
 
-func (m *MappingRuleRow) ToEntity() *entity.MappingRule {
-	return &entity.MappingRule{
-		MappingRuleID: uuid.MustParse(m.MappingRuleID),
-		Type:          entity.MappingType(m.Type),
-		Detail:        m.Detail,
-		Name:          m.Name,
-		Description:   m.Description,
+	g := m.AssociatedGroup()
+	if g != nil {
+		row.AssociationType = AssociatedTypeGroup
+		row.AssociationID = g.GroupID.String()
 	}
+
+	r := m.AssociatedRole()
+	if r != nil {
+		row.AssociationType = AssociatedTypeRole
+		row.AssociationID = r.RoleID.String()
+	}
+
+	return row
 }
 
 func (s *Service) FindMappingRules(ctx Context, conn seacle.Selectable, mappingRuleIDs []string) ([]*entity.MappingRule, error) {
@@ -49,11 +60,59 @@ func (s *Service) FindMappingRules(ctx Context, conn seacle.Selectable, mappingR
 		return nil, err
 	}
 
-	mrs := []*entity.MappingRule{}
-	for _, v := range mrRows {
-		mrs = append(mrs, v.ToEntity())
+	if len(mrRows) == 0 {
+		return []*entity.MappingRule{}, nil
 	}
-	return mrs, nil
+
+	roleIDs := []string{}
+	groupIDs := []string{}
+	for _, v := range mrRows {
+		if v.AssociationType == AssociatedTypeGroup {
+			groupIDs = append(groupIDs, v.AssociationID)
+		} else if v.AssociationType == AssociatedTypeRole {
+			roleIDs = append(roleIDs, v.AssociationID)
+		}
+	}
+
+	// Associated Group
+	groups, err := s.FindGroups(ctx, conn, groupIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Associated Role
+	roles, err := s.FindRoles(ctx, conn, roleIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*entity.MappingRule, 0, len(mrRows))
+	f := entity.NewFactory(s.q)
+	for _, v := range mrRows {
+		var group *entity.Group
+		var role *entity.Role
+		if v.AssociationType == AssociatedTypeGroup {
+			for _, w := range groups {
+				if w.GroupID.String() == v.AssociationID {
+					group = w
+					break
+				}
+			}
+		} else if v.AssociationType == AssociatedTypeRole {
+			for _, w := range roles {
+				if w.RoleID.String() == v.AssociationID {
+					role = w
+					break
+				}
+			}
+		}
+
+		result = append(result, f.NewMappingRule(
+			uuid.MustParse(v.MappingRuleID), entity.MappingType(v.RuleType), v.Detail,
+			v.Name, v.Description, v.Priority, group, role,
+		))
+	}
+	return result, nil
 }
 
 func (s *Service) EnumerateMappingRuleIDs(ctx Context, conn seacle.Selectable) ([]string, error) {

@@ -2,7 +2,7 @@
   <div class="container">
     <h2>Mapping Rule List</h2>
     <section>
-      <BButton variant="danger">Create New</BButton>
+      <NewMappingRuleModal />
     </section>
     <section>
       <BTable
@@ -27,11 +27,13 @@ import { MappingRule } from '@/types/api'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
+import NewMappingRuleModal from '@/components/modals/NewMappingRuleModal.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
+    NewMappingRuleModal,
   },
   setup() {
     const mappingRules = ref<BTableRow[]>([])

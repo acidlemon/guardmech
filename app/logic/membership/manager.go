@@ -94,6 +94,25 @@ func (s *Manager) CreatePrincipal(ctx Context, name, description string) (*Princ
 	}, nil
 }
 
+func (s *Manager) CreatePrincipalFromRule(ctx Context, token *auth.OpenIDToken, rule *MappingRule) (*Principal, *OIDCAuthorization, error) {
+	pri, a, err := s.CreatePrincipalFromOpenID(ctx, token)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	g := rule.AssociatedGroup()
+	if g != nil {
+		pri.AttachGroup(g)
+	}
+
+	r := rule.AssociatedRole()
+	if r != nil {
+		pri.AttachRole(r)
+	}
+
+	return pri, a, nil
+}
+
 func (s *Manager) CreateRole(ctx Context, name, description string) (*Role, error) {
 	return &Role{
 		RoleID:      uuid.New(),
@@ -224,4 +243,27 @@ func (s *Manager) EnumerateMappingRuleIDs(ctx Context) ([]string, error) {
 
 func (s *Manager) FindMappingRules(ctx Context, ids []string) ([]*MappingRule, error) {
 	return s.q.FindMappingRules(ctx, ids)
+}
+
+func (s *Manager) EnumerateMappingRules(ctx Context) ([]*MappingRule, error) {
+	IDs, err := s.q.EnumerateMappingRuleIDs(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(IDs) == 0 {
+		return []*MappingRule{}, nil
+	}
+
+	result := make([]string, 0, len(IDs))
+	for _, u := range IDs {
+		result = append(result, u.String())
+	}
+
+	rules, err := s.q.FindMappingRules(ctx, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return rules, nil
 }
