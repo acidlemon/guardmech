@@ -1,6 +1,8 @@
 package membership
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 )
 
@@ -39,6 +41,10 @@ func (g *Group) Roles() []*Role {
 }
 
 func (g *Group) AttachNewRole(name, description string) (*Role, error) {
+	if name == "" {
+		return nil, fmt.Errorf("AttachNewRole: name is required")
+	}
+
 	// create New Role
 	r := newRole(name, description)
 	err := g.AttachRole(r)

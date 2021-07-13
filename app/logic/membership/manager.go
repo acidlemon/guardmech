@@ -1,6 +1,8 @@
 package membership
 
 import (
+	"fmt"
+
 	"github.com/acidlemon/guardmech/app/logic/auth"
 	"github.com/google/uuid"
 )
@@ -81,12 +83,20 @@ func (s *Manager) CreatePrincipalFromOpenID(ctx Context, token *auth.OpenIDToken
 	return pri, a, nil
 }
 
-func (s *Manager) CreatePrincipalFromAPIKey(ctx Context, apiKey string) (*Principal, error) {
+func (s *Manager) CreatePrincipalFromAPIKey(ctx Context, name, apiKey string) (*Principal, error) {
+	if name == "" {
+		return nil, fmt.Errorf("CreatePrincipalFromAPIKey: name is required")
+	}
+
 	//	s.cmd.CreatePrincipal()
 	return &Principal{}, nil
 }
 
 func (s *Manager) CreatePrincipal(ctx Context, name, description string) (*Principal, error) {
+	if name == "" {
+		return nil, fmt.Errorf("CreatePrincipal: name is required")
+	}
+
 	return &Principal{
 		PrincipalID: uuid.New(),
 		Name:        name,
@@ -114,6 +124,10 @@ func (s *Manager) CreatePrincipalFromRule(ctx Context, token *auth.OpenIDToken, 
 }
 
 func (s *Manager) CreateRole(ctx Context, name, description string) (*Role, error) {
+	if name == "" {
+		return nil, fmt.Errorf("CreateRole: name is required")
+	}
+
 	return &Role{
 		RoleID:      uuid.New(),
 		Name:        name,
@@ -122,6 +136,10 @@ func (s *Manager) CreateRole(ctx Context, name, description string) (*Role, erro
 }
 
 func (s *Manager) CreateGroup(ctx Context, name, description string) (*Group, error) {
+	if name == "" {
+		return nil, fmt.Errorf("CreateGroup: name is required")
+	}
+
 	return &Group{
 		GroupID:     uuid.New(),
 		Name:        name,
@@ -130,6 +148,10 @@ func (s *Manager) CreateGroup(ctx Context, name, description string) (*Group, er
 }
 
 func (s *Manager) CreatePermission(ctx Context, name, description string) (*Permission, error) {
+	if name == "" {
+		return nil, fmt.Errorf("CreatePermission: name is required")
+	}
+
 	return &Permission{
 		PermissionID: uuid.New(),
 		Name:         name,

@@ -1,6 +1,8 @@
 package membership
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 )
 
@@ -42,6 +44,10 @@ func (r *Role) Permissions() []*Permission {
 }
 
 func (r *Role) AttachNewPermission(ctx Context, name, description string) (*Permission, error) {
+	if name == "" {
+		return nil, fmt.Errorf("AttachNewPermission: name is required")
+	}
+
 	perm := newPermission(name, description)
 	r.permissions = append(r.permissions, perm)
 	return perm, nil

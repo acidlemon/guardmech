@@ -2,6 +2,7 @@ package membership
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -104,6 +105,10 @@ func (p *Principal) APIKeys() []*AuthAPIKey {
 
 // Add New APIKey
 func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
+	if name == "" {
+		return nil, "", fmt.Errorf("CreateAPIKey: name is required")
+	}
+
 	newToken := "gmch-" + logic.GenerateRandomString(43)
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(newToken), 12)
@@ -125,6 +130,10 @@ func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
 }
 
 func (p *Principal) AttachNewGroup(name, description string) (*Group, error) {
+	if name == "" {
+		return nil, fmt.Errorf("AttachNewGroup: name is required")
+	}
+
 	// create New Group
 	g := newGroup(name, description)
 	err := p.AttachGroup(g)
@@ -147,6 +156,10 @@ func (p *Principal) AttachGroup(g *Group) error {
 }
 
 func (p *Principal) AttachNewRole(name, description string) (*Role, error) {
+	if name == "" {
+		return nil, fmt.Errorf("AttachNewRole: name is required")
+	}
+
 	// create New Role
 	r := newRole(name, description)
 	err := p.AttachRole(r)
@@ -166,44 +179,3 @@ func (p *Principal) AttachRole(r *Role) error {
 	p.roles = append(p.roles, r)
 	return nil
 }
-
-/*
-func (pr *Principal) AttachRole(ctx Context, tx *db.Tx, r *Role) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO principal_role_map (principal_id, role_id) VALUES (?, ?)`, pr.SeqID, r.SeqID)
-	return err
-}
-
-func (pr *Principal) FindRole(ctx Context, conn *sql.Conn) ([]*Role, error) {
-	result := make([]*Role, 0, 32)
-
-	// find role (direct attached)
-	rows, err := conn.QueryContext(ctx,
-		`SELECT r.seq_id, r.unique_id, r.name, r.description FROM principal_role_map AS m JOIN role_info AS r ON m.role_id = r.seq_id WHERE m.principal_id = ?`,
-		pr.SeqID,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id int64
-		var name, description string
-		if err := rows.Scan(&id, &name, &description); err != nil {
-			log.Println("scan error:", err)
-			return nil, err
-		}
-		result = append(result, &Role{
-			SeqID:       id,
-			Name:        name,
-			Description: description,
-		})
-	}
-
-	// find role (attached via group)
-	// TODO
-
-	return result, nil
-}
-*/
-
-//func (pr *Principal)
