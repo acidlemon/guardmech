@@ -43,6 +43,17 @@ type Permission struct {
 	Description string    `json:"description"`
 }
 
+type MappingRule struct {
+	ID              uuid.UUID `json:"id"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	RuleType        int       `json:"rule_type"`
+	Detail          string    `json:"detail"`
+	Priority        int       `json:"priority"`
+	AssociationType string    `json:"association_type"`
+	AssociationID   string    `json:"association_id"`
+}
+
 type PrincipalPayload struct {
 	Principal   *Principal    `json:"principal"`
 	Auth        *Auth         `json:"auth_oidc"`
@@ -134,5 +145,28 @@ func PermissionFromEntity(perm *entity.Permission) *Permission {
 		ID:          perm.PermissionID,
 		Name:        perm.Name,
 		Description: perm.Description,
+	}
+}
+
+func MappingRuleFromEntity(rule *entity.MappingRule) *MappingRule {
+	associationType := ""
+	associationID := ""
+	if group := rule.AssociatedGroup(); group != nil {
+		associationType = "group"
+		associationID = group.GroupID.String()
+	} else if role := rule.AssociatedRole(); role != nil {
+		associationType = "role"
+		associationID = role.RoleID.String()
+	}
+
+	return &MappingRule{
+		ID:              rule.MappingRuleID,
+		Name:            rule.Name,
+		Description:     rule.Description,
+		Priority:        rule.Priority,
+		RuleType:        int(rule.RuleType),
+		Detail:          rule.Detail,
+		AssociationType: associationType,
+		AssociationID:   associationID,
 	}
 }

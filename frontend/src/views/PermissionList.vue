@@ -2,7 +2,7 @@
   <div class="container">
     <h2>Permission List</h2>
     <section>
-      <NewPermissionModal />
+      <NewPermissionModal @completed="created"/>
     </section>
     <section>
       <BTable :data="permissions" :columns="columns" variant="primary">
@@ -37,14 +37,23 @@ export default defineComponent({
       { key: 'action', label: '' },
     ])
 
-    onMounted(async () => {
-      const res = await axios.get('/api/permissions')
+    const fetchList = (async () => {
+      const res = await axios.get('/api/permissions').catch(e => e.response)
       permissions.value = res.data.permissions as Permission[]
+    })
+
+    onMounted(async () => {
+      fetchList()
+    })
+
+    const created = (() => {
+      fetchList()
     })
 
     return {
       columns,
       permissions,
+      created,
     }
   },
 })

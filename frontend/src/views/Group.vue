@@ -1,22 +1,27 @@
 <template>
   <div>
-    <h2>Single Group</h2>
+    <div class="container information">
+      <h2>Group Information</h2>
+      <BTable
+        v-if="group"
+        :data="basicRow"
+        :columns="basicColumns"
+      />
 
-    <h3>Basic Information</h3>
-    <BTable
-      v-if="data"
-      :data="basicRow"
-      :columns="basicColumns"
-    />
+      <h3>Attached Roles</h3>
+    </div>
 
-    <h3>Attached Roles</h3>
-
-    <h3>Danger Zone</h3>
-    <DestructionModal
-      button-title="Delete This Group"
-      @confirmDelete="onDelete"
-    />
-
+    <template v-if="group">
+      <div class="danger-zone">
+        <div class="container">
+          <h3>Danger Zone</h3>
+          <DestructionModal
+            button-title="Delete This Group"
+            @confirmDelete="onDelete"
+          />
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -38,7 +43,7 @@ export default defineComponent({
     const router = useRouter()
     const id = router.currentRoute.value.params['id'] as string
 
-    const data = ref<Group>()
+    const group = ref<Group>()
 
     const basicRow = ref<BTableRow[]>([])
     const basicColumns = [
@@ -54,15 +59,15 @@ export default defineComponent({
 
     onMounted(async () => {
       const res = await axios.get('/api/group/' + id)
-      data.value = res.data.group as Group 
+      group.value = res.data.group as Group 
 
-      if (data.value) {
+      if (group.value) {
         basicRow.value = [{
           label: 'Name',
-          value: data.value.name,
+          value: group.value.name,
         }, {
           label: 'Description',
-          value: data.value.description,
+          value: group.value.description,
         }]
       } else {
         basicRow.value = []
@@ -78,7 +83,7 @@ export default defineComponent({
     })
 
     return {
-      data,
+      group,
       basicRow,
       basicColumns,
       onDelete,
@@ -86,3 +91,17 @@ export default defineComponent({
   },
 })
 </script>
+
+<style scoped>
+.information {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.danger-zone {
+  background: #F8E0E0;
+  padding-top: 20px;
+  padding-bottom: 30px;
+  border-top: dashed 1px #E06060;
+}
+</style>

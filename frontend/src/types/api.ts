@@ -48,4 +48,9 @@ export type MappingRule = {
   id: string
   name: string
   description: string
+  rule_type: number
+  detail: string
+  priority: number
+  association_type: string
+  association_id: string
 }

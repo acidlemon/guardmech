@@ -1,6 +1,8 @@
 package db
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 
 	entity "github.com/acidlemon/guardmech/app/logic/membership"
@@ -129,4 +131,76 @@ func (s *Service) EnumerateMappingRuleIDs(ctx Context, conn seacle.Selectable) (
 	}
 
 	return result, nil
+}
+
+func (s *Service) SaveMappingRule(ctx Context, conn seacle.Executable, rule *entity.MappingRule) error {
+	row := &MappingRuleRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE mapping_rule_id = ?", rule.MappingRuleID.String())
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		return s.createMappingRuleRow(ctx, conn, rule)
+	} else {
+		return s.updateMappingRuleRow(ctx, conn, rule, row)
+	}
+}
+
+func (s *Service) DeleteMappingRule(ctx Context, conn seacle.Executable, rule *entity.MappingRule) error {
+	row := &MappingRuleRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE mapping_rule_id = ?", rule.MappingRuleID.String())
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil // do nothing
+	}
+
+	return s.deleteMappingRuleRow(ctx, conn, rule, row)
+}
+
+func (s *Service) createMappingRuleRow(ctx Context, conn seacle.Executable, rule *entity.MappingRule) error {
+	row := mappingRuleRowFromEntity(rule)
+	_, err := seacle.Insert(ctx, conn, row)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) updateMappingRuleRow(ctx Context, conn seacle.Executable, rule *entity.MappingRule, row *MappingRuleRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock mapping_rule row: err=%s", err)
+	}
+
+	// update row
+	row.Name = rule.Name
+	row.Description = rule.Description
+	err = seacle.Update(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to update mapping_rule row: err=%s", err)
+	}
+
+	return nil
+}
+
+func (s *Service) deleteMappingRuleRow(ctx Context, conn seacle.Executable, rule *entity.MappingRule, row *MappingRuleRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock mapping_rule row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to delete mapping_rule row: err=%s", err)
+	}
+
+	return nil
 }

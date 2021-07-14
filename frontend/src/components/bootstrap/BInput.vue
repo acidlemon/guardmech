@@ -1,14 +1,17 @@
 <template>
   <div class="input">
     <label v-if="label" :for="targetId" class="form-label">{{ label }}</label>
-    <input
-      :type="type"
-      class="form-control"
-      :id="targetId"
-      :placeholder="placeholder"
-      :value="modelValue"
-      @change="changed"
-    >
+    <div class="input-group">
+      <span v-if="preText" class="input-group-text" id="basic-addon1">{{ preText }}</span>
+      <input
+        :type="type"
+        class="form-control"
+        :id="targetId"
+        :placeholder="placeholder"
+        :value="modelValue"
+        @change="changed"
+      >
+    </div>
   </div>
 </template>
 
@@ -21,6 +24,7 @@ type Props = {
   type: InputType
   label: string
   placeholder: string
+  preText: string
 }
 
 export default defineComponent({
@@ -39,6 +43,10 @@ export default defineComponent({
       default: '',
     },
     placeholder: {
+      type: String,
+      default: '',
+    },
+    preText: {
       type: String,
       default: '',
     }

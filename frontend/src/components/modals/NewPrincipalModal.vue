@@ -33,7 +33,7 @@ export default defineComponent({
         name,
         description,
       })
-      const res = await axios.post('/api/principal', params)
+      const res = await axios.post('/api/principal', params).catch(e => e.response)
       if (!res.data.principal) {
         // failed
         // TODO alert modal

@@ -68,6 +68,13 @@ func (c *command) SaveAuthAPIKey(ctx Context, key *entity.AuthAPIKey, pri *entit
 	c.err = c.m.SaveAuthAPIKey(ctx, c.conn, key, pri)
 }
 
+func (c *command) SaveMappingRule(ctx Context, rule *entity.MappingRule) {
+	if c.err != nil {
+		return
+	}
+	c.err = c.m.SaveMappingRule(ctx, c.conn, rule)
+}
+
 func (c *command) DeletePrincipal(ctx Context, pri *entity.Principal) {
 	if c.err != nil {
 		return
@@ -94,4 +101,11 @@ func (c *command) DeletePermission(ctx Context, perm *entity.Permission) {
 		return
 	}
 	c.err = c.m.DeletePermission(ctx, c.conn, perm)
+}
+
+func (c *command) DeleteMappingRule(ctx Context, rule *entity.MappingRule) {
+	if c.err != nil {
+		return
+	}
+	c.err = c.m.DeleteMappingRule(ctx, c.conn, rule)
 }

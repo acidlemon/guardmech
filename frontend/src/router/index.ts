@@ -42,7 +42,7 @@ const routes: Array<RouteRecordRaw> = [
         component: MappingRuleList,
       },
       {
-        path: 'mapping_rules/:id',
+        path: 'mapping_rule/:id',
         name: 'MappingRule',
         component: MappingRule,
       },

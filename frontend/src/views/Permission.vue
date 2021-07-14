@@ -1,11 +1,19 @@
 <template>
   <div>
-    <h2>Single Permisson</h2>
+    <div class="container information">
+      <h2>Single Permission</h2>
+    </div>
 
-    <!--h3>Danger Zone</h3>
-    <DestructionModal
-      button-title="Delete This Group"
-      @confirmDelete="onDelete"
-    /-->
+    <template>
+      <div class="danger-zone">
+        <div class="container">
+          <!--h3>Danger Zone</h3>
+          <DestructionModal
+            button-title="Delete This Permission"
+            @confirmDelete="onDelete"
+          /-->
+        </div>
+      </div>
+    </template>
   </div>
 </template>

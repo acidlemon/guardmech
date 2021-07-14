@@ -2,7 +2,7 @@
   <div class="container">
     <h2>Group List</h2>
     <section>
-      <NewGroupModal />
+      <NewGroupModal @completed="created" />
     </section>
     <section>
       <BTable :data="groups" :columns="columns" variant="primary">
@@ -37,14 +37,23 @@ export default defineComponent({
       { key: 'action', label: '' },
     ])
 
-    onMounted(async () => {
-      const res = await axios.get('/api/groups')
+    const fetchList = (async () => {
+      const res = await axios.get('/api/groups').catch(e => e.response)
       groups.value = res.data.groups as Group[]
+    })
+
+    onMounted(() => {
+      fetchList()
+    })
+
+    const created = (() => {
+      fetchList()
     })
 
     return {
       columns,
       groups,
+      created,
     }
   },
 })

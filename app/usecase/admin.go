@@ -267,8 +267,41 @@ func (u *Administration) ListMappingRules(ctx Context) ([]*membership.MappingRul
 
 	return list, nil
 }
-func (u *Administration) CreateMappingRule(ctx Context) (*membership.MappingRule, error) {
-	return nil, nil
+func (u *Administration) CreateMappingRule(ctx Context, name, description string, ruleType int,
+	detail, associationType, associationID string) (*membership.MappingRule, error) {
+
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	log.Println("name=", name, "description=", description)
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+
+	priority := 1 // TODO
+
+	rule, err := manager.CreateMappingRule(
+		ctx, name, description,
+		membership.MappingType(ruleType), priority,
+		detail, associationType, associationID)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.SaveMappingRule(ctx, rule)
+	if cmd.Error() != nil {
+		log.Println("failed to save new role")
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return rule, nil
 }
 func (u *Administration) FetchMappingRule(ctx Context, id string) (*membership.MappingRule, error) {
 	return nil, nil

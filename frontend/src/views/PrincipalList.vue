@@ -38,7 +38,7 @@ export default defineComponent({
     ])
 
     const fetchList = (async () => {
-      const res = await axios.get('/api/principals')
+      const res = await axios.get('/api/principals').catch(e => e.response)
       const payload = res.data.principals as PrincipalPayload[]
       principals.value = payload.map(d => d.principal)
     })

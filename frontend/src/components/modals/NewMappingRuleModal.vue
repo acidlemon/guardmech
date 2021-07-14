@@ -11,7 +11,7 @@
     <BSelect v-model="ruleType" label="Rule Type" :items="ruleTypeItems" />
 
     <template v-if="ruleType === '1'">
-      <BInput v-model="detail" label="Email Address Domain" placeholder="@example.com" />
+      <BInput v-model="detail" label="Email Address Domain" placeholder="example.com" pre-text="@" />
     </template>
     <template v-else-if="ruleType === '2'">
       <BInput v-model="detail" label="Email Address Suffix" placeholder="example.com" />
@@ -24,7 +24,7 @@
     </template>
 
     <BCheckList v-model="targetType" :items="targetItems" check-type="radio" name="association-type" label="Association Type" />
-    <BSelect v-model="associatedId" label="Candidate List" :items="targetList" />
+    <BSelect v-model="associationId" label="Candidate List" :items="targetList" />
 
   </BModal>
 </template>
@@ -46,42 +46,58 @@ export default defineComponent({
     BCheckList,
     BSelect,
   },
+  emits: ['completed'],
   setup() {
     const name = ref('')
     const description = ref('')
     const ruleType = ref('1')
     const detail = ref('')
-    const associatedId = ref('')
+    const associationId = ref('')
 
-    // const createRole = async (name: string, description: string) => {
-    //   const params = new URLSearchParams({
-    //     name,
-    //     description,
-    //   })
-    //   const res = await axios.post('/api/role', params)
+    const createMappingRule = async (
+      name: string,
+      description: string,
+      rule_type: string,
+      detail: string,
+      association_type: string,
+      association_id: string,
+    ) => {
+      const params = new URLSearchParams({
+        name,
+        description,
+        rule_type,
+        detail,
+        association_type,
+        association_id,
+      })
+      const res = await axios.post('/api/mapping_rule', params).catch(e => e.response)
 
-    //   console.log(res)
-    // }
+      console.log(res)
+    }
 
-    // const proceeded = (() => {
-    //   createRole(name.value, description.value)
-    // })
+    const proceeded = (() => {
+      createMappingRule(name.value, description.value, ruleType.value, detail.value, targetType.value, associationId.value)
+    })
 
     const ruleTypeItems: BSelectItem[] = [
       {
-        label: 'Specific Email Address Domain (end with @example.com)',
+        label: 'Match exactly with Domain',
+        tips: 'Specific Email Address Domain (end with @example.com)',
         value: '1',
       },
       {
-        label: 'Whole Email Address Domain (end with example.com, including @sub.example.com)',
+        label: 'Match with Whole of Domain',
+        tips: 'Whole Email Address Domain (end with example.com, including @sub.example.com)',
         value: '2',
       },
       {
-        label: 'OpenID Connect Provider\'s Group',
+        label: 'Match with OpenID Connect Group',
+        tips: 'OpenID Connect Provider\'s Group',
         value: '3',
       },
       {
-        label: 'Specific Email Address (like john@example.com)',
+        label: 'Match with Email Address',
+        tips: 'Specific Email Address (like john@example.com)',
         value: '4',
       },
     ]
@@ -90,8 +106,8 @@ export default defineComponent({
     const roleList = ref<BSelectItem[]>([])
 
     const fetchGroupRole = (async () => {
-      const fetchGroups = axios.get('/api/groups')
-      const fetchRoles = axios.get('/api/roles')
+      const fetchGroups = axios.get('/api/groups').catch(e => e.response)
+      const fetchRoles = axios.get('/api/roles').catch(e => e.response)
 
       const [groups, roles] = await Promise.all([fetchGroups, fetchRoles])
 
@@ -127,12 +143,12 @@ export default defineComponent({
       description,
       ruleType,
       detail,
-      associatedId,
+      associationId,
       ruleTypeItems,
       targetType,
       targetItems,
       targetList,
-      // proceeded,
+      proceeded,
     }
   },
 })

@@ -2,7 +2,7 @@
   <div class="container">
     <h2>Role List</h2>
     <section>
-      <NewRoleModal />
+      <NewRoleModal @completed="created"/>
     </section>
     <section>
       <BTable :data="roles" :columns="columns" variant="primary">
@@ -37,14 +37,23 @@ export default defineComponent({
       { key: 'action', label: '' },
     ])
 
-    onMounted(async () => {
-      const res = await axios.get('/api/roles')
+    const fetchList = (async () => {
+      const res = await axios.get('/api/roles').catch(e => e.response)
       roles.value = res.data.roles as Role[]
+    })
+
+    onMounted(() => {
+      fetchList()
+    })
+
+    const created = (() => {
+      fetchList()
     })
 
     return {
       columns,
       roles,
+      created,
     }
   },
 })

@@ -245,6 +245,45 @@ func (s *Manager) FindPermissions(ctx Context, ids []string) ([]*Permission, err
 	return s.q.FindPermissions(ctx, ids)
 }
 
+func (s *Manager) CreateMappingRule(ctx Context, name, description string, ruleType MappingType, priority int,
+	detail, associationType, associationID string) (*MappingRule, error) {
+
+	if name == "" {
+		return nil, fmt.Errorf("CreateMappingRule: name is required")
+	}
+
+	var group *Group
+	var role *Role
+	switch associationType {
+	case "group":
+		groups, err := s.FindGroups(ctx, []string{associationID})
+		if err != nil || len(groups) == 0 {
+			return nil, fmt.Errorf("CreateMappingRule: specified group is not found")
+		}
+		group = groups[0]
+
+	case "role":
+		roles, err := s.FindRoles(ctx, []string{associationID})
+		if err != nil || len(roles) == 0 {
+			return nil, fmt.Errorf("CreateMappingRule: specified role is not found")
+		}
+		role = roles[0]
+	}
+
+	rule := &MappingRule{
+		MappingRuleID:   uuid.New(),
+		RuleType:        MappingType(ruleType),
+		Detail:          detail,
+		Name:            name,
+		Description:     description,
+		Priority:        priority, // TODO
+		associatedGroup: group,
+		associatedRole:  role,
+	}
+
+	return rule, nil
+}
+
 func (s *Manager) EnumerateMappingRuleIDs(ctx Context) ([]string, error) {
 	IDs, err := s.q.EnumerateMappingRuleIDs(ctx)
 	if err != nil {

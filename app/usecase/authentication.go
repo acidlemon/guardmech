@@ -156,15 +156,18 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 				return
 			}
 
-			pri, oidc, err := manager.CreatePrincipalFromRule(ctx, token, rule)
+			var oidc *membership.OIDCAuthorization
+			pri, oidc, err = manager.CreatePrincipalFromRule(ctx, token, rule)
 			if err != nil {
 				log.Println("failed to prepare principal:", err.Error())
 				reserr = systemError("Failed to create principal", err)
+				return
 			}
 
 			cmd.SavePrincipal(ctx, pri)
 			cmd.SaveAuthOIDC(ctx, oidc, pri)
-			if cmd.Error() != nil {
+			if err = cmd.Error(); err != nil {
+				log.Println("failed to save principal:", err)
 				reserr = systemError("Failed to save item", err)
 				return
 			}

@@ -4,18 +4,21 @@
     <select class="form-select" :id="targetId" @change="changed">
       <option v-for="item in items" :value="item.value" :key="item.label">{{ item.label }}</option>
     </select>
+    <div v-if="selectedTips" class="tips">{{ selectedTips }}</div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, SetupContext } from 'vue'
+import { computed, defineComponent, SetupContext } from 'vue'
 
 export type BSelectItem = {
   label: string
   value: string
+  tips?: string
 }
 
 type Props = {
+  modelValue: string
   label: string
   items: BSelectItem[]
 }
@@ -37,7 +40,7 @@ export default defineComponent({
     },
   },
   emits: ['update:modelValue'],
-  setup(_: Props, context: SetupContext) {
+  setup(props: Props, context: SetupContext) {
     const targetId = 'tg' + Math.random().toString(32).substring(2)
 
     const changed = (e: Event) => {
@@ -45,9 +48,17 @@ export default defineComponent({
       context.emit('update:modelValue', el.value)
     }
 
+    const selectedTips = computed<string>(() => {
+      const item = props.items.find(x => x.value === props.modelValue)
+      if (!item || !item.tips) return ''
+
+      return item.tips
+    })
+
     return {
       targetId,
       changed,
+      selectedTips,
     }
   },
 })
@@ -56,5 +67,10 @@ export default defineComponent({
 <style scoped>
 .select {
   padding-bottom: 10px;
+}
+.tips {
+  padding: 5px 0 5px 5px;
+  font-size: 0.8em;
+  color: gray;
 }
 </style>

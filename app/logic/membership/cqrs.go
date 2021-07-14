@@ -35,9 +35,11 @@ type Command interface {
 	SavePermission(ctx Context, perm *Permission)
 	SaveAuthOIDC(ctx Context, oidc *OIDCAuthorization, pri *Principal)
 	SaveAuthAPIKey(ctx Context, key *AuthAPIKey, pri *Principal)
+	SaveMappingRule(ctx Context, rule *MappingRule)
 
 	DeletePrincipal(ctx Context, pri *Principal)
 	DeleteGroup(ctx Context, g *Group)
 	DeleteRole(ctx Context, r *Role)
 	DeletePermission(ctx Context, perm *Permission)
+	DeleteMappingRule(ctx Context, rule *MappingRule)
 }
