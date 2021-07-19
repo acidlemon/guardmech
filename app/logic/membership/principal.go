@@ -155,6 +155,17 @@ func (p *Principal) AttachGroup(g *Group) error {
 	return nil
 }
 
+func (p *Principal) DetachGroup(g *Group) error {
+	for i, v := range p.groups {
+		if v.GroupID == g.GroupID {
+			p.groups = append(p.groups[:i], p.groups[i+1:]...)
+			return nil
+		}
+	}
+
+	return nil
+}
+
 func (p *Principal) AttachNewRole(name, description string) (*Role, error) {
 	if name == "" {
 		return nil, fmt.Errorf("AttachNewRole: name is required")
@@ -178,4 +189,14 @@ func (p *Principal) AttachRole(r *Role) error {
 
 	p.roles = append(p.roles, r)
 	return nil
+}
+
+func (p *Principal) DetachRole(r *Role) error {
+	for i, v := range p.roles {
+		if v.RoleID == r.RoleID {
+			p.roles = append(p.roles[:i], p.roles[i+1:]...)
+			return nil
+		}
+	}
+	return nil // Not Found, but no error (idempotence)
 }

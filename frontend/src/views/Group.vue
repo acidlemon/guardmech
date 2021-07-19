@@ -9,6 +9,12 @@
       />
 
       <h3>Attached Roles</h3>
+      <AttachRoleModal
+        owner-type="group"
+        :owner-id="group.id"
+        :attached-roles="attachedRoles"
+      />
+
     </div>
 
     <template v-if="group">
@@ -26,24 +32,30 @@
 </template>
 
 <script lang="ts">
-import { ref, onMounted, defineComponent } from 'vue'
+import { ref, computed, onMounted, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { Group, Role } from '@/types/api'
 
-import { Group } from '@/types/api'
+import AttachRoleModal from '@/components/modals/AttachRoleModal.vue'
 import DestructionModal from '@/components/modals/DestructionModal.vue'
 import BTable, { BTableRow } from '@/components/bootstrap/BTable.vue'
 
 export default defineComponent({
   components: {
     BTable,
+    AttachRoleModal,
     DestructionModal,
   },
   setup() {
     const router = useRouter()
     const id = router.currentRoute.value.params['id'] as string
 
-    const group = ref<Group>()
+    const group = ref<Group>({
+      id: '',
+      name: '',
+      description: '',
+    })
 
     const basicRow = ref<BTableRow[]>([])
     const basicColumns = [
@@ -56,6 +68,9 @@ export default defineComponent({
         label: 'Data',
       },
     ]
+
+    //const attachedRoles = computed<Role[]>(() => group.value ? group.value.roles : [])
+    const attachedRoles = computed<Role[]>(() => [])
 
     onMounted(async () => {
       const res = await axios.get('/api/group/' + id)
@@ -86,6 +101,7 @@ export default defineComponent({
       group,
       basicRow,
       basicColumns,
+      attachedRoles,
       onDelete,
     }
   },

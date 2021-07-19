@@ -105,7 +105,7 @@ export default defineComponent({
     const groupList = ref<BSelectItem[]>([])
     const roleList = ref<BSelectItem[]>([])
 
-    const fetchGroupRole = (async () => {
+    const fetchGroupAndRole = (async () => {
       const fetchGroups = axios.get('/api/groups').catch(e => e.response)
       const fetchRoles = axios.get('/api/roles').catch(e => e.response)
 
@@ -116,7 +116,7 @@ export default defineComponent({
     })
 
     onMounted(() => {
-      fetchGroupRole()
+      fetchGroupAndRole()
     })
 
     const targetType = ref('group')

@@ -2,7 +2,12 @@
   <div class="select">
     <label v-if="label" :for="targetId" class="form-label">{{ label }}</label>
     <select class="form-select" :id="targetId" @change="changed">
-      <option v-for="item in items" :value="item.value" :key="item.label">{{ item.label }}</option>
+      <option
+        v-for="item in items"
+        :value="item.value"
+        :key="item.label"
+        :disabled="item.disabled"
+      >{{ item.label }}</option>
     </select>
     <div v-if="selectedTips" class="tips">{{ selectedTips }}</div>
   </div>
@@ -15,6 +20,7 @@ export type BSelectItem = {
   label: string
   value: string
   tips?: string
+  disabled?: boolean
 }
 
 type Props = {

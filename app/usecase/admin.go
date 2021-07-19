@@ -120,7 +120,7 @@ func (u *Administration) DeletePrincipal(ctx Context, id string) error {
 	return nil
 }
 
-func (u *Administration) CreateAPIKey(ctx Context, principalID string, name string) (*membership.AuthAPIKey, string, error) {
+func (u *Administration) CreateAPIKey(ctx Context, principalID, name string) (*membership.AuthAPIKey, string, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
 		return nil, "", systemError("Could not start transaction", err)
@@ -149,7 +149,155 @@ func (u *Administration) CreateAPIKey(ctx Context, principalID string, name stri
 
 	tx.Commit()
 
-	return apikey, rawToken, err
+	return apikey, rawToken, nil
+}
+
+func (u *Administration) AttachGroupToPrincipal(ctx Context, principalID, groupID string) (*membership.Principal, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+	pri, err := manager.FindPrincipalByID(ctx, principalID)
+	if err != nil {
+		return nil, err
+	}
+
+	g, err := manager.FindGroupByID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pri.AttachGroup(g)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.SavePrincipal(ctx, pri)
+	if cmd.Error() != nil {
+		log.Println("save error on AttachGroupToPrincipal:", err)
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return pri, nil
+}
+
+func (u *Administration) AttachRoleToPrincipal(ctx Context, principalID, roleID string) (*membership.Principal, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+	pri, err := manager.FindPrincipalByID(ctx, principalID)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := manager.FindRoleByID(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pri.AttachRole(r)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.SavePrincipal(ctx, pri)
+	if cmd.Error() != nil {
+		log.Println("save error on AttachRoleToPrincipal:", err)
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return pri, nil
+}
+
+func (u *Administration) DetachGroupToPrincipal(ctx Context, principalID, groupID string) (*membership.Principal, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+	pri, err := manager.FindPrincipalByID(ctx, principalID)
+	if err != nil {
+		return nil, err
+	}
+
+	g, err := manager.FindGroupByID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pri.DetachGroup(g)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.SavePrincipal(ctx, pri)
+	if cmd.Error() != nil {
+		log.Println("save error on AttachGroupToPrincipal:", err)
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return pri, nil
+}
+
+func (u *Administration) DetachRoleToPrincipal(ctx Context, principalID, roleID string) (*membership.Principal, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+	pri, err := manager.FindPrincipalByID(ctx, principalID)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := manager.FindRoleByID(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pri.DetachRole(r)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.SavePrincipal(ctx, pri)
+	if cmd.Error() != nil {
+		log.Println("save error on AttachRoleToPrincipal:", err)
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return pri, nil
 }
 
 func (u *Administration) ListRoles(ctx Context) ([]*membership.Role, error) {

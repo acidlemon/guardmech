@@ -26,6 +26,7 @@
       type="button"
       :data-bs-toggle="toggle"
       :class="`btn ${variantClass}`"
+      @click="clicked"
     >
       <slot />
     </button>
@@ -33,7 +34,7 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent } from 'vue'
+import { computed, defineComponent, SetupContext } from 'vue'
 
 type Props = {
   href: string
@@ -62,13 +63,20 @@ export default defineComponent({
       default: '',
     },
   },
-  setup(props: Props) {
+  emits: ['click'],
+  setup(props: Props, context: SetupContext) {
     const variantClass = computed(() => {
       if (!props.variant) { return 'btn-primary'}
       return `btn-${props.variant}`
     })
+
+    const clicked = (() => {
+      context.emit('click')
+    })
+
     return {
       variantClass,
+      clicked,
     }
   },
 })

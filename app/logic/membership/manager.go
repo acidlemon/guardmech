@@ -201,6 +201,19 @@ func (s *Manager) FindGroups(ctx Context, ids []string) ([]*Group, error) {
 	return s.q.FindGroups(ctx, ids)
 }
 
+func (s *Manager) FindGroupByID(ctx Context, groupID string) (*Group, error) {
+	g, err := s.q.FindGroups(ctx, []string{groupID})
+	if err != nil {
+		return nil, err
+	}
+	if len(g) == 0 {
+		return nil, ErrNoEntry
+	}
+
+	return g[0], nil
+}
+
+
 func (s *Manager) EnumerateRoleIDs(ctx Context) ([]string, error) {
 	IDs, err := s.q.EnumerateRoleIDs(ctx)
 	if err != nil {
@@ -221,6 +234,18 @@ func (s *Manager) EnumerateRoleIDs(ctx Context) ([]string, error) {
 
 func (s *Manager) FindRoles(ctx Context, ids []string) ([]*Role, error) {
 	return s.q.FindRoles(ctx, ids)
+}
+
+func (s *Manager) FindRoleByID(ctx Context, roleID string) (*Role, error) {
+	r, err := s.q.FindRoles(ctx, []string{roleID})
+	if err != nil {
+		return nil, err
+	}
+	if len(r) == 0 {
+		return nil, ErrNoEntry
+	}
+
+	return r[0], nil
 }
 
 func (s *Manager) EnumeratePermissionIDs(ctx Context) ([]string, error) {

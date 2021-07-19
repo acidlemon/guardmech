@@ -40,6 +40,8 @@ func (a *AdminMux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/attach_role", a.AttachRoleToPrincipalHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/attach_group", a.AttachGroupToPrincipalHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/detach_role", a.DetachRoleToPrincipalHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/detach_group", a.DetachGroupToPrincipalHandler).Methods(http.MethodPost)
 
 	r.HandleFunc("/guardmech/api/group", a.CreateGroupHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/groups", a.ListGroupsHandler)
@@ -47,6 +49,7 @@ func (a *AdminMux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.UpdateGroupHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.DeleteGroupHandler).Methods(http.MethodDelete)
 	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}/attach_role", a.AttachRoleToGroupHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}/detach_role", a.DetachRoleToGroupHandler).Methods(http.MethodPost)
 
 	r.HandleFunc("/guardmech/api/role", a.CreateRoleHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
@@ -54,6 +57,7 @@ func (a *AdminMux) Mux() http.Handler {
 	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.UpdateRoleHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.DeleteRoleHandler).Methods(http.MethodDelete)
 	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}/attach_permission", a.AttachPermissionToRoleHandler).Methods(http.MethodPost)
+	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}/detach_permission", a.DetachPermissionToRoleHandler).Methods(http.MethodPost)
 
 	r.HandleFunc("/guardmech/api/permission", a.CreatePermissionHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/permissions", a.ListPermissionsHandler)
@@ -217,14 +221,96 @@ func (a *AdminMux) CreateAPIKeyHandler(w http.ResponseWriter, req *http.Request)
 	renderJSON(w, result)
 }
 
-func (a *AdminMux) AttachRoleToPrincipalHandler(w http.ResponseWriter, req *http.Request) {
-	// vars := mux.Vars(req)
-	// id := vars["id"]
+func (a *AdminMux) AttachGroupToPrincipalHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	principalID := vars["id"]
 
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	groupID := req.Form.Get("group_id")
+
+	pri, err := a.u.AttachGroupToPrincipal(req.Context(), principalID, groupID)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	p := payload.PrincipalPayloadFromEntity(pri)
+	renderJSON(w, map[string]interface{}{
+		"principal": p,
+	})
 }
 
-func (a *AdminMux) AttachGroupToPrincipalHandler(w http.ResponseWriter, req *http.Request) {
+func (a *AdminMux) AttachRoleToPrincipalHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	principalID := vars["id"]
 
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	roleID := req.Form.Get("role_id")
+
+	pri, err := a.u.AttachRoleToPrincipal(req.Context(), principalID, roleID)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	p := payload.PrincipalPayloadFromEntity(pri)
+	renderJSON(w, map[string]interface{}{
+		"principal": p,
+	})
+}
+
+func (a *AdminMux) DetachGroupToPrincipalHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	principalID := vars["id"]
+
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	groupID := req.Form.Get("group_id")
+
+	pri, err := a.u.DetachGroupToPrincipal(req.Context(), principalID, groupID)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	p := payload.PrincipalPayloadFromEntity(pri)
+	renderJSON(w, map[string]interface{}{
+		"principal": p,
+	})
+}
+
+func (a *AdminMux) DetachRoleToPrincipalHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	principalID := vars["id"]
+
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	roleID := req.Form.Get("role_id")
+
+	pri, err := a.u.DetachRoleToPrincipal(req.Context(), principalID, roleID)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	p := payload.PrincipalPayloadFromEntity(pri)
+	renderJSON(w, map[string]interface{}{
+		"principal": p,
+	})
 }
 
 // -- Group
@@ -314,6 +400,10 @@ func (a *AdminMux) AttachRoleToGroupHandler(w http.ResponseWriter, req *http.Req
 
 }
 
+func (a *AdminMux) DetachRoleToGroupHandler(w http.ResponseWriter, req *http.Request) {
+
+}
+
 // -- Role
 
 func (a *AdminMux) ListRolesHandler(w http.ResponseWriter, req *http.Request) {
@@ -399,6 +489,10 @@ func (a *AdminMux) DeleteRoleHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (a *AdminMux) AttachPermissionToRoleHandler(w http.ResponseWriter, req *http.Request) {
+
+}
+
+func (a *AdminMux) DetachPermissionToRoleHandler(w http.ResponseWriter, req *http.Request) {
 
 }
 
