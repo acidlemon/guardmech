@@ -49,13 +49,31 @@ func (r *Role) AttachNewPermission(ctx Context, name, description string) (*Perm
 	}
 
 	perm := newPermission(name, description)
-	r.permissions = append(r.permissions, perm)
+	err := r.AttachPermission(perm)
+	if err != nil {
+		return nil, err
+	}
 	return perm, nil
 }
 
-/*
-func (r *Role) AttachPermission(ctx Context, tx *db.Tx, pe *Permission) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO role_permission_map (role_id, permission_id) VALUES (?, ?)`, r.SeqNo, pe.SeqNo)
-	return err
+func (r *Role) AttachPermission(p *Permission) error {
+	for _, v := range r.permissions {
+		if v.PermissionID == p.PermissionID {
+			// already exists
+			return nil // do nothing, no error (idempotence)
+		}
+	}
+
+	r.permissions = append(r.permissions, p)
+	return nil
 }
-*/
+
+func (r *Role) DetachPermission(p *Permission) error {
+	for i, v := range r.permissions {
+		if v.PermissionID == p.PermissionID {
+			r.permissions = append(r.permissions[:i], r.permissions[i+1:]...)
+			return nil
+		}
+	}
+	return nil // Not Found, but no error (idempotence)
+}

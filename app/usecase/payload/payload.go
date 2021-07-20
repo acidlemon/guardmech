@@ -26,15 +26,17 @@ type APIKey struct {
 }
 
 type Group struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	AttachedRoles []*Role   `json:"attached_roles"`
 }
 
 type Role struct {
-	ID          uuid.UUID `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
+	ID                  uuid.UUID     `json:"id"`
+	Name                string        `json:"name"`
+	Description         string        `json:"description"`
+	AttachedPermissions []*Permission `json:"attached_permissions"`
 }
 
 type Permission struct {
@@ -125,18 +127,32 @@ func APIKeyFromEntity(a *entity.AuthAPIKey) *APIKey {
 }
 
 func RoleFromEntity(r *entity.Role) *Role {
+	perms := r.Permissions()
+	attachedPerms := make([]*Permission, 0, len(perms))
+	for _, v := range perms {
+		attachedPerms = append(attachedPerms, PermissionFromEntity(v))
+	}
+
 	return &Role{
-		ID:          r.RoleID,
-		Name:        r.Name,
-		Description: r.Description,
+		ID:                  r.RoleID,
+		Name:                r.Name,
+		Description:         r.Description,
+		AttachedPermissions: attachedPerms,
 	}
 }
 
 func GroupFromEntity(g *entity.Group) *Group {
+	roles := g.Roles()
+	attachedRoles := make([]*Role, 0, len(roles))
+	for _, v := range roles {
+		attachedRoles = append(attachedRoles, RoleFromEntity(v))
+	}
+
 	return &Group{
-		ID:          g.GroupID,
-		Name:        g.Name,
-		Description: g.Description,
+		ID:            g.GroupID,
+		Name:          g.Name,
+		Description:   g.Description,
+		AttachedRoles: attachedRoles,
 	}
 }
 

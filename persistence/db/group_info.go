@@ -215,7 +215,7 @@ func (s *Service) FindGroups(ctx Context, conn seacle.Selectable, groupIDs []str
 	}
 
 	groupRows := make([]*GroupRow, 0, 8)
-	err := seacle.Select(ctx, conn, &groupRows, `WHERE group_id IN (?)`, groupIDs)
+	err := seacle.Select(ctx, conn, &groupRows, `WHERE group_id IN (?) ORDER BY seq_id`, groupIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -235,15 +235,17 @@ func (s *Service) FindGroups(ctx Context, conn seacle.Selectable, groupIDs []str
 		return nil, err
 	}
 	groups := []*entity.Group{}
-	for _, v := range groupMap {
-		groups = append(groups, v)
+	for _, v := range groupSeqIDs {
+		if g, exist := groupMap[v]; exist {
+			groups = append(groups, g)
+		}
 	}
 	return groups, nil
 }
 
 func (s *Service) EnumerateGroupIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
 	groups := make([]*GroupRow, 0, 8)
-	err := seacle.Select(ctx, conn, &groups, "")
+	err := seacle.Select(ctx, conn, &groups, "ORDER BY seq_id")
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -258,15 +260,15 @@ func (s *Service) EnumerateGroupIDs(ctx Context, conn seacle.Selectable) ([]stri
 }
 
 // findRoles returns SeqID -> *entity.Group map
-func (s *Service) findGroups(ctx Context, conn seacle.Selectable, roleSeqIDs []int64) (map[int64]*entity.Group, error) {
-	if len(roleSeqIDs) == 0 {
+func (s *Service) findGroups(ctx Context, conn seacle.Selectable, groupSeqIDs []int64) (map[int64]*entity.Group, error) {
+	if len(groupSeqIDs) == 0 {
 		return map[int64]*entity.Group{}, nil
 	}
 
 	// roles
 	groupRoleMaps := []*GroupRoleMapRow{}
 	roleMap := map[int64][]*entity.Role{} // GroupSeqID -> []Role map
-	err := seacle.Select(ctx, conn, &groupRoleMaps, `WHERE role_seq_id IN (?)`, roleSeqIDs)
+	err := seacle.Select(ctx, conn, &groupRoleMaps, `WHERE group_seq_id IN (?)`, groupSeqIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -286,13 +288,14 @@ func (s *Service) findGroups(ctx Context, conn seacle.Selectable, roleSeqIDs []i
 		}
 
 		for roleSeqID, r := range roles {
-			roleMap[roleSeqID] = append(roleMap[roleSeqID], r)
+			groupSeqID := roleSeqIDMap[roleSeqID]
+			roleMap[groupSeqID] = append(roleMap[groupSeqID], r)
 		}
 	}
 
 	groupRows := []*GroupRow{}
 	groupMap := map[int64]*entity.Group{}
-	err = seacle.Select(ctx, conn, &groupRows, `WHERE seq_id IN (?)`, roleSeqIDs)
+	err = seacle.Select(ctx, conn, &groupRows, `WHERE seq_id IN (?) ORDER BY seq_id`, groupSeqIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err

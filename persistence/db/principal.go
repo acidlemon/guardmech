@@ -267,7 +267,7 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 	}
 
 	pris := make([]*PrincipalRow, 0, 8)
-	err := seacle.Select(ctx, conn, &pris, `WHERE principal_id IN (?)`, principalIDs)
+	err := seacle.Select(ctx, conn, &pris, `WHERE principal_id IN (?) ORDER BY seq_id`, principalIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -328,7 +328,6 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 		result = append(result, f.NewPrincipal(
 			uuid.MustParse(v.PrincipalID), v.Name, v.Description,
 			authMap[v.SeqID], apikeyMap[v.SeqID], rolesMap[v.SeqID], groupsMap[v.SeqID]))
-
 	}
 
 	return result, nil
@@ -336,9 +335,6 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 
 func (s *Service) FindPrincipalByOIDC(ctx Context, conn seacle.Selectable, issuer, subject string) (*entity.Principal, error) {
 	pri := PrincipalRow{}
-
-	log.Println("issuer=", issuer, "subject=", subject)
-
 	err := seacle.SelectRow(ctx, conn, &pri,
 		`JOIN auth_oidc a ON a.principal_seq_id = principal.seq_id WHERE a.issuer = ? AND a.subject = ?`,
 		issuer, subject)
@@ -357,7 +353,7 @@ func (s *Service) FindPrincipalByOIDC(ctx Context, conn seacle.Selectable, issue
 
 func (s *Service) EnumeratePrincipalIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
 	pris := make([]*PrincipalRow, 0, 8)
-	err := seacle.Select(ctx, conn, &pris, "")
+	err := seacle.Select(ctx, conn, &pris, "ORDER BY seq_id")
 	if err != nil {
 		log.Println(err)
 		return nil, err

@@ -30,12 +30,14 @@ export type Group = {
   id: string
   name: string
   description: string
+  attached_roles: Role[]
 }
 
 export type Role = {
   id: string
   name: string
   description: string
+  attached_permissions: Permission[]
 }
 
 export type Permission = {

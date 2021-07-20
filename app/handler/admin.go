@@ -278,7 +278,7 @@ func (a *AdminMux) DetachGroupToPrincipalHandler(w http.ResponseWriter, req *htt
 	}
 	groupID := req.Form.Get("group_id")
 
-	pri, err := a.u.DetachGroupToPrincipal(req.Context(), principalID, groupID)
+	pri, err := a.u.DetachGroupFromPrincipal(req.Context(), principalID, groupID)
 	if err != nil {
 		errorJSON(w, err)
 		return
@@ -301,7 +301,7 @@ func (a *AdminMux) DetachRoleToPrincipalHandler(w http.ResponseWriter, req *http
 	}
 	roleID := req.Form.Get("role_id")
 
-	pri, err := a.u.DetachRoleToPrincipal(req.Context(), principalID, roleID)
+	pri, err := a.u.DetachRoleFromPrincipal(req.Context(), principalID, roleID)
 	if err != nil {
 		errorJSON(w, err)
 		return
@@ -397,11 +397,49 @@ func (a *AdminMux) DeleteGroupHandler(w http.ResponseWriter, req *http.Request) 
 }
 
 func (a *AdminMux) AttachRoleToGroupHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	groupID := vars["id"]
 
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	roleID := req.Form.Get("role_id")
+
+	g, err := a.u.AttachRoleToGroup(req.Context(), groupID, roleID)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	group := payload.GroupFromEntity(g)
+	renderJSON(w, map[string]interface{}{
+		"group": group,
+	})
 }
 
 func (a *AdminMux) DetachRoleToGroupHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	groupID := vars["id"]
 
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	roleID := req.Form.Get("role_id")
+
+	g, err := a.u.DetachRoleFromGroup(req.Context(), groupID, roleID)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	group := payload.GroupFromEntity(g)
+	renderJSON(w, map[string]interface{}{
+		"group": group,
+	})
 }
 
 // -- Role
@@ -447,12 +485,13 @@ func (a *AdminMux) GetRoleHandler(w http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	id := vars["id"]
 
-	role, err := a.u.FetchRole(req.Context(), id)
+	r, err := a.u.FetchRole(req.Context(), id)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
+	role := payload.RoleFromEntity(r)
 	renderJSON(w, map[string]interface{}{
 		"role": role,
 	})
@@ -489,11 +528,49 @@ func (a *AdminMux) DeleteRoleHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (a *AdminMux) AttachPermissionToRoleHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	roleID := vars["id"]
 
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	permissionID := req.Form.Get("permission_id")
+
+	r, err := a.u.AttachPermissionToRole(req.Context(), roleID, permissionID)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	role := payload.RoleFromEntity(r)
+	renderJSON(w, map[string]interface{}{
+		"role": role,
+	})
 }
 
 func (a *AdminMux) DetachPermissionToRoleHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	roleID := vars["id"]
 
+	err := req.ParseForm()
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+	permissionID := req.Form.Get("permission_id")
+
+	r, err := a.u.DetachPermissionFromRole(req.Context(), roleID, permissionID)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	role := payload.RoleFromEntity(r)
+	renderJSON(w, map[string]interface{}{
+		"role": role,
+	})
 }
 
 // -- Permission

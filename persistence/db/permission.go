@@ -111,7 +111,7 @@ func (s *Service) FindPermissions(ctx Context, conn seacle.Selectable, permissio
 	}
 
 	permRows := make([]*PermissionRow, 0, 8)
-	err := seacle.Select(ctx, conn, &permRows, `WHERE permission_id IN (?)`, permissionIDs)
+	err := seacle.Select(ctx, conn, &permRows, `WHERE permission_id IN (?) ORDER BY seq_id`, permissionIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -126,7 +126,7 @@ func (s *Service) FindPermissions(ctx Context, conn seacle.Selectable, permissio
 
 func (s *Service) EnumeratePermissionIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
 	perms := make([]*PermissionRow, 0, 8)
-	err := seacle.Select(ctx, conn, &perms, "")
+	err := seacle.Select(ctx, conn, &perms, "ORDER BY seq_id")
 	if err != nil {
 		log.Println(err)
 		return nil, err

@@ -226,7 +226,7 @@ func (u *Administration) AttachRoleToPrincipal(ctx Context, principalID, roleID 
 	return pri, nil
 }
 
-func (u *Administration) DetachGroupToPrincipal(ctx Context, principalID, groupID string) (*membership.Principal, error) {
+func (u *Administration) DetachGroupFromPrincipal(ctx Context, principalID, groupID string) (*membership.Principal, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
 		return nil, systemError("Could not start transaction", err)
@@ -263,7 +263,7 @@ func (u *Administration) DetachGroupToPrincipal(ctx Context, principalID, groupI
 	return pri, nil
 }
 
-func (u *Administration) DetachRoleToPrincipal(ctx Context, principalID, roleID string) (*membership.Principal, error) {
+func (u *Administration) DetachRoleFromPrincipal(ctx Context, principalID, roleID string) (*membership.Principal, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
 		return nil, systemError("Could not start transaction", err)
@@ -354,11 +354,26 @@ func (u *Administration) CreateRole(ctx Context, name, description string) (*mem
 	return r, nil
 }
 func (u *Administration) FetchRole(ctx Context, id string) (*membership.Role, error) {
-	return nil, nil
+	conn, err := db.GetConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	q := persistence.NewQuery(conn)
+	manager := membership.NewManager(q)
+
+	group, err := manager.FindRoleByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return group, nil
 }
+
 func (u *Administration) UpdateRole(ctx Context, id string) (*membership.Role, error) {
 	return nil, nil
 }
+
 func (u *Administration) DeleteRole(ctx Context, id string) error {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
@@ -390,6 +405,80 @@ func (u *Administration) DeleteRole(ctx Context, id string) error {
 	tx.Commit()
 
 	return nil
+}
+
+func (u *Administration) AttachPermissionToRole(ctx Context, roleID, permissionID string) (*membership.Role, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+	r, err := manager.FindRoleByID(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	perm, err := manager.FindPermissionByID(ctx, permissionID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.AttachPermission(perm)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.SaveRole(ctx, r)
+	if cmd.Error() != nil {
+		log.Println("save error on AttachPermissionToRole:", err)
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return r, nil
+}
+
+func (u *Administration) DetachPermissionFromRole(ctx Context, roleID, permissionID string) (*membership.Role, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+	r, err := manager.FindRoleByID(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	perm, err := manager.FindPermissionByID(ctx, permissionID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.DetachPermission(perm)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.SaveRole(ctx, r)
+	if cmd.Error() != nil {
+		log.Println("save error on DetachPermissionFromRole:", err)
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return r, nil
 }
 
 func (u *Administration) ListMappingRules(ctx Context) ([]*membership.MappingRule, error) {
@@ -517,16 +606,12 @@ func (u *Administration) FetchGroup(ctx Context, id string) (*membership.Group, 
 	q := persistence.NewQuery(conn)
 	manager := membership.NewManager(q)
 
-	groups, err := manager.FindGroups(ctx, []string{id})
+	group, err := manager.FindGroupByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(groups) == 0 {
-		return nil, fmt.Errorf("group not found")
-	}
-
-	return groups[0], nil
+	return group, nil
 }
 func (u *Administration) UpdateGroup(ctx Context) (*membership.Group, error) {
 	return nil, nil
@@ -562,6 +647,80 @@ func (u *Administration) DeleteGroup(ctx Context, id string) error {
 	tx.Commit()
 
 	return nil
+}
+
+func (u *Administration) AttachRoleToGroup(ctx Context, groupID, roleID string) (*membership.Group, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+	g, err := manager.FindGroupByID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := manager.FindRoleByID(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = g.AttachRole(r)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.SaveGroup(ctx, g)
+	if cmd.Error() != nil {
+		log.Println("save error on AttachRoleToGroup:", err)
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return g, nil
+}
+
+func (u *Administration) DetachRoleFromGroup(ctx Context, groupID, roleID string) (*membership.Group, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+	g, err := manager.FindGroupByID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := manager.FindRoleByID(ctx, roleID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = g.DetachRole(r)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd.SaveGroup(ctx, g)
+	if cmd.Error() != nil {
+		log.Println("save error on DetachRoleFromGroup:", err)
+		return nil, err
+	}
+
+	tx.Commit()
+
+	return g, nil
 }
 
 func (u *Administration) ListPermissions(ctx Context) ([]*membership.Permission, error) {

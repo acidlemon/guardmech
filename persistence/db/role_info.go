@@ -225,7 +225,7 @@ func (s *Service) FindRoles(ctx Context, conn seacle.Selectable, roleIDs []strin
 	}
 
 	roleRows := make([]*RoleRow, 0, 8)
-	err := seacle.Select(ctx, conn, &roleRows, `WHERE role_id IN (?)`, roleIDs)
+	err := seacle.Select(ctx, conn, &roleRows, `WHERE role_id IN (?) ORDER BY seq_id`, roleIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -245,15 +245,17 @@ func (s *Service) FindRoles(ctx Context, conn seacle.Selectable, roleIDs []strin
 		return nil, err
 	}
 	roles := []*entity.Role{}
-	for _, v := range roleMap {
-		roles = append(roles, v)
+	for _, v := range roleSeqIDs {
+		if r, exist := roleMap[v]; exist {
+			roles = append(roles, r)
+		}
 	}
 	return roles, nil
 }
 
 func (s *Service) EnumerateRoleIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
 	roles := make([]*RoleRow, 0, 8)
-	err := seacle.Select(ctx, conn, &roles, "")
+	err := seacle.Select(ctx, conn, &roles, "ORDER BY seq_id")
 	if err != nil {
 		log.Println(err)
 		return nil, err

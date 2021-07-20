@@ -197,7 +197,6 @@ export default defineComponent({
     })
 
     const detachRole = (async (roleId: string) => {
-      console.log(roleId)
       const params = new URLSearchParams({
         role_id: roleId,
       })
@@ -209,8 +208,8 @@ export default defineComponent({
     const deletePrincipal = (async () => {
       const res = await axios.delete('/api/principal/' + id)
       console.log(res)
+      // TODO check
       
-      //window.location.href = '../principals'
       router.push('/principals')
     })
 
@@ -225,8 +224,8 @@ export default defineComponent({
       permissionTableRows,
       attachedGroups,
       attachedRoles,
-      onDelete,
       needRefresh,
+      onDelete,
       onDetachGroup,
       onDetachRole,
     }

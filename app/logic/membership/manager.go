@@ -2,6 +2,7 @@ package membership
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/acidlemon/guardmech/app/logic/auth"
 	"github.com/google/uuid"
@@ -23,6 +24,7 @@ func (s *Manager) FindPrincipalByID(ctx Context, principalID string) (*Principal
 		return nil, err
 	}
 	if len(pri) == 0 {
+		log.Println("FindPrincipalByID:", principalID, "no entry")
 		return nil, ErrNoEntry
 	}
 
@@ -207,12 +209,12 @@ func (s *Manager) FindGroupByID(ctx Context, groupID string) (*Group, error) {
 		return nil, err
 	}
 	if len(g) == 0 {
+		log.Println("FindGroupByID:", groupID, "no entry")
 		return nil, ErrNoEntry
 	}
 
 	return g[0], nil
 }
-
 
 func (s *Manager) EnumerateRoleIDs(ctx Context) ([]string, error) {
 	IDs, err := s.q.EnumerateRoleIDs(ctx)
@@ -242,6 +244,7 @@ func (s *Manager) FindRoleByID(ctx Context, roleID string) (*Role, error) {
 		return nil, err
 	}
 	if len(r) == 0 {
+		log.Println("FindRoleByID:", roleID, "no entry")
 		return nil, ErrNoEntry
 	}
 
@@ -268,6 +271,19 @@ func (s *Manager) EnumeratePermissionIDs(ctx Context) ([]string, error) {
 
 func (s *Manager) FindPermissions(ctx Context, ids []string) ([]*Permission, error) {
 	return s.q.FindPermissions(ctx, ids)
+}
+
+func (s *Manager) FindPermissionByID(ctx Context, permissionID string) (*Permission, error) {
+	r, err := s.q.FindPermissions(ctx, []string{permissionID})
+	if err != nil {
+		return nil, err
+	}
+	if len(r) == 0 {
+		log.Println("FindPermissionByID:", permissionID, "no entry")
+		return nil, ErrNoEntry
+	}
+
+	return r[0], nil
 }
 
 func (s *Manager) CreateMappingRule(ctx Context, name, description string, ruleType MappingType, priority int,

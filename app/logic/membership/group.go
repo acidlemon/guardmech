@@ -66,9 +66,12 @@ func (g *Group) AttachRole(r *Role) error {
 	return nil
 }
 
-/*
-func (r *Group) AttachPermission(ctx Context, conn *sql.Conn, pe *Permission) error {
-	_, err := conn.ExecContext(ctx, `INSERT INTO group_permission_map (group_id, permission_id) VALUES (?, ?)`, r.SeqID, pe.SeqID)
-	return err
+func (g *Group) DetachRole(r *Role) error {
+	for i, v := range g.roles {
+		if v.RoleID == r.RoleID {
+			g.roles = append(g.roles[:i], g.roles[i+1:]...)
+			return nil
+		}
+	}
+	return nil // Not Found, but no error (idempotence)
 }
-*/
