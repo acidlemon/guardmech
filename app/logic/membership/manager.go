@@ -3,6 +3,7 @@ package membership
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/acidlemon/guardmech/app/logic/auth"
 	"github.com/google/uuid"
@@ -16,6 +17,18 @@ func NewManager(q Query) *Manager {
 	return &Manager{
 		q: q,
 	}
+}
+
+func (s *Manager) validateName(name string) error {
+	if name == "" {
+		return fmt.Errorf("name is required")
+	}
+
+	if strings.Contains(name, ";") {
+		return fmt.Errorf("name cannot contains ';'")
+	}
+
+	return nil
 }
 
 func (s *Manager) FindPrincipalByID(ctx Context, principalID string) (*Principal, error) {

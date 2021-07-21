@@ -24,6 +24,14 @@ type Principal struct {
 	groups  []*Group
 }
 
+func (p *Principal) AttachedRoles() []*Role {
+	if p.roles == nil {
+		return []*Role{}
+	}
+
+	return p.roles
+}
+
 func (p *Principal) Roles() []*Role {
 	// direct roles
 	tmp := []*Role{}
@@ -62,7 +70,7 @@ func (p *Principal) Groups() []*Group {
 	return p.groups
 }
 
-func (p *Principal) Permissions() []*Permission {
+func (p *Principal) HavingPermissions() []*Permission {
 	roles := p.Roles()
 
 	tmp := []*Permission{}

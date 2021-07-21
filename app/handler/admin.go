@@ -98,8 +98,7 @@ func (a *AdminMux) checkPermissionMiddleware(next http.Handler) http.Handler {
 
 		for _, perm := range is.Membership.Principal.Permissions {
 			// TODO read only mode?
-
-			if perm.Name == membership.PermissionOwnerName {
+			if perm == membership.PermissionOwnerName {
 				next.ServeHTTP(w, req)
 				return
 			}

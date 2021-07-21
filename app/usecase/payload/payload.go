@@ -26,10 +26,11 @@ type APIKey struct {
 }
 
 type Group struct {
-	ID            uuid.UUID `json:"id"`
-	Name          string    `json:"name"`
-	Description   string    `json:"description"`
-	AttachedRoles []*Role   `json:"attached_roles"`
+	ID                uuid.UUID     `json:"id"`
+	Name              string        `json:"name"`
+	Description       string        `json:"description"`
+	AttachedRoles     []*Role       `json:"attached_roles"`
+	HavingPermissions []*Permission `json:"having_permissions"`
 }
 
 type Role struct {
@@ -57,12 +58,13 @@ type MappingRule struct {
 }
 
 type PrincipalPayload struct {
-	Principal   *Principal    `json:"principal"`
-	Auth        *Auth         `json:"auth_oidc"`
-	APIKeys     []*APIKey     `json:"auth_apikeys"`
-	Groups      []*Group      `json:"groups"`
-	Roles       []*Role       `json:"roles"`
-	Permissions []*Permission `json:"permissions"`
+	Principal         *Principal    `json:"principal"`
+	Auth              *Auth         `json:"auth_oidc"`
+	APIKeys           []*APIKey     `json:"auth_apikeys"`
+	Groups            []*Group      `json:"groups"`
+	AttachedRoles     []*Role       `json:"attached_roles"`
+	HavingRoles       []*Role       `json:"having_roles"`
+	HavingPermissions []*Permission `json:"having_permissions"`
 }
 
 func PrincipalFromEntity(pri *entity.Principal) *Principal {
@@ -77,16 +79,18 @@ func PrincipalPayloadFromEntity(pri *entity.Principal) *PrincipalPayload {
 	oidcAuth := pri.OIDCAuthorization()
 	apikeys := pri.APIKeys()
 	gs := pri.Groups()
+	ars := pri.AttachedRoles()
 	rs := pri.Roles()
-	perms := pri.Permissions()
+	perms := pri.HavingPermissions()
 
 	result := &PrincipalPayload{
-		Principal:   PrincipalFromEntity(pri),
-		Auth:        AuthFromEntity(oidcAuth),
-		APIKeys:     make([]*APIKey, 0, len(apikeys)),
-		Groups:      make([]*Group, 0, len(gs)),
-		Roles:       make([]*Role, 0, len(rs)),
-		Permissions: make([]*Permission, 0, len(perms)),
+		Principal:         PrincipalFromEntity(pri),
+		Auth:              AuthFromEntity(oidcAuth),
+		APIKeys:           make([]*APIKey, 0, len(apikeys)),
+		Groups:            make([]*Group, 0, len(gs)),
+		AttachedRoles:     make([]*Role, 0, len(ars)),
+		HavingRoles:       make([]*Role, 0, len(rs)),
+		HavingPermissions: make([]*Permission, 0, len(perms)),
 	}
 
 	for _, v := range apikeys {
@@ -95,11 +99,14 @@ func PrincipalPayloadFromEntity(pri *entity.Principal) *PrincipalPayload {
 	for _, v := range gs {
 		result.Groups = append(result.Groups, GroupFromEntity(v))
 	}
+	for _, v := range ars {
+		result.AttachedRoles = append(result.AttachedRoles, RoleFromEntity(v))
+	}
 	for _, v := range rs {
-		result.Roles = append(result.Roles, RoleFromEntity(v))
+		result.HavingRoles = append(result.HavingRoles, RoleFromEntity(v))
 	}
 	for _, v := range perms {
-		result.Permissions = append(result.Permissions, PermissionFromEntity(v))
+		result.HavingPermissions = append(result.HavingPermissions, PermissionFromEntity(v))
 	}
 
 	return result
@@ -148,11 +155,18 @@ func GroupFromEntity(g *entity.Group) *Group {
 		attachedRoles = append(attachedRoles, RoleFromEntity(v))
 	}
 
+	perms := g.HavingPermissions()
+	havingPermissions := make([]*Permission, 0, len(perms))
+	for _, v := range perms {
+		havingPermissions = append(havingPermissions, PermissionFromEntity(v))
+	}
+
 	return &Group{
-		ID:            g.GroupID,
-		Name:          g.Name,
-		Description:   g.Description,
-		AttachedRoles: attachedRoles,
+		ID:                g.GroupID,
+		Name:              g.Name,
+		Description:       g.Description,
+		AttachedRoles:     attachedRoles,
+		HavingPermissions: havingPermissions,
 	}
 }
 

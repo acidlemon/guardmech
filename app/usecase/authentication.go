@@ -181,8 +181,7 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 		return
 	}
 
-	p := payload.PrincipalPayloadFromEntity(pri)
-
+	p := payload.SessionPrincipalFromEntity(pri)
 	now := time.Now()
 	is = &IDSession{
 		Issuer:  token.Issuer,
@@ -200,7 +199,7 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 	return
 }
 
-func (u *Authentication) Authorization(ctx Context, is *IDSession) (string, *payload.PrincipalPayload, error) {
+func (u *Authentication) Authorization(ctx Context, is *IDSession) (string, *payload.SessionPrincipal, error) {
 
 	return is.Email, is.Membership.Principal, nil
 }
