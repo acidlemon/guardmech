@@ -9,10 +9,10 @@ volumes:
 services:
   guardmech:
     build:
-      context: ./
+      context: ./backend
       dockerfile: Dockerfile.local
     volumes:
-      - "./:/stash/src/github.com/acidlemon/guardmech"
+      - "./backend:/stash/src/github.com/acidlemon/guardmech/backend"
       - "../seacle:/stash/src/github.com/acidlemon/seacle"
     env_file: .env-guardmech
     depends_on: ["mysql"]
