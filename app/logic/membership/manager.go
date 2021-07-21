@@ -99,8 +99,8 @@ func (s *Manager) CreatePrincipalFromOpenID(ctx Context, token *auth.OpenIDToken
 }
 
 func (s *Manager) CreatePrincipalFromAPIKey(ctx Context, name, apiKey string) (*Principal, error) {
-	if name == "" {
-		return nil, fmt.Errorf("CreatePrincipalFromAPIKey: name is required")
+	if err := s.validateName(name); err != nil {
+		return nil, fmt.Errorf("CreatePrincipalFromAPIKey: %s", err.Error())
 	}
 
 	//	s.cmd.CreatePrincipal()
@@ -108,8 +108,8 @@ func (s *Manager) CreatePrincipalFromAPIKey(ctx Context, name, apiKey string) (*
 }
 
 func (s *Manager) CreatePrincipal(ctx Context, name, description string) (*Principal, error) {
-	if name == "" {
-		return nil, fmt.Errorf("CreatePrincipal: name is required")
+	if err := s.validateName(name); err != nil {
+		return nil, fmt.Errorf("CreatePrincipal: %s", err.Error())
 	}
 
 	return &Principal{
@@ -139,8 +139,8 @@ func (s *Manager) CreatePrincipalFromRule(ctx Context, token *auth.OpenIDToken, 
 }
 
 func (s *Manager) CreateRole(ctx Context, name, description string) (*Role, error) {
-	if name == "" {
-		return nil, fmt.Errorf("CreateRole: name is required")
+	if err := s.validateName(name); err != nil {
+		return nil, fmt.Errorf("CreateRole: %s", err.Error())
 	}
 
 	return &Role{
@@ -151,8 +151,8 @@ func (s *Manager) CreateRole(ctx Context, name, description string) (*Role, erro
 }
 
 func (s *Manager) CreateGroup(ctx Context, name, description string) (*Group, error) {
-	if name == "" {
-		return nil, fmt.Errorf("CreateGroup: name is required")
+	if err := s.validateName(name); err != nil {
+		return nil, fmt.Errorf("CreateGroup: %s", err.Error())
 	}
 
 	return &Group{
@@ -163,8 +163,8 @@ func (s *Manager) CreateGroup(ctx Context, name, description string) (*Group, er
 }
 
 func (s *Manager) CreatePermission(ctx Context, name, description string) (*Permission, error) {
-	if name == "" {
-		return nil, fmt.Errorf("CreatePermission: name is required")
+	if err := s.validateName(name); err != nil {
+		return nil, fmt.Errorf("CreatePermission: %s", err.Error())
 	}
 
 	return &Permission{
@@ -302,8 +302,8 @@ func (s *Manager) FindPermissionByID(ctx Context, permissionID string) (*Permiss
 func (s *Manager) CreateMappingRule(ctx Context, name, description string, ruleType MappingType, priority int,
 	detail, associationType, associationID string) (*MappingRule, error) {
 
-	if name == "" {
-		return nil, fmt.Errorf("CreateMappingRule: name is required")
+	if err := s.validateName(name); err != nil {
+		return nil, fmt.Errorf("CreateMappingRule: %s", err.Error())
 	}
 
 	var group *Group

@@ -4,6 +4,7 @@
     modal-type="confirm-cancel"
     modal-title="Attach Group"
     confirm-title="Attach"
+    @visible="openModal"
     @proceeded="proceeded"
   >
     <BSelect v-model="selectedGroup" label="Group List" :items="groupList" />
@@ -74,8 +75,11 @@ export default defineComponent({
       fetchGroup()
     })
 
+    const openModal = (() => {
+      fetchGroup()
+    })
+
     const proceeded = (() => {
-      console.log(selectedGroup.value)
       attachGroup(selectedGroup.value)
     })
 
@@ -84,7 +88,7 @@ export default defineComponent({
       description,
       groupList,
       selectedGroup,
-
+      openModal,
       proceeded,
     }
   },

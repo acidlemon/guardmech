@@ -5,6 +5,7 @@
       :class="`btn ${openButtonVariant}`"
       data-bs-toggle="modal"
       :data-bs-target="`#${targetId}`"
+      @click="openModal"
     >
       {{ buttonTitle }}
     </button>
@@ -89,6 +90,7 @@ export default defineComponent({
       default: 'Close',
     },
   },
+  emits: ['visible', 'proceeded'],
   setup(props: Props, context: SetupContext) {
     const targetId = 'tg' + Math.random().toString(32).substring(2)
 
@@ -110,11 +112,16 @@ export default defineComponent({
       context.emit('proceeded')
     })
 
+    const openModal = (() => {
+      context.emit('visible')
+    })
+
     return {
       targetId,
       proceeded,
       openButtonVariant,
       confirmButtonVariant,
+      openModal,
     }
   },
 })

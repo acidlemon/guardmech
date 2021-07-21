@@ -4,6 +4,7 @@
     modal-type="confirm-cancel"
     modal-title="Attach Permission"
     confirm-title="Attach"
+    @visible="openModal"
     @proceeded="proceeded"
   >
     <BSelect v-model="selectedPermission" label="Permission List" :items="permissionList" />
@@ -74,6 +75,10 @@ export default defineComponent({
       fetchPermission()
     })
 
+    const openModal = (() => {
+      fetchPermission()
+    })
+
     const proceeded = (() => {
       console.log(selectedPermission.value)
       attachPermission(selectedPermission.value)
@@ -84,7 +89,7 @@ export default defineComponent({
       description,
       permissionList,
       selectedPermission,
-
+      openModal,
       proceeded,
     }
   },

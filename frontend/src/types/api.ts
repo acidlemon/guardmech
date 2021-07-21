@@ -3,8 +3,9 @@ export type PrincipalPayload = {
   auth_oidc: AuthOIDC
   auth_apikeys: AuthAPIKey[]
   groups: Group[]
-  roles: Role[]
-  permissions: Permission[]
+  attached_roles: Role[]
+  having_roles: Role[]
+  having_permissions: Permission[]
 }
 
 export type AuthOIDC = {
@@ -31,6 +32,7 @@ export type Group = {
   name: string
   description: string
   attached_roles: Role[]
+  having_permissions: Permission[]
 }
 
 export type Role = {

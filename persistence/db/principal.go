@@ -150,7 +150,7 @@ func (s *Service) deletePrincipalRow(ctx Context, conn seacle.Executable, pri *e
 }
 
 func (s *Service) savePrincipalRole(ctx Context, conn seacle.Executable, pri *entity.Principal, priRow *PrincipalRow) error {
-	roles := pri.Roles()
+	roles := pri.AttachedRoles()
 	roleSeqIDs := make([]int64, 0, len(roles))
 	if len(roles) != 0 {
 		roleIDs := make([]string, 0, len(roles))

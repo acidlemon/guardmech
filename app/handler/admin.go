@@ -600,26 +600,31 @@ func (a *AdminMux) CreatePermissionHandler(w http.ResponseWriter, req *http.Requ
 	name := req.Form.Get("name")
 	description := req.Form.Get("description")
 
-	permission, err := a.u.CreatePermission(req.Context(), name, description)
+	perm, err := a.u.CreatePermission(req.Context(), name, description)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
+	permission := payload.PermissionFromEntity(perm)
 	renderJSON(w, map[string]interface{}{
 		"permission": permission,
 	})
 }
 
 func (a *AdminMux) PermissionGetHandler(w http.ResponseWriter, req *http.Request) {
-	list, err := a.u.FetchPermission(req.Context())
+	vars := mux.Vars(req)
+	id := vars["id"]
+
+	perm, err := a.u.FetchPermission(req.Context(), id)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
+	permission := payload.PermissionFromEntity(perm)
 	renderJSON(w, map[string]interface{}{
-		"permissions": list,
+		"permission": permission,
 	})
 }
 

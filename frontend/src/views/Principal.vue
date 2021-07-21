@@ -52,7 +52,12 @@
         >
           <template #cell(action)="data">
             <!-- TODO: confirm modal -->
-            <BButton variant="danger" @click="onDetachRole(data.row.id)">Detach</BButton>
+            <template v-if="data && data.row.isAttached">
+              <BButton variant="danger" @click="onDetachRole(data.row.id)">Detach</BButton>
+            </template>
+            <template v-else-if="data && data.row.from">
+              from {{ data.row.from }}
+            </template>
           </template>
         </BTable>
         <p v-else>No roles.</p>
@@ -62,7 +67,13 @@
           v-if="permissionTableRows.length"
           :data="permissionTableRows"
           :columns="standardColumns"
-        />
+        >
+          <template #cell(action)="data">
+            <template v-if="data && data.row.from">
+              from {{ data.row.from }}
+            </template>
+          </template>
+        </BTable>
         <p v-else>No permissions.</p>
       </template>
     </div>
@@ -140,6 +151,10 @@ export default defineComponent({
     const fetchPrincipal = (async () => {
       const res = await axios.get('/api/principal/' + id)
       const payload = res.data.principal as PrincipalPayload
+      assignPrincipal(payload)
+    })
+
+    const assignPrincipal = ((payload: PrincipalPayload) => {
       principal.value = payload
 
       if (payload.auth_oidc) {
@@ -159,8 +174,33 @@ export default defineComponent({
 
       apiKeyTableRows.value = payload.auth_apikeys
       groupTableRows.value = payload.groups
-      roleTableRows.value = payload.roles
-      permissionTableRows.value = payload.permissions
+      roleTableRows.value = payload.having_roles.map(x => {
+        if (payload.attached_roles.find(a => a.id === x.id)) {
+          return {
+            ...x,
+            isAttached: true,
+          }
+        }
+        // groupにある
+        console.log(payload.groups[0].attached_roles)
+        const groups = payload.groups.filter(g => g.attached_roles.find(r => r.id === x.id) ? true : false)
+        console.log(groups)
+
+        return {
+          ...x,
+          from: groups.map(g => g.name).join(),
+        }
+      })
+      permissionTableRows.value = payload.having_permissions.map(x => {
+        const roles = payload.having_roles.filter(r => r.attached_permissions.find(p => p.id === x.id) ? true : false)
+
+        return {
+          ...x,
+          from: roles.map(r => r.name).join(),
+        }
+      })
+
+      console.log(roleTableRows.value)
     })
 
     onMounted(() => {
@@ -168,7 +208,7 @@ export default defineComponent({
     })
 
     const attachedGroups = computed<Group[]>(() => principal.value ? principal.value.groups : [])
-    const attachedRoles = computed<Role[]>(() => principal.value ? principal.value.roles : [])
+    const attachedRoles = computed<Role[]>(() => principal.value ? principal.value.attached_roles : [])
 
     const onDelete = (() => {
       deletePrincipal()
@@ -183,13 +223,13 @@ export default defineComponent({
     })
 
     const detachGroup = (async (groupId: string) => {
-      console.log(groupId)
       const params = new URLSearchParams({
         group_id: groupId,
       })
       const res = await axios.post('/api/principal/' + id + '/detach_group', params)
       console.log(res)
-      fetchPrincipal()
+
+      assignPrincipal(res.data.principal)
     })
 
     const onDetachRole = ((roleId: string) => {
@@ -202,7 +242,8 @@ export default defineComponent({
       })
       const res = await axios.post('/api/principal/' + id + '/detach_role', params)
       console.log(res)
-      fetchPrincipal()
+
+      assignPrincipal(res.data.principal)
     })
 
     const deletePrincipal = (async () => {

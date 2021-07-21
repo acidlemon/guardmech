@@ -773,8 +773,22 @@ func (u *Administration) CreatePermission(ctx Context, name, description string)
 
 	return perm, nil
 }
-func (u *Administration) FetchPermission(ctx Context) (*membership.Permission, error) {
-	return nil, nil
+func (u *Administration) FetchPermission(ctx Context, id string) (*membership.Permission, error) {
+	conn, err := db.GetConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	q := persistence.NewQuery(conn)
+	manager := membership.NewManager(q)
+
+	perm, err := manager.FindPermissionByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return perm, nil
 }
 func (u *Administration) UpdatePermission(ctx Context) (*membership.Permission, error) {
 	return nil, nil

@@ -26,6 +26,20 @@
         </template>
       </BTable>
       <p v-else>No roles.</p>
+
+      <h3>Having Permissions</h3>
+      <BTable
+        v-if="permissionTableRows.length"
+        :data="permissionTableRows"
+        :columns="standardColumns"
+      >
+        <template #cell(action)="data">
+          <template v-if="data && data.row.from">
+            from {{ data.row.from }}
+          </template>
+        </template>
+      </BTable>
+      <p v-else>No permissions.</p>
     </div>
 
     <template v-if="group">
@@ -46,7 +60,7 @@
 import { ref, computed, onMounted, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { Group, Role } from '@/types/api'
+import { Group, Role, Permission } from '@/types/api'
 
 import AttachRoleModal from '@/components/modals/AttachRoleModal.vue'
 import DestructionModal from '@/components/modals/DestructionModal.vue'
@@ -69,6 +83,7 @@ export default defineComponent({
       name: '',
       description: '',
       attached_roles: [],
+      having_permissions: [],
     })
 
     const basicRow = ref<BTableRow[]>([])
@@ -99,6 +114,8 @@ export default defineComponent({
     ]
     const attachedRoles = computed<Role[]>(() => group.value ? group.value.attached_roles : [])
 
+    const permissionTableRows = ref<BTableRow[]>([])
+
     const fetchGroup = (async () => {
       const res = await axios.get('/api/group/' + id)
       group.value = res.data.group as Group 
@@ -111,6 +128,15 @@ export default defineComponent({
           label: 'Description',
           value: group.value.description,
         }]
+
+        permissionTableRows.value = group.value.having_permissions.map(x => {
+        const roles = group.value.attached_roles.filter(r => r.attached_permissions.find(p => p.id === x.id) ? true : false)
+
+        return {
+          ...x,
+          from: roles.map(r => r.name).join(),
+        }
+      })
       } else {
         basicRow.value = []
       }
@@ -155,6 +181,7 @@ export default defineComponent({
       basicRow,
       basicColumns,
       attachedRoles,
+      permissionTableRows,
       standardColumns,
       needRefresh,
       onDelete,

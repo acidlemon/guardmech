@@ -4,6 +4,7 @@
     modal-type="confirm-cancel"
     modal-title="Attach Role"
     confirm-title="Attach"
+    @visible="openModal"
     @proceeded="proceeded"
   >
     <BSelect v-model="selectedRole" label="Role List" :items="roleList" />
@@ -86,6 +87,10 @@ export default defineComponent({
       fetchRole()
     })
 
+    const openModal = (() => {
+      fetchRole()
+    })
+
     const proceeded = (() => {
       console.log(selectedRole.value)
       attachRole(selectedRole.value)
@@ -96,7 +101,7 @@ export default defineComponent({
       description,
       roleList,
       selectedRole,
-
+      openModal,
       proceeded,
     }
   },
