@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/acidlemon/guardmech/app/logic/auth"
+	"github.com/acidlemon/guardmech/backend/app/logic/auth"
 )
 
 type MappingRuleManager struct {

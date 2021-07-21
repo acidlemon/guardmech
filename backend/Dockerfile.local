@@ -1,6 +1,6 @@
 FROM golang:1.16
 
-WORKDIR /stash/src/github.com/acidlemon/guardmech
+WORKDIR /stash/src/github.com/acidlemon/guardmech/backend
 ENV GOPATH=/stash
 
 RUN go install github.com/cespare/reflex@latest

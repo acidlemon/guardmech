@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/acidlemon/guardmech/app/logic/membership"
-	"github.com/acidlemon/guardmech/db"
-	"github.com/acidlemon/guardmech/persistence"
+	"github.com/acidlemon/guardmech/backend/app/logic/membership"
+	"github.com/acidlemon/guardmech/backend/db"
+	"github.com/acidlemon/guardmech/backend/persistence"
 )
 
 type Administration struct {

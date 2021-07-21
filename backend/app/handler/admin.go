@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/acidlemon/guardmech/app/logic/membership"
-	"github.com/acidlemon/guardmech/app/usecase"
-	"github.com/acidlemon/guardmech/app/usecase/payload"
+	"github.com/acidlemon/guardmech/backend/app/logic/membership"
+	"github.com/acidlemon/guardmech/backend/app/usecase"
+	"github.com/acidlemon/guardmech/backend/app/usecase/payload"
 	"github.com/gorilla/mux"
 )
 

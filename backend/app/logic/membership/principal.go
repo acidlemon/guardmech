@@ -6,7 +6,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/acidlemon/guardmech/app/logic"
+	"github.com/acidlemon/guardmech/backend/app/logic"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )

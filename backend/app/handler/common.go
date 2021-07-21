@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/acidlemon/guardmech/app/usecase"
+	"github.com/acidlemon/guardmech/backend/app/usecase"
 )
 
 type httpError struct {

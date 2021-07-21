@@ -1,4 +1,4 @@
-module github.com/acidlemon/guardmech
+module github.com/acidlemon/guardmech/backend
 
 go 1.16
 

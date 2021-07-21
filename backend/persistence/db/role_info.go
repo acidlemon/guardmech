@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	entity "github.com/acidlemon/guardmech/app/logic/membership"
+	entity "github.com/acidlemon/guardmech/backend/app/logic/membership"
 	"github.com/acidlemon/seacle"
 	"github.com/google/uuid"
 )

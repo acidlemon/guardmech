@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/acidlemon/guardmech"
+	guardmech "github.com/acidlemon/guardmech/backend"
 )
 
 func main() {

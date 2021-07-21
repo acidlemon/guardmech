@@ -1,6 +1,6 @@
 package payload
 
-import entity "github.com/acidlemon/guardmech/app/logic/membership"
+import entity "github.com/acidlemon/guardmech/backend/app/logic/membership"
 
 // Small Payload for Session Cookie
 type SessionPrincipal struct {

@@ -3,8 +3,8 @@ package persistence
 import (
 	"context"
 
-	entity "github.com/acidlemon/guardmech/app/logic/membership"
-	"github.com/acidlemon/guardmech/persistence/db"
+	entity "github.com/acidlemon/guardmech/backend/app/logic/membership"
+	"github.com/acidlemon/guardmech/backend/persistence/db"
 	"github.com/acidlemon/seacle"
 	"github.com/google/uuid"
 )

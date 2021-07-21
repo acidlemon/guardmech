@@ -1,7 +1,7 @@
 package payload
 
 import (
-	entity "github.com/acidlemon/guardmech/app/logic/membership"
+	entity "github.com/acidlemon/guardmech/backend/app/logic/membership"
 	"github.com/google/uuid"
 )
 

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/acidlemon/guardmech/app/config"
-	"github.com/acidlemon/guardmech/app/logic"
-	"github.com/acidlemon/guardmech/oidconnect"
+	"github.com/acidlemon/guardmech/backend/app/config"
+	"github.com/acidlemon/guardmech/backend/app/logic"
+	"github.com/acidlemon/guardmech/backend/oidconnect"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"

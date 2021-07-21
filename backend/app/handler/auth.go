@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/acidlemon/guardmech/app/config"
-	"github.com/acidlemon/guardmech/app/usecase"
+	"github.com/acidlemon/guardmech/backend/app/config"
+	"github.com/acidlemon/guardmech/backend/app/usecase"
 	"github.com/gorilla/mux"
 )
 

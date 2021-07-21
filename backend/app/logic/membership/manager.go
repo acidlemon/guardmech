@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/acidlemon/guardmech/app/logic/auth"
+	"github.com/acidlemon/guardmech/backend/app/logic/auth"
 	"github.com/google/uuid"
 )
 

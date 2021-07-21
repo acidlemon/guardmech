@@ -9,7 +9,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/acidlemon/guardmech/app/handler"
+	"github.com/acidlemon/guardmech/backend/app/handler"
 	_ "github.com/k0kubun/pp/v3" // for development
 )
 

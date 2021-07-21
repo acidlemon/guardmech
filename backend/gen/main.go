@@ -5,11 +5,11 @@ import (
 	"log"
 	"reflect"
 
-	db "github.com/acidlemon/guardmech/persistence/db"
+	db "github.com/acidlemon/guardmech/backend/persistence/db"
 	"github.com/acidlemon/seacle"
 )
 
-//go:generate go run github.com/acidlemon/guardmech/gen
+//go:generate go run github.com/acidlemon/guardmech/backend/gen
 
 type genset struct {
 	tp      reflect.Type
