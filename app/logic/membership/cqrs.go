@@ -27,10 +27,19 @@ type Query interface {
 }
 
 type Command interface {
-	SavePrincipal(ctx Context, pri *Principal) error
-	SaveGroup(ctx Context, g *Group) error
-	SaveRole(ctx Context, r *Role) error
-	SavePermission(ctx Context, perm *Permission) error
-	SaveAuthOIDC(ctx Context, oidc *OIDCAuthorization, pri *Principal) error
-	SaveAuthAPIKey(ctx Context, key *AuthAPIKey, pri *Principal) error
+	Error() error // see https://jxck.hatenablog.com/entry/golang-error-handling-lesson-by-rob-pike
+
+	SavePrincipal(ctx Context, pri *Principal)
+	SaveGroup(ctx Context, g *Group)
+	SaveRole(ctx Context, r *Role)
+	SavePermission(ctx Context, perm *Permission)
+	SaveAuthOIDC(ctx Context, oidc *OIDCAuthorization, pri *Principal)
+	SaveAuthAPIKey(ctx Context, key *AuthAPIKey, pri *Principal)
+	SaveMappingRule(ctx Context, rule *MappingRule)
+
+	DeletePrincipal(ctx Context, pri *Principal)
+	DeleteGroup(ctx Context, g *Group)
+	DeleteRole(ctx Context, r *Role)
+	DeletePermission(ctx Context, perm *Permission)
+	DeleteMappingRule(ctx Context, rule *MappingRule)
 }

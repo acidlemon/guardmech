@@ -1,8 +1,8 @@
 <template>
-  <div>
+  <div class="container">
     <h2>Role List</h2>
     <section>
-      <BButton variant="danger">Create New</BButton>
+      <NewRoleModal @completed="created"/>
     </section>
     <section>
       <BTable :data="roles" :columns="columns" variant="primary">
@@ -21,11 +21,13 @@ import { Role } from '@/types/api'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
+import NewRoleModal from '@/components/modals/NewRoleModal.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
+    NewRoleModal,
   },
   setup() {
     const roles = ref<BTableRow[]>([])
@@ -35,14 +37,23 @@ export default defineComponent({
       { key: 'action', label: '' },
     ])
 
-    onMounted(async () => {
-      const res = await axios.get('/api/roles')
+    const fetchList = (async () => {
+      const res = await axios.get('/api/roles').catch(e => e.response)
       roles.value = res.data.roles as Role[]
+    })
+
+    onMounted(() => {
+      fetchList()
+    })
+
+    const created = (() => {
+      fetchList()
     })
 
     return {
       columns,
       roles,
+      created,
     }
   },
 })

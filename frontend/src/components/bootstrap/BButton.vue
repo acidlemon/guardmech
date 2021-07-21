@@ -1,18 +1,46 @@
 <template>
   <span>
-    <a v-if="href" :href="href" :class="`btn ${variantClass}`" role="button"><slot /></a>
-    <router-link v-else-if="link" :to="link"><button type="button" :class="`btn ${variantClass}`"><slot /></button></router-link>
-    <button type="button" :class="`btn ${variantClass}`" v-else><slot /></button>
+    <a
+      v-if="href"
+      :href="href"
+      :class="`btn ${variantClass}`"
+      role="button"
+    >
+      <slot />
+    </a>
+
+    <router-link
+      v-else-if="link"
+      :to="link"
+    >
+      <button
+        type="button"
+        :class="`btn ${variantClass}`"
+      >
+        <slot />
+      </button>
+    </router-link>
+
+    <button
+      v-else
+      type="button"
+      :data-bs-toggle="toggle"
+      :class="`btn ${variantClass}`"
+      @click="clicked"
+    >
+      <slot />
+    </button>
   </span>
 </template>
 
 <script lang="ts">
-import { computed, defineComponent } from 'vue'
+import { computed, defineComponent, SetupContext } from 'vue'
 
 type Props = {
   href: string
   link: string
   variant: string
+  toggle: string
 }
 
 export default defineComponent({
@@ -30,13 +58,26 @@ export default defineComponent({
       type: String,
       default: '',
     },
+    toggle: {
+      type: String,
+      default: '',
+    },
   },
-  setup(props: Props) {
+  emits: ['click'],
+  setup(props: Props, context: SetupContext) {
     const variantClass = computed(() => {
       if (!props.variant) { return 'btn-primary'}
       return `btn-${props.variant}`
     })
-    return {variantClass}
+
+    const clicked = (() => {
+      context.emit('click')
+    })
+
+    return {
+      variantClass,
+      clicked,
+    }
   },
 })
 </script>

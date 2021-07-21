@@ -19,7 +19,7 @@ type IDSession struct {
 
 type MembershipToken struct {
 	NextCheck time.Time                 `json:"next_check"`
-	Principal *payload.PrincipalPayload `json:"principal"`
+	Principal *payload.SessionPrincipal `json:"principal"`
 }
 
 const IDSeparator string = "('-'o)"

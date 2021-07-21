@@ -1,8 +1,8 @@
 <template>
-  <div>
+  <div class="container">
     <h2>Group List</h2>
     <section>
-      <BButton variant="danger">Create New</BButton>
+      <NewGroupModal @completed="created" />
     </section>
     <section>
       <BTable :data="groups" :columns="columns" variant="primary">
@@ -21,11 +21,13 @@ import { Group } from '@/types/api'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
+import NewGroupModal from '@/components/modals/NewGroupModal.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
+    NewGroupModal,
   },
   setup() {
     const groups = ref<BTableRow[]>([])
@@ -35,14 +37,23 @@ export default defineComponent({
       { key: 'action', label: '' },
     ])
 
-    onMounted(async () => {
-      const res = await axios.get('/api/groups')
+    const fetchList = (async () => {
+      const res = await axios.get('/api/groups').catch(e => e.response)
       groups.value = res.data.groups as Group[]
+    })
+
+    onMounted(() => {
+      fetchList()
+    })
+
+    const created = (() => {
+      fetchList()
     })
 
     return {
       columns,
       groups,
+      created,
     }
   },
 })

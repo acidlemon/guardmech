@@ -67,14 +67,14 @@ func (s *Service) SaveGroup(ctx context.Context, conn seacle.Executable, g *enti
 		return err
 	}
 	if err == sql.ErrNoRows {
-		err = s.createGroup(ctx, conn, g)
+		err = s.createGroupRow(ctx, conn, g)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
 		err = seacle.SelectRow(ctx, conn, row, "WHERE group_id = ?", g.GroupID.String())
 	} else {
-		err = s.updateGroup(ctx, conn, g, row)
+		err = s.updateGroupRow(ctx, conn, g, row)
 	}
 
 	if err != nil {
@@ -91,7 +91,25 @@ func (s *Service) SaveGroup(ctx context.Context, conn seacle.Executable, g *enti
 	return nil
 }
 
-func (s *Service) createGroup(ctx context.Context, conn seacle.Executable, g *entity.Group) error {
+func (s *Service) DeleteGroup(ctx context.Context, conn seacle.Executable, g *entity.Group) error {
+	row := &GroupRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE group_id = ?", g.GroupID.String())
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+	if err == sql.ErrNoRows {
+		return nil
+	} else {
+		err = s.deleteGroupRow(ctx, conn, g, row)
+	}
+
+	// TODO delete group-role
+
+	return err
+}
+
+func (s *Service) createGroupRow(ctx context.Context, conn seacle.Executable, g *entity.Group) error {
 	row := groupRowFromEntity(g)
 	_, err := seacle.Insert(ctx, conn, row)
 	if err != nil {
@@ -101,7 +119,7 @@ func (s *Service) createGroup(ctx context.Context, conn seacle.Executable, g *en
 	return nil
 }
 
-func (s *Service) updateGroup(ctx context.Context, conn seacle.Executable, g *entity.Group, row *GroupRow) error {
+func (s *Service) updateGroupRow(ctx context.Context, conn seacle.Executable, g *entity.Group, row *GroupRow) error {
 	// lock row
 	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
@@ -114,6 +132,22 @@ func (s *Service) updateGroup(ctx context.Context, conn seacle.Executable, g *en
 	err = seacle.Update(ctx, conn, row)
 	if err != nil {
 		return fmt.Errorf("failed to update role row: err=%s", err)
+	}
+
+	return nil
+}
+
+func (s *Service) deleteGroupRow(ctx context.Context, conn seacle.Executable, g *entity.Group, row *GroupRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock role row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to delete role row: err=%s", err)
 	}
 
 	return nil
@@ -181,7 +215,7 @@ func (s *Service) FindGroups(ctx Context, conn seacle.Selectable, groupIDs []str
 	}
 
 	groupRows := make([]*GroupRow, 0, 8)
-	err := seacle.Select(ctx, conn, &groupRows, `WHERE group_id IN (?)`, groupIDs)
+	err := seacle.Select(ctx, conn, &groupRows, `WHERE group_id IN (?) ORDER BY seq_id`, groupIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -201,15 +235,17 @@ func (s *Service) FindGroups(ctx Context, conn seacle.Selectable, groupIDs []str
 		return nil, err
 	}
 	groups := []*entity.Group{}
-	for _, v := range groupMap {
-		groups = append(groups, v)
+	for _, v := range groupSeqIDs {
+		if g, exist := groupMap[v]; exist {
+			groups = append(groups, g)
+		}
 	}
 	return groups, nil
 }
 
 func (s *Service) EnumerateGroupIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
 	groups := make([]*GroupRow, 0, 8)
-	err := seacle.Select(ctx, conn, &groups, "")
+	err := seacle.Select(ctx, conn, &groups, "ORDER BY seq_id")
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -224,15 +260,15 @@ func (s *Service) EnumerateGroupIDs(ctx Context, conn seacle.Selectable) ([]stri
 }
 
 // findRoles returns SeqID -> *entity.Group map
-func (s *Service) findGroups(ctx Context, conn seacle.Selectable, roleSeqIDs []int64) (map[int64]*entity.Group, error) {
-	if len(roleSeqIDs) == 0 {
+func (s *Service) findGroups(ctx Context, conn seacle.Selectable, groupSeqIDs []int64) (map[int64]*entity.Group, error) {
+	if len(groupSeqIDs) == 0 {
 		return map[int64]*entity.Group{}, nil
 	}
 
 	// roles
 	groupRoleMaps := []*GroupRoleMapRow{}
 	roleMap := map[int64][]*entity.Role{} // GroupSeqID -> []Role map
-	err := seacle.Select(ctx, conn, &groupRoleMaps, `WHERE role_seq_id IN (?)`, roleSeqIDs)
+	err := seacle.Select(ctx, conn, &groupRoleMaps, `WHERE group_seq_id IN (?)`, groupSeqIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -252,13 +288,14 @@ func (s *Service) findGroups(ctx Context, conn seacle.Selectable, roleSeqIDs []i
 		}
 
 		for roleSeqID, r := range roles {
-			roleMap[roleSeqID] = append(roleMap[roleSeqID], r)
+			groupSeqID := roleSeqIDMap[roleSeqID]
+			roleMap[groupSeqID] = append(roleMap[groupSeqID], r)
 		}
 	}
 
 	groupRows := []*GroupRow{}
 	groupMap := map[int64]*entity.Group{}
-	err = seacle.Select(ctx, conn, &groupRows, `WHERE seq_id IN (?)`, roleSeqIDs)
+	err = seacle.Select(ctx, conn, &groupRows, `WHERE seq_id IN (?) ORDER BY seq_id`, groupSeqIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err

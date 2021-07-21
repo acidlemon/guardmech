@@ -1,11 +1,11 @@
 <template>
-  <div>
+  <div class="container">
     <h2>Principal List</h2>
     <section>
-      <BButton variant="danger">Create New</BButton>
+      <NewPrincipalModal @completed="created"/>
     </section>
     <section>
-      <BTable :data="principals" :columns="columns" variant="primary">
+      <BTable :data="principals" :columns="columns">
         <template #cell(action)="data">
           <BButton v-if="data?.row" :link="`/principal/${data.row.id}`" >View</BButton>
         </template>
@@ -21,11 +21,13 @@ import { PrincipalPayload } from '@/types/api'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
+import NewPrincipalModal from '@/components/modals/NewPrincipalModal.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
+    NewPrincipalModal,
   },
   setup() {
     const principals = ref<BTableRow[]>([])
@@ -35,17 +37,25 @@ export default defineComponent({
       { key: 'action', label: '' },
     ])
 
-    onMounted(async () => {
-      const res = await axios.get('/api/principals')
+    const fetchList = (async () => {
+      const res = await axios.get('/api/principals').catch(e => e.response)
       const payload = res.data.principals as PrincipalPayload[]
       principals.value = payload.map(d => d.principal)
+    })
+
+    onMounted(() => {
+      fetchList()
+    })
+
+    const created = (() => {
+      fetchList()
     })
 
     return {
       columns,
       principals,
+      created,
     }
   },
 })
 </script>
-

@@ -2,6 +2,7 @@ package membership
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 
@@ -21,6 +22,14 @@ type Principal struct {
 	apiKeys []*AuthAPIKey
 	roles   []*Role
 	groups  []*Group
+}
+
+func (p *Principal) AttachedRoles() []*Role {
+	if p.roles == nil {
+		return []*Role{}
+	}
+
+	return p.roles
 }
 
 func (p *Principal) Roles() []*Role {
@@ -61,7 +70,7 @@ func (p *Principal) Groups() []*Group {
 	return p.groups
 }
 
-func (p *Principal) Permissions() []*Permission {
+func (p *Principal) HavingPermissions() []*Permission {
 	roles := p.Roles()
 
 	tmp := []*Permission{}
@@ -104,6 +113,10 @@ func (p *Principal) APIKeys() []*AuthAPIKey {
 
 // Add New APIKey
 func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
+	if name == "" {
+		return nil, "", fmt.Errorf("CreateAPIKey: name is required")
+	}
+
 	newToken := "gmch-" + logic.GenerateRandomString(43)
 
 	hashed, err := bcrypt.GenerateFromPassword([]byte(newToken), 12)
@@ -125,6 +138,10 @@ func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
 }
 
 func (p *Principal) AttachNewGroup(name, description string) (*Group, error) {
+	if name == "" {
+		return nil, fmt.Errorf("AttachNewGroup: name is required")
+	}
+
 	// create New Group
 	g := newGroup(name, description)
 	err := p.AttachGroup(g)
@@ -146,7 +163,22 @@ func (p *Principal) AttachGroup(g *Group) error {
 	return nil
 }
 
+func (p *Principal) DetachGroup(g *Group) error {
+	for i, v := range p.groups {
+		if v.GroupID == g.GroupID {
+			p.groups = append(p.groups[:i], p.groups[i+1:]...)
+			return nil
+		}
+	}
+
+	return nil
+}
+
 func (p *Principal) AttachNewRole(name, description string) (*Role, error) {
+	if name == "" {
+		return nil, fmt.Errorf("AttachNewRole: name is required")
+	}
+
 	// create New Role
 	r := newRole(name, description)
 	err := p.AttachRole(r)
@@ -167,43 +199,12 @@ func (p *Principal) AttachRole(r *Role) error {
 	return nil
 }
 
-/*
-func (pr *Principal) AttachRole(ctx Context, tx *db.Tx, r *Role) error {
-	_, err := tx.ExecContext(ctx, `INSERT INTO principal_role_map (principal_id, role_id) VALUES (?, ?)`, pr.SeqID, r.SeqID)
-	return err
-}
-
-func (pr *Principal) FindRole(ctx Context, conn *sql.Conn) ([]*Role, error) {
-	result := make([]*Role, 0, 32)
-
-	// find role (direct attached)
-	rows, err := conn.QueryContext(ctx,
-		`SELECT r.seq_id, r.unique_id, r.name, r.description FROM principal_role_map AS m JOIN role_info AS r ON m.role_id = r.seq_id WHERE m.principal_id = ?`,
-		pr.SeqID,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id int64
-		var name, description string
-		if err := rows.Scan(&id, &name, &description); err != nil {
-			log.Println("scan error:", err)
-			return nil, err
+func (p *Principal) DetachRole(r *Role) error {
+	for i, v := range p.roles {
+		if v.RoleID == r.RoleID {
+			p.roles = append(p.roles[:i], p.roles[i+1:]...)
+			return nil
 		}
-		result = append(result, &Role{
-			SeqID:       id,
-			Name:        name,
-			Description: description,
-		})
 	}
-
-	// find role (attached via group)
-	// TODO
-
-	return result, nil
+	return nil // Not Found, but no error (idempotence)
 }
-*/
-
-//func (pr *Principal)

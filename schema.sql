@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS group_rule (
     group_rule_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
     name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
-    rule_type INTEGER NOT NULL, /* 1=specific domain, 2=whole domain, 3=member of  */
+    rule_type INTEGER NOT NULL, /* 1=specific domain, 2=whole domain, 3=member of 4=specific */
     condition TEXT(4096),
     PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -69,10 +69,13 @@ CREATE TABLE IF NOT EXISTS permission (
 CREATE TABLE IF NOT EXISTS mapping_rule (
     seq_id BIGINT NOT NULL auto_increment,
     mapping_rule_id VARCHAR(40) CHARACTER SET latin1 NOT NULL UNIQUE,
-    type INT NOT NULL, -- 1=domain, 2=group
+    rule_type INT NOT NULL, -- 1=specific domain, 2=whole domain, 3=member of 4=specific 
     detail VARCHAR(255) NOT NULL,
     name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
+    priority INT NOT NULL,
+    association_type INT NOT NULL, -- 1=group, 2=role
+    association_id VARCHAR(40) CHARACTER SET latin1 NOT NULL,
     PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 

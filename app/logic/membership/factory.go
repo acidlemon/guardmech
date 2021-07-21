@@ -29,6 +29,15 @@ type Factory interface {
 		name, description string,
 		roles []*Role,
 	) *Group
+
+	NewMappingRule(
+		ID uuid.UUID,
+		ruleType MappingType,
+		detail, name, description string,
+		priority int,
+		group *Group,
+		role *Role,
+	) *MappingRule
 }
 
 func NewFactory(q Query) Factory {
@@ -78,5 +87,25 @@ func (f *factory) NewGroup(
 		Name:        name,
 		Description: description,
 		roles:       roles,
+	}
+}
+
+func (f *factory) NewMappingRule(
+	ID uuid.UUID,
+	ruleType MappingType,
+	detail, name, description string,
+	priority int,
+	group *Group,
+	role *Role,
+) *MappingRule {
+	return &MappingRule{
+		MappingRuleID:   ID,
+		RuleType:        ruleType,
+		Detail:          detail,
+		Name:            name,
+		Description:     description,
+		Priority:        priority,
+		associatedGroup: group,
+		associatedRole:  role,
 	}
 }

@@ -57,14 +57,14 @@ func (s *Service) SavePrincipal(ctx Context, conn seacle.Executable, pri *entity
 	}
 
 	if err == sql.ErrNoRows {
-		err = s.createPrincipal(ctx, conn, pri)
+		err = s.createPrincipalRow(ctx, conn, pri)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
 		err = seacle.SelectRow(ctx, conn, row, "WHERE principal_id = ?", pri.PrincipalID.String())
 	} else {
-		err = s.updatePrincipal(ctx, conn, pri, row)
+		err = s.updatePrincipalRow(ctx, conn, pri, row)
 	}
 	if err != nil {
 		log.Println(err)
@@ -86,7 +86,26 @@ func (s *Service) SavePrincipal(ctx Context, conn seacle.Executable, pri *entity
 	return nil
 }
 
-func (s *Service) createPrincipal(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
+func (s *Service) DeletePrincipal(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
+	row := &PrincipalRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE principal_id = ?", pri.PrincipalID.String())
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil
+	} else {
+		err = s.deletePrincipalRow(ctx, conn, pri, row)
+	}
+
+	// TODO delete PrincipalGroup / PrincipalRole
+
+	return err
+}
+
+func (s *Service) createPrincipalRow(ctx Context, conn seacle.Executable, pri *entity.Principal) error {
 	row := principalRowFromEntity(pri)
 	_, err := seacle.Insert(ctx, conn, row)
 	if err != nil {
@@ -96,7 +115,7 @@ func (s *Service) createPrincipal(ctx Context, conn seacle.Executable, pri *enti
 	return nil
 }
 
-func (s *Service) updatePrincipal(ctx Context, conn seacle.Executable, pri *entity.Principal, row *PrincipalRow) error {
+func (s *Service) updatePrincipalRow(ctx Context, conn seacle.Executable, pri *entity.Principal, row *PrincipalRow) error {
 	// lock row
 	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
@@ -114,8 +133,24 @@ func (s *Service) updatePrincipal(ctx Context, conn seacle.Executable, pri *enti
 	return nil
 }
 
+func (s *Service) deletePrincipalRow(ctx Context, conn seacle.Executable, pri *entity.Principal, row *PrincipalRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock principal row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to update principal row: err=%s", err)
+	}
+
+	return nil
+}
+
 func (s *Service) savePrincipalRole(ctx Context, conn seacle.Executable, pri *entity.Principal, priRow *PrincipalRow) error {
-	roles := pri.Roles()
+	roles := pri.AttachedRoles()
 	roleSeqIDs := make([]int64, 0, len(roles))
 	if len(roles) != 0 {
 		roleIDs := make([]string, 0, len(roles))
@@ -232,20 +267,20 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 	}
 
 	pris := make([]*PrincipalRow, 0, 8)
-	err := seacle.Select(ctx, conn, &pris, `WHERE principal_id IN (?)`, principalIDs)
+	err := seacle.Select(ctx, conn, &pris, `WHERE principal_id IN (?) ORDER BY seq_id`, principalIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err
+	}
+
+	if len(pris) == 0 {
+		return []*entity.Principal{}, nil
 	}
 
 	// seq_idを抽出
 	priSeqIDs := make([]int64, 0, len(pris))
 	for _, v := range pris {
 		priSeqIDs = append(priSeqIDs, v.SeqID)
-	}
-
-	if len(priSeqIDs) == 0 {
-		return []*entity.Principal{}, nil
 	}
 
 	// AuthOIDC
@@ -293,7 +328,6 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 		result = append(result, f.NewPrincipal(
 			uuid.MustParse(v.PrincipalID), v.Name, v.Description,
 			authMap[v.SeqID], apikeyMap[v.SeqID], rolesMap[v.SeqID], groupsMap[v.SeqID]))
-
 	}
 
 	return result, nil
@@ -301,9 +335,6 @@ func (s *Service) FindPrincipals(ctx Context, conn seacle.Selectable, principalI
 
 func (s *Service) FindPrincipalByOIDC(ctx Context, conn seacle.Selectable, issuer, subject string) (*entity.Principal, error) {
 	pri := PrincipalRow{}
-
-	log.Println("issuer=", issuer, "subject=", subject)
-
 	err := seacle.SelectRow(ctx, conn, &pri,
 		`JOIN auth_oidc a ON a.principal_seq_id = principal.seq_id WHERE a.issuer = ? AND a.subject = ?`,
 		issuer, subject)
@@ -322,7 +353,7 @@ func (s *Service) FindPrincipalByOIDC(ctx Context, conn seacle.Selectable, issue
 
 func (s *Service) EnumeratePrincipalIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
 	pris := make([]*PrincipalRow, 0, 8)
-	err := seacle.Select(ctx, conn, &pris, "")
+	err := seacle.Select(ctx, conn, &pris, "ORDER BY seq_id")
 	if err != nil {
 		log.Println(err)
 		return nil, err

@@ -150,21 +150,21 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 	if len(principal.Groups) > 0 {
 		groups := make([]string, 0, len(principal.Groups))
 		for _, v := range principal.Groups {
-			groups = append(groups, v.Name)
+			groups = append(groups, v)
 		}
 		w.Header().Set("X-Guardmech-Groups", strings.Join(groups, ";"))
 	}
 	if len(principal.Roles) > 0 {
 		roles := make([]string, 0, len(principal.Roles))
 		for _, v := range principal.Roles {
-			roles = append(roles, v.Name)
+			roles = append(roles, v)
 		}
 		w.Header().Set("X-Guardmech-Roles", strings.Join(roles, ";"))
 	}
 	if len(principal.Permissions) > 0 {
 		perms := make([]string, 0, len(principal.Permissions))
 		for _, v := range principal.Permissions {
-			perms = append(perms, v.Name)
+			perms = append(perms, v)
 		}
 		w.Header().Set("X-Guardmech-Permissions", strings.Join(perms, ";"))
 	}

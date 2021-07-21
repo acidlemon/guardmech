@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import Layout from '../views/Layout.vue'
 
-import Dashboard from '@/views/Dashboard.vue'
+import Home from '@/views/Home.vue'
 import PrincipalList from '@/views/PrincipalList.vue'
 import Principal from '@/views/Principal.vue'
 import MappingRuleList from '@/views/MappingRuleList.vue'
@@ -19,12 +19,12 @@ const routes: Array<RouteRecordRaw> = [
     path: '/',
     name: 'Home',
     component: Layout,
-    redirect: '/dashboard',
+    redirect: '/home',
     children: [
       {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: Dashboard,
+        path: 'home',
+        name: 'Home',
+        component: Home,
       },
       {
         path: 'principals',
@@ -42,7 +42,7 @@ const routes: Array<RouteRecordRaw> = [
         component: MappingRuleList,
       },
       {
-        path: 'mapping_rules/:id',
+        path: 'mapping_rule/:id',
         name: 'MappingRule',
         component: MappingRule,
       },

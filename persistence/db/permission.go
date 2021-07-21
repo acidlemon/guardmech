@@ -41,13 +41,27 @@ func (s *Service) SavePermission(ctx Context, conn seacle.Executable, perm *enti
 	}
 
 	if err == sql.ErrNoRows {
-		return s.createPermission(ctx, conn, perm)
+		return s.createPermissionRow(ctx, conn, perm)
 	} else {
-		return s.updatePermission(ctx, conn, perm, row)
+		return s.updatePermissionRow(ctx, conn, perm, row)
 	}
 }
 
-func (s *Service) createPermission(ctx Context, conn seacle.Executable, perm *entity.Permission) error {
+func (s *Service) DeletePermission(ctx Context, conn seacle.Executable, perm *entity.Permission) error {
+	row := &PermissionRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE permission_id = ?", perm.PermissionID.String())
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil // do nothing
+	}
+
+	return s.deletePermissionRow(ctx, conn, perm, row)
+}
+
+func (s *Service) createPermissionRow(ctx Context, conn seacle.Executable, perm *entity.Permission) error {
 	row := permissionRowFromEntity(perm)
 	_, err := seacle.Insert(ctx, conn, row)
 	if err != nil {
@@ -57,7 +71,7 @@ func (s *Service) createPermission(ctx Context, conn seacle.Executable, perm *en
 	return nil
 }
 
-func (s *Service) updatePermission(ctx Context, conn seacle.Executable, perm *entity.Permission, row *PermissionRow) error {
+func (s *Service) updatePermissionRow(ctx Context, conn seacle.Executable, perm *entity.Permission, row *PermissionRow) error {
 	// lock row
 	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
 	if err != nil {
@@ -75,13 +89,29 @@ func (s *Service) updatePermission(ctx Context, conn seacle.Executable, perm *en
 	return nil
 }
 
+func (s *Service) deletePermissionRow(ctx Context, conn seacle.Executable, perm *entity.Permission, row *PermissionRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock permission row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to delete permission row: err=%s", err)
+	}
+
+	return nil
+}
+
 func (s *Service) FindPermissions(ctx Context, conn seacle.Selectable, permissionIDs []string) ([]*entity.Permission, error) {
 	if len(permissionIDs) == 0 {
 		return []*entity.Permission{}, nil
 	}
 
 	permRows := make([]*PermissionRow, 0, 8)
-	err := seacle.Select(ctx, conn, &permRows, `WHERE permission_id IN (?)`, permissionIDs)
+	err := seacle.Select(ctx, conn, &permRows, `WHERE permission_id IN (?) ORDER BY seq_id`, permissionIDs)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -96,7 +126,7 @@ func (s *Service) FindPermissions(ctx Context, conn seacle.Selectable, permissio
 
 func (s *Service) EnumeratePermissionIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
 	perms := make([]*PermissionRow, 0, 8)
-	err := seacle.Select(ctx, conn, &perms, "")
+	err := seacle.Select(ctx, conn, &perms, "ORDER BY seq_id")
 	if err != nil {
 		log.Println(err)
 		return nil, err
