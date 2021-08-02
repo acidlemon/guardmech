@@ -119,20 +119,22 @@ func (s *Manager) CreatePrincipal(ctx Context, name, description string) (*Princ
 	}, nil
 }
 
-func (s *Manager) CreatePrincipalFromRule(ctx Context, token *auth.OpenIDToken, rule *MappingRule) (*Principal, *OIDCAuthorization, error) {
+func (s *Manager) CreatePrincipalFromRules(ctx Context, token *auth.OpenIDToken, rules []*MappingRule) (*Principal, *OIDCAuthorization, error) {
 	pri, a, err := s.CreatePrincipalFromOpenID(ctx, token)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	g := rule.AssociatedGroup()
-	if g != nil {
-		pri.AttachGroup(g)
-	}
+	for _, rule := range rules {
+		g := rule.AssociatedGroup()
+		if g != nil {
+			pri.AttachGroup(g)
+		}
 
-	r := rule.AssociatedRole()
-	if r != nil {
-		pri.AttachRole(r)
+		r := rule.AssociatedRole()
+		if r != nil {
+			pri.AttachRole(r)
+		}
 	}
 
 	return pri, a, nil
