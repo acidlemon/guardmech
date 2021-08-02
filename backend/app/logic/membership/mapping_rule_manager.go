@@ -1,7 +1,9 @@
 package membership
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/mail"
 	"sort"
 	"strings"
@@ -10,7 +12,8 @@ import (
 )
 
 type MappingRuleManager struct {
-	rules []*MappingRule
+	rules    []*MappingRule
+	inquirer *auth.GroupInquirer
 }
 
 // for sort.Interface
@@ -29,46 +32,59 @@ func (s MappingRuleSlice) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-func NewMappingRuleManager(rules []*MappingRule) *MappingRuleManager {
+func NewMappingRuleManager(rules []*MappingRule, inquirer *auth.GroupInquirer) *MappingRuleManager {
 	s := make(MappingRuleSlice, 0, len(rules))
 	s = append(s, rules...)
 	sort.Stable(s)
 
 	return &MappingRuleManager{
-		rules: s,
+		rules:    s,
+		inquirer: inquirer,
 	}
 }
 
-func (m *MappingRuleManager) FindMatchedRule(token *auth.OpenIDToken) (*MappingRule, error) {
+func (m *MappingRuleManager) FindMatchedRules(ctx context.Context, token *auth.OpenIDToken) ([]*MappingRule, error) {
 	addr, err := mail.ParseAddress(token.Email)
 	if err != nil {
 		return nil, fmt.Errorf("malformed email address: address=%s, err=%s", token.Email, err)
 	}
 
+	result := make([]*MappingRule, 0, len(m.rules))
+
 	for _, r := range m.rules {
 		switch r.RuleType {
 		case MappingSpecificDomain:
 			if strings.HasSuffix(addr.Address, "@"+r.Detail) {
-				return r, nil
+				result = append(result, r)
 			}
 
 		case MappingWholeDomain:
 			if strings.HasSuffix(addr.Address, r.Detail) {
-				return r, nil
+				result = append(result, r)
 			}
 
 		case MappingGroupMember:
-			// TODO つくる
-			continue
+			if m.inquirer != nil {
+				ok, err := m.inquirer.IsMember(ctx, addr.Address, r.Detail)
+				if err != nil {
+					log.Println("failed to inquire member:", err)
+					continue
+				}
+				if ok {
+					result = append(result, r)
+				}
+			}
 
 		case MappingSpecificAddress:
 			if addr.Address == r.Detail {
-				return r, nil
+				result = append(result, r)
 			}
 		}
 	}
 
-	return nil, fmt.Errorf("Matched rule was not found")
-}
+	if len(result) == 0 {
+		return nil, fmt.Errorf("Matched rule was not found")
+	}
 
-//func (m *MappingRuleManager)
+	return result, nil
+}

@@ -34,16 +34,24 @@ func init() {
 type Authentication struct {
 	conf     *oauth2.Config
 	provider oidconnect.OIDCProvider
+	inquirer oidconnect.GroupInquirer
 }
 
 func NewAuthentication() *Authentication {
 	ctx := context.Background()
 	//	p, err := oidc.NewProvider(ctx, "https://accounts.google.com")
-	var p oidconnect.OIDCProvider
-	p, err := gsuite.New(ctx)
+	p, err := gsuite.NewProvider(ctx)
 	if err != nil {
 		// handle error
 		panic(`failed to initialize Google OpenID Connect provider:` + err.Error())
+	}
+
+	// use GOOGLE_APPLICATION_CREDENTIALS
+	q, err := gsuite.NewGroupInquirer(ctx)
+	if err != nil {
+		// handle error
+		//panic(`failed to initialize Google Groups Inquirer:` + err.Error())
+		q = nil
 	}
 
 	return &Authentication{
@@ -55,6 +63,7 @@ func NewAuthentication() *Authentication {
 			Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
 		},
 		provider: p,
+		inquirer: q,
 	}
 }
 
@@ -149,15 +158,16 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 				return
 			}
 
-			ruleman := membership.NewMappingRuleManager(rules)
-			rule, err := ruleman.FindMatchedRule(token)
+			gi := auth.NewGroupInquirer(u.inquirer)
+			ruleman := membership.NewMappingRuleManager(rules, gi)
+			foundRules, err := ruleman.FindMatchedRules(ctx, token)
 			if err != nil {
 				reserr = verificationError("You have no matching rules.", err)
 				return
 			}
 
 			var oidc *membership.OIDCAuthorization
-			pri, oidc, err = manager.CreatePrincipalFromRule(ctx, token, rule)
+			pri, oidc, err = manager.CreatePrincipalFromRules(ctx, token, foundRules)
 			if err != nil {
 				log.Println("failed to prepare principal:", err.Error())
 				reserr = systemError("Failed to create principal", err)

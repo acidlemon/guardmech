@@ -15,10 +15,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-//
-type Query interface {
-}
-
 type Authenticator struct {
 	oidcConf *oauth2.Config
 	provider oidconnect.OIDCProvider
