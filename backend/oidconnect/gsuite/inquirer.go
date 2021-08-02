@@ -3,11 +3,8 @@ package gsuite
 import (
 	"context"
 	"log"
-	"net/http"
-	"os"
 
 	"github.com/acidlemon/guardmech/backend/oidconnect"
-	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	admin "google.golang.org/api/admin/directory/v1"
 	"google.golang.org/api/option"
@@ -30,28 +27,16 @@ func NewGroupInquirer(ctx context.Context) (oidconnect.GroupInquirer, error) {
 
 }
 
-func getClient() (*http.Client, error) {
-	// admin.NewClient()
-	// config, err := google.JWTConfigFromJSON(b, admin.AdminDirectoryUserReadonlyScope)
-	// if err != nil {
-	// 	log.Println(`failed to prepare client:`, err.Error())
-	// 	return nil, err
-	// }
-
-	log.Println(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-
-	return google.DefaultClient(oauth2.NoContext, admin.AdminDirectoryUserReadonlyScope)
-}
-
 func adminService(ctx context.Context) (*admin.Service, error) {
-	client, err := getClient()
+	client, err := google.DefaultClient(ctx, admin.AdminDirectoryUserReadonlyScope)
 	if err != nil {
-		log.Println("Unable to prepare Client", err)
+		log.Println("Failed to prepare Client", err)
 		return nil, err
 	}
+
 	svc, err := admin.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
-		log.Println("Unable to retrieve directory Client", err)
+		log.Println("Failed to retrieve directory Client", err)
 		return nil, err
 	}
 
