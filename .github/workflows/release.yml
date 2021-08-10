@@ -1,0 +1,23 @@
+name: release
+
+on:
+  push:
+    branches:
+      - master
+      - feature/build-*
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: docker login
+        run: docker login docker.pkg.github.com -u acidlemon -p ${{ secrets.GITHUB_TOKEN }}
+      - name: docker build
+        run: docker build -t docker.pkg.github.com/${{ github.repository }}/guardmech:$(git describe --tags) .
+      - name: docker push
+        run: docker push docker.pkg.github.com/${{ github.repository }}/guardmech:$(git describe --tags)
