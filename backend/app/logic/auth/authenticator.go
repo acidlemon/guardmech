@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -32,7 +31,6 @@ func (a *Authenticator) StartAuthentication() (string, string, time.Time) {
 	state := logic.GenerateRandomString(32)
 	url := a.oidcConf.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	expireAt := time.Now().Add(config.SessionLifeTime)
-	log.Println(url)
 
 	return state, url, expireAt
 }

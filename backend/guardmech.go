@@ -3,7 +3,6 @@ package guardmech
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -29,31 +28,28 @@ func (g *GuardMech) Run() error {
 		return nil
 	}
 
-	childMux := http.NewServeMux()
-	childMux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		log.Println("defualt handler")
+	adminWebMux := http.NewServeMux()
+	// web assets
+	adminWebMux.HandleFunc("/guardmech/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/guardmech/" {
+			http.Redirect(w, r, "/guardmech/admin/", http.StatusPermanentRedirect)
+			return
+		}
+		http.NotFound(w, r)
 	})
-	childMux.HandleFunc("/guardmech/api/", func(w http.ResponseWriter, req *http.Request) {
-		log.Println("api request has come" + req.URL.Path)
-		w.WriteHeader(200)
-		io.WriteString(w, `{"message":"Hello World!"}`)
+	adminWebMux.HandleFunc("/guardmech/admin/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "dist/index.html") // write SPA html
 	})
-	childMux.HandleFunc("/guardmech/api/users", func(w http.ResponseWriter, req *http.Request) {
+	adminWebMux.Handle("/guardmech/admin/js/", http.StripPrefix("/guardmech/admin/js/", http.FileServer(http.Dir("dist/js"))))
+	adminWebMux.Handle("/guardmech/admin/css/", http.StripPrefix("/guardmech/admin/css/", http.FileServer(http.Dir("dist/css"))))
 
-	})
-	childMux.Handle("/guardmech/admin/", http.FileServer(http.Dir("dist")))
-
-	//authMux := auth.NewMux()
 	authMux := handler.NewAuthMux()
-	adminMux := handler.NewAdminMux()
+	adminAPIMux := handler.NewAdminMux()
 
 	mux := http.NewServeMux()
 	mux.Handle("/auth/", authMux.Mux())
-	mux.HandleFunc("/guardmech/", func(w http.ResponseWriter, req *http.Request) {
-		log.Println("guardmech request")
-		childMux.ServeHTTP(w, req)
-	})
-	mux.Handle("/guardmech/api/", adminMux.Mux())
+	mux.Handle("/guardmech/", adminWebMux)
+	mux.Handle("/guardmech/api/", adminAPIMux.Mux())
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("catch all:", req.URL.Path)
 	})
@@ -61,8 +57,8 @@ func (g *GuardMech) Run() error {
 	return http.Serve(listener, mux)
 }
 
-func (g *GuardMech) ReverseProxy(w http.ResponseWriter, req *http.Request) {
-}
+// func (g *GuardMech) ReverseProxy(w http.ResponseWriter, req *http.Request) {
+// }
 
 func WrapServerError(res *http.Response, err error) {
 	res.StatusCode = http.StatusInternalServerError

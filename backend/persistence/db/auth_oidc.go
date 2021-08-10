@@ -62,6 +62,23 @@ func (s *Service) SaveAuthOIDC(ctx Context, conn seacle.Executable, a *entity.OI
 	}
 }
 
+func (s *Service) DeleteAuthOIDC(ctx Context, conn seacle.Executable, a *entity.OIDCAuthorization) error {
+	row := &AuthOIDCRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE auth_oidc_id = ?", a.OIDCAuthID.String())
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil
+	} else {
+		err = s.deleteAuthOIDCRow(ctx, conn, a, row)
+	}
+
+	return err
+}
+
 func (s *Service) createAuthOIDC(ctx Context, conn seacle.Executable, a *entity.OIDCAuthorization, priSeqID int64) error {
 	row := authOIDCRowFromEntity(a, priSeqID)
 	_, err := seacle.Insert(ctx, conn, row)
@@ -87,6 +104,22 @@ func (s *Service) updateAuthOIDC(ctx Context, conn seacle.Executable, a *entity.
 	err = seacle.Update(ctx, conn, row)
 	if err != nil {
 		return fmt.Errorf("failed to update auth row: err=%s", err)
+	}
+
+	return nil
+}
+
+func (s *Service) deleteAuthOIDCRow(ctx Context, conn seacle.Executable, a *entity.OIDCAuthorization, row *AuthOIDCRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock auth_oidc row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to delete auth_oidc row: err=%s", err)
 	}
 
 	return nil

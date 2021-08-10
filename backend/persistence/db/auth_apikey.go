@@ -59,6 +59,23 @@ func (s *Service) SaveAuthAPIKey(ctx Context, conn seacle.Executable, a *entity.
 	}
 }
 
+func (s *Service) DeleteAuthAPIKey(ctx Context, conn seacle.Executable, a *entity.AuthAPIKey) error {
+	row := &AuthAPIKeyRow{}
+	err := seacle.SelectRow(ctx, conn, row, "WHERE auth_apikey_id = ?", a.AuthAPIKeyID.String())
+	if err != nil && err != sql.ErrNoRows {
+		log.Println(err)
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		return nil
+	} else {
+		err = s.deleteAuthAPIKeyRow(ctx, conn, a, row)
+	}
+
+	return err
+}
+
 func (s *Service) createAuthAPIKey(ctx Context, conn seacle.Executable, a *entity.AuthAPIKey, priSeqID int64) error {
 	row := authAPIKeyRowFromEntity(a, priSeqID)
 	_, err := seacle.Insert(ctx, conn, row)
@@ -83,6 +100,22 @@ func (s *Service) updateAuthAPIKey(ctx Context, conn seacle.Executable, a *entit
 	err = seacle.Update(ctx, conn, row)
 	if err != nil {
 		return fmt.Errorf("failed to update api_key row: err=%s", err)
+	}
+
+	return nil
+}
+
+func (s *Service) deleteAuthAPIKeyRow(ctx Context, conn seacle.Executable, a *entity.AuthAPIKey, row *AuthAPIKeyRow) error {
+	// lock row
+	err := seacle.SelectRow(ctx, conn, row, `WHERE seq_id = ? FOR UPDATE`, row.SeqID)
+	if err != nil {
+		return fmt.Errorf("failed to lock auth_apikey row: err=%s", err)
+	}
+
+	// delete row
+	err = seacle.Delete(ctx, conn, row)
+	if err != nil {
+		return fmt.Errorf("failed to delete auth_apikey row: err=%s", err)
 	}
 
 	return nil

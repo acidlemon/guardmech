@@ -103,6 +103,20 @@ func (c *command) DeletePermission(ctx Context, perm *entity.Permission) {
 	c.err = c.m.DeletePermission(ctx, c.conn, perm)
 }
 
+func (c *command) DeleteAuthOIDC(ctx Context, oidc *entity.OIDCAuthorization) {
+	if c.err != nil {
+		return
+	}
+	c.err = c.m.DeleteAuthOIDC(ctx, c.conn, oidc)
+}
+
+func (c *command) DeleteAuthAPIKey(ctx Context, key *entity.AuthAPIKey) {
+	if c.err != nil {
+		return
+	}
+	c.err = c.m.DeleteAuthAPIKey(ctx, c.conn, key)
+}
+
 func (c *command) DeleteMappingRule(ctx Context, rule *entity.MappingRule) {
 	if c.err != nil {
 		return

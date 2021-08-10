@@ -31,6 +31,7 @@ func NewAdminMux() *AdminMux {
 
 func (a *AdminMux) Mux() http.Handler {
 	r := mux.NewRouter()
+
 	r.HandleFunc("/guardmech/api/", a.ApiFallbackHandler)
 	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler).Methods(http.MethodGet)
@@ -76,7 +77,6 @@ func (a *AdminMux) Mux() http.Handler {
 }
 
 func (a *AdminMux) ApiFallbackHandler(w http.ResponseWriter, req *http.Request) {
-	log.Println("api request has come" + req.URL.Path)
 	w.WriteHeader(200)
 	io.WriteString(w, `{"message":"Hello World!"}`)
 }

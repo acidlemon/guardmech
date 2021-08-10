@@ -18,4 +18,4 @@ go.sum
 
 /tmp
 vetur.config.js
-credential.json
+credential*.json
