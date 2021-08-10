@@ -120,6 +120,7 @@ const errorHTML = `<!doctype html>
     {{ end }}
   </blockquote>
   <p><a href="/">back</a></p>
+  <script type="text/javascript">window.onload = function(){ window.history.replaceState({}, '{{ .StatusCode }} {{ .StatusMessage }} - guardmech', '/') }</script>
 </main>
 </body>
 </html>
