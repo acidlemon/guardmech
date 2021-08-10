@@ -143,7 +143,7 @@ func (s *Service) deletePrincipalRow(ctx Context, conn seacle.Executable, pri *e
 	// delete row
 	err = seacle.Delete(ctx, conn, row)
 	if err != nil {
-		return fmt.Errorf("failed to update principal row: err=%s", err)
+		return fmt.Errorf("failed to delete principal row: err=%s", err)
 	}
 
 	return nil

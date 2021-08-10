@@ -52,7 +52,6 @@ func (a *AuthMux) Mux() http.Handler {
 }
 
 func (a *AuthMux) StartAuth(w http.ResponseWriter, req *http.Request) {
-	log.Println("start auth")
 	// return path
 	if err := req.ParseForm(); err != nil {
 		WriteHttpError(w, NewHttpError(http.StatusBadRequest, "Body Parsing Error", err))
@@ -75,7 +74,6 @@ func (a *AuthMux) StartAuth(w http.ResponseWriter, req *http.Request) {
 }
 
 func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
-	log.Println("callback auth")
 	// CSRF session validation
 	c, err := req.Cookie(authSessionKey)
 	if err != nil {
@@ -90,7 +88,7 @@ func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 	as := &usecase.AuthSession{}
 	_, err = RestoreSessionPayload(c.Value, as)
 	if err != nil {
-		log.Println(err)
+		log.Println("session validation error:", err)
 		WriteHttpError(w, fmt.Errorf("Session Validation Failed: %s", err))
 		return
 	}
@@ -132,7 +130,6 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 
 	// check ExpireAt
 	if time.Now().Sub(session.ExpireAt) > 0 {
-		log.Println("session expired")
 		httperr := NewHttpError(http.StatusUnauthorized, "session expired", nil)
 		WriteHttpError(w, httperr)
 		return

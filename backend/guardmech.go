@@ -3,7 +3,6 @@ package guardmech
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -61,8 +60,8 @@ func (g *GuardMech) Run() error {
 	return http.Serve(listener, mux)
 }
 
-func (g *GuardMech) ReverseProxy(w http.ResponseWriter, req *http.Request) {
-}
+// func (g *GuardMech) ReverseProxy(w http.ResponseWriter, req *http.Request) {
+// }
 
 func WrapServerError(res *http.Response, err error) {
 	res.StatusCode = http.StatusInternalServerError

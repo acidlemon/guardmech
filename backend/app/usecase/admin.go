@@ -332,8 +332,6 @@ func (u *Administration) CreateRole(ctx Context, name, description string) (*mem
 	defer conn.Close()
 	defer tx.AutoRollback()
 
-	log.Println("name=", name, "description=", description)
-
 	q := persistence.NewQuery(tx)
 	cmd := persistence.NewCommand(tx)
 	manager := membership.NewManager(q)
@@ -513,8 +511,6 @@ func (u *Administration) CreateMappingRule(ctx Context, name, description string
 	}
 	defer conn.Close()
 	defer tx.AutoRollback()
-
-	log.Println("name=", name, "description=", description)
 
 	q := persistence.NewQuery(tx)
 	cmd := persistence.NewCommand(tx)
