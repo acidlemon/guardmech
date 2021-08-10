@@ -23,5 +23,5 @@ COPY --from=frontend-builder /stash/guardmech/dist /opt/guardmech/dist
 
 WORKDIR /opt/guardmech
 
-CMD ["sh", "-x", "/opt/guardmech/run_guardmech.sh"]
+CMD ["sh", "-e", "/opt/guardmech/run_guardmech.sh"]
 
