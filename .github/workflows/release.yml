@@ -18,6 +18,6 @@ jobs:
       - name: docker login
         run: docker login docker.pkg.github.com -u acidlemon -p ${{ secrets.GITHUB_TOKEN }}
       - name: docker build
-        run: docker build -t docker.pkg.github.com/${{ github.repository }}/guardmech:$(git describe --tags) .
+        run: docker build -t docker.pkg.github.com/${{ github.repository }}/guardmech:${{ github.sha }} .
       - name: docker push
-        run: docker push docker.pkg.github.com/${{ github.repository }}/guardmech:$(git describe --tags)
+        run: docker push docker.pkg.github.com/${{ github.repository }}/guardmech:${{ github.sha }}
