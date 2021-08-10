@@ -33,6 +33,7 @@ func (a *AdminMux) Mux() http.Handler {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/guardmech/api/", a.ApiFallbackHandler)
+	r.HandleFunc("/guardmech/api/ping", a.ApiPingHandler)
 	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler).Methods(http.MethodPost)
 	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler).Methods(http.MethodGet)
 	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.GetPrincipalHandler).Methods(http.MethodGet)
@@ -79,6 +80,11 @@ func (a *AdminMux) Mux() http.Handler {
 func (a *AdminMux) ApiFallbackHandler(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(200)
 	io.WriteString(w, `{"message":"Hello World!"}`)
+}
+
+func (a *AdminMux) ApiPingHandler(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(200)
+	io.WriteString(w, `{"ping":"pong"}`)
 }
 
 func (a *AdminMux) checkPermissionMiddleware(next http.Handler) http.Handler {
