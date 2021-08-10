@@ -41,5 +41,7 @@ type Command interface {
 	DeleteGroup(ctx Context, g *Group)
 	DeleteRole(ctx Context, r *Role)
 	DeletePermission(ctx Context, perm *Permission)
+	DeleteAuthOIDC(ctx Context, oidc *OIDCAuthorization)
+	DeleteAuthAPIKey(ctx Context, key *AuthAPIKey)
 	DeleteMappingRule(ctx Context, rule *MappingRule)
 }

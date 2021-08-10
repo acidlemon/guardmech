@@ -24,11 +24,10 @@ func NewGroupInquirer(ctx context.Context) (oidconnect.GroupInquirer, error) {
 		svc: svc,
 	}
 	return gi, nil
-
 }
 
 func adminService(ctx context.Context) (*admin.Service, error) {
-	client, err := google.DefaultClient(ctx, admin.AdminDirectoryUserReadonlyScope)
+	client, err := google.DefaultClient(ctx, admin.AdminDirectoryGroupReadonlyScope, admin.AdminDirectoryGroupMemberReadonlyScope)
 	if err != nil {
 		log.Println("Failed to prepare Client", err)
 		return nil, err

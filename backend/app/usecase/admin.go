@@ -99,19 +99,22 @@ func (u *Administration) DeletePrincipal(ctx Context, id string) error {
 	cmd := persistence.NewCommand(tx)
 	manager := membership.NewManager(q)
 
-	pris, err := manager.FindPrincipals(ctx, []string{id})
+	pri, err := manager.FindPrincipalByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if len(pris) == 0 {
-		return fmt.Errorf("principal not found")
-	}
-
-	pri := pris[0]
+	keys := pri.APIKeys()
+	oid := pri.OIDCAuthorization()
 	cmd.DeletePrincipal(ctx, pri)
-	if cmd.Error() != nil {
-		log.Println("failed to delete principal")
+	if oid != nil {
+		cmd.DeleteAuthOIDC(ctx, oid)
+	}
+	for _, key := range keys {
+		cmd.DeleteAuthAPIKey(ctx, key)
+	}
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to delete principal:", err)
 		return err
 	}
 
