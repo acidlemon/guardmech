@@ -176,6 +176,12 @@ func (s *Manager) CreatePermission(ctx Context, name, description string) (*Perm
 	}, nil
 }
 
+func (s *Manager) SetupSystemMembership(ctx Context) (*Permission, error) {
+	perm, err := s.CreatePermission(ctx, PermissionReadOnlyName, PermissionReadOnlyDescription)
+
+	return perm, err
+}
+
 func (s *Manager) SetupPrincipalAsOwner(ctx Context, pri *Principal) (*Group, *Role, *Permission, error) {
 	g, err := pri.AttachNewGroup(GroupOwnerName, GroupOwnerDescription)
 	if err != nil {

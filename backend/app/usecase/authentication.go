@@ -140,6 +140,13 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 				return
 			}
 
+			roperm, err := manager.SetupSystemMembership(ctx)
+			if err != nil {
+				reserr = systemError("Failed to Setup", err)
+				return
+			}
+
+			cmd.SavePermission(ctx, roperm)
 			cmd.SavePermission(ctx, perm)
 			cmd.SaveRole(ctx, r)
 			cmd.SaveGroup(ctx, g)

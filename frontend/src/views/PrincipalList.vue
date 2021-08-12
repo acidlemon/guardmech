@@ -1,10 +1,11 @@
 <template>
   <div class="container">
     <h2>Principal List</h2>
-    <section>
+    <AuthorityStatusBox :status="authorityStatus" />
+    <section v-if="canWrite">
       <NewPrincipalModal @completed="created"/>
     </section>
-    <section>
+    <section v-if="canRead">
       <BTable :data="principals" :columns="columns">
         <template #cell(action)="data">
           <BButton v-if="data?.row" :link="`/principal/${data.row.id}`" >View</BButton>
@@ -15,21 +16,31 @@
 </template>
 
 <script lang="ts">
-import { ref, onMounted, defineComponent } from 'vue'
+import { ref, watch, defineComponent } from 'vue'
 import axios from 'axios'
 import { PrincipalPayload } from '@/types/api'
+import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
 import NewPrincipalModal from '@/components/modals/NewPrincipalModal.vue'
+import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
     NewPrincipalModal,
+    AuthorityStatusBox,
   },
   setup() {
+    const {
+      authorityStatus,
+      authorityLoadCompleted,
+      canWrite,
+      canRead,
+    } = useUserAuthority()
+
     const principals = ref<BTableRow[]>([])
     const columns = ref<BTableColumn[]>([
       { key: 'name', label: 'Name' },
@@ -43,8 +54,12 @@ export default defineComponent({
       principals.value = payload.map(d => d.principal)
     })
 
-    onMounted(() => {
-      fetchList()
+    watch(authorityLoadCompleted, (val) => {
+      if (val) {
+        if (canRead.value) {
+          fetchList()
+        }
+      }
     })
 
     const created = (() => {
@@ -52,6 +67,9 @@ export default defineComponent({
     })
 
     return {
+      authorityStatus,
+      canWrite,
+      canRead,
       columns,
       principals,
       created,

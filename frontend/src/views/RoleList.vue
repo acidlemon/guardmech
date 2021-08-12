@@ -1,10 +1,11 @@
 <template>
   <div class="container">
     <h2>Role List</h2>
-    <section>
+    <AuthorityStatusBox :status="authorityStatus" />
+    <section v-if="canWrite">
       <NewRoleModal @completed="created"/>
     </section>
-    <section>
+    <section v-if="canRead">
       <BTable :data="roles" :columns="columns" variant="primary">
         <template #cell(action)="data">
           <BButton v-if="data?.row" :link="`/role/${data.row.id}`" >View</BButton>
@@ -15,21 +16,32 @@
 </template>
 
 <script lang="ts">
-import { ref, onMounted, defineComponent } from 'vue'
+import { ref, watch, defineComponent } from 'vue'
 import axios from 'axios'
 import { Role } from '@/types/api'
+import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
 import NewRoleModal from '@/components/modals/NewRoleModal.vue'
+import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
+
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
     NewRoleModal,
+    AuthorityStatusBox,
   },
   setup() {
+    const {
+      authorityStatus,
+      authorityLoadCompleted,
+      canWrite,
+      canRead,
+    } = useUserAuthority()
+
     const roles = ref<BTableRow[]>([])
     const columns = ref<BTableColumn[]>([
       { key: 'name', label: 'Name' },
@@ -42,8 +54,12 @@ export default defineComponent({
       roles.value = res.data.roles as Role[]
     })
 
-    onMounted(() => {
-      fetchList()
+    watch(authorityLoadCompleted, (val) => {
+      if (val) {
+        if (canRead.value) {
+          fetchList()
+        }
+      }
     })
 
     const created = (() => {
@@ -51,6 +67,9 @@ export default defineComponent({
     })
 
     return {
+      authorityStatus,
+      canWrite,
+      canRead,
       columns,
       roles,
       created,
