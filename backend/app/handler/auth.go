@@ -95,14 +95,14 @@ func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 
 	is, expireAt, path, err := a.u.VerifyAuth(req.Context(), as, state, code)
 
-	// delete CSRF session cookie
-	domain := req.URL.Host
-	http.SetCookie(w, revokeCookie(domain, authSessionKey))
-
 	if err != nil {
 		WriteHttpError(w, NewHttpErrorFromErr(err))
 		return
 	}
+
+	// delete CSRF session cookie
+	domain := req.URL.Host
+	http.SetCookie(w, revokeCookie(domain, authSessionKey))
 
 	session := &SessionPayload{
 		Data:     is,
