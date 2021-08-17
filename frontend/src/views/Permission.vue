@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="container information">
-      <h2>Single Permission</h2>
+      <h2>Permission Information</h2>
       <BTable
         v-if="permission"
         :data="basicRow"
