@@ -538,11 +538,56 @@ func (u *Administration) CreateMappingRule(ctx Context, name, description string
 	return rule, nil
 }
 func (u *Administration) FetchMappingRule(ctx Context, id string) (*membership.MappingRule, error) {
-	return nil, nil
+	conn, err := db.GetConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	q := persistence.NewQuery(conn)
+	manager := membership.NewManager(q)
+
+	mappingRule, err := manager.FindMappingRuleByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return mappingRule, nil
 }
 func (u *Administration) UpdateMappingRule(ctx Context, id string) (*membership.MappingRule, error) {
 	return nil, nil
 }
+
+func (u *Administration) DeleteMappingRule(ctx Context, id string) error {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+
+	rule, err := manager.FindMappingRuleByID(ctx, id)
+	if err != nil {
+		if err == membership.ErrNoEntry {
+			return nil
+		}
+		return err
+	}
+
+	cmd.DeleteMappingRule(ctx, rule)
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to delete mapping rule:", err)
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
 func (u *Administration) ListGroups(ctx Context) ([]*membership.Group, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {

@@ -70,6 +70,7 @@ export default defineComponent({
       const rules = res.data.mapping_rules as MappingRule[]
       mappingRules.value = rules.map(r => {
         return {
+          id: r.id,
           name: r.name,
           description: r.description,
           rule_type: ruleTypeLabel[r.rule_type],

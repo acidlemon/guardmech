@@ -30,7 +30,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, onMounted, defineComponent } from 'vue'
+import { ref, computed, onMounted, defineComponent, SetupContext } from 'vue'
 import axios from 'axios'
 import BModal from '@/components/bootstrap/BModal.vue'
 import BInput from '@/components/bootstrap/BInput.vue'
@@ -47,7 +47,7 @@ export default defineComponent({
     BSelect,
   },
   emits: ['completed'],
-  setup() {
+  setup(_, context: SetupContext) {
     const name = ref('')
     const description = ref('')
     const ruleType = ref('1')
@@ -73,6 +73,7 @@ export default defineComponent({
       const res = await axios.post('/api/mapping_rule', params).catch(e => e.response)
 
       console.log(res)
+      context.emit('completed')
     }
 
     const proceeded = (() => {

@@ -368,6 +368,19 @@ func (s *Manager) FindMappingRules(ctx Context, ids []string) ([]*MappingRule, e
 	return s.q.FindMappingRules(ctx, ids)
 }
 
+func (s *Manager) FindMappingRuleByID(ctx Context, mappingRuleID string) (*MappingRule, error) {
+	r, err := s.q.FindMappingRules(ctx, []string{mappingRuleID})
+	if err != nil {
+		return nil, err
+	}
+	if len(r) == 0 {
+		log.Println("FindMappingRuleByID:", mappingRuleID, "no entry")
+		return nil, ErrNoEntry
+	}
+
+	return r[0], nil
+}
+
 func (s *Manager) EnumerateMappingRules(ctx Context) ([]*MappingRule, error) {
 	IDs, err := s.q.EnumerateMappingRuleIDs(ctx)
 	if err != nil {

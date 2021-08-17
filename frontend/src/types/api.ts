@@ -48,11 +48,17 @@ export type Permission = {
   description: string
 }
 
+export type MappingRuleType = number
+export const MappingRuleTypeSpecificDomain: MappingRuleType = 1
+export const MappingRuleTypeWholeDomain: MappingRuleType = 2
+export const MappingRuleTypeGroupMember: MappingRuleType = 3
+export const MappingRuleTypeSpecificAddress: MappingRuleType = 4
+
 export type MappingRule = {
   id: string
   name: string
   description: string
-  rule_type: number
+  rule_type: MappingRuleType
   detail: string
   priority: number
   association_type: string

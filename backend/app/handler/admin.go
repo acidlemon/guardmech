@@ -78,6 +78,7 @@ func (a *AdminMux) Mux() http.Handler {
 	ro.HandleFunc("/mapping_rules", a.ListMappingRulesHandler)
 	ro.HandleFunc("/mapping_rule/{id:[0-9a-f-]+}", a.GetMappingRuleHandler).Methods(http.MethodGet)
 	rw.HandleFunc("/mapping_rule/{id:[0-9a-f-]+}", a.UpdateMappingRuleHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/mapping_rule/{id:[0-9a-f-]+}", a.DeleteMappingRuleHandler).Methods(http.MethodDelete)
 
 	return router
 }
@@ -746,12 +747,13 @@ func (a *AdminMux) CreateMappingRuleHandler(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	rule, err := a.u.CreateMappingRule(req.Context(), name, description, ruleType, detail, associationType, associationID)
+	r, err := a.u.CreateMappingRule(req.Context(), name, description, ruleType, detail, associationType, associationID)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
+	rule := payload.MappingRuleFromEntity(r)
 	renderJSON(w, map[string]interface{}{
 		"mapping_rule": rule,
 	})
@@ -761,12 +763,13 @@ func (a *AdminMux) GetMappingRuleHandler(w http.ResponseWriter, req *http.Reques
 	vars := mux.Vars(req)
 	id := vars["id"]
 
-	rule, err := a.u.FetchMappingRule(req.Context(), id)
+	r, err := a.u.FetchMappingRule(req.Context(), id)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
+	rule := payload.MappingRuleFromEntity(r)
 	renderJSON(w, map[string]interface{}{
 		"mapping_rule": rule,
 	})
@@ -776,14 +779,30 @@ func (a *AdminMux) UpdateMappingRuleHandler(w http.ResponseWriter, req *http.Req
 	vars := mux.Vars(req)
 	id := vars["id"]
 
-	rule, err := a.u.UpdateMappingRule(req.Context(), id)
+	r, err := a.u.UpdateMappingRule(req.Context(), id)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	rule := payload.MappingRuleFromEntity(r)
+	renderJSON(w, map[string]interface{}{
+		"mapping_rule": rule,
+	})
+}
+
+func (a *AdminMux) DeleteMappingRuleHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	id := vars["id"]
+
+	err := a.u.DeleteMappingRule(req.Context(), id)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"mapping_rule": rule,
+		"result": "ok",
 	})
 }
 
