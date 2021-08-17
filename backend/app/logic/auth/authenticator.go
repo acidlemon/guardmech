@@ -29,8 +29,8 @@ func NewAuthenticator(conf *oauth2.Config, provider oidconnect.OIDCProvider) *Au
 // OpenID Connectを利用した認証の開始
 func (a *Authenticator) StartAuthentication() (string, string, time.Time) {
 	state := logic.GenerateRandomString(32)
-	url := a.oidcConf.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	expireAt := time.Now().Add(config.SessionLifeTime)
+	url := a.oidcConf.AuthCodeURL(state)
+	expireAt := time.Now().Add(config.AuthenticationTimeout)
 
 	return state, url, expireAt
 }

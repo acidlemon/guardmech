@@ -86,10 +86,15 @@ func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 	code := req.URL.Query().Get("code")
 
 	as := &usecase.AuthSession{}
-	_, err = RestoreSessionPayload(c.Value, as)
+	payload, err := RestoreSessionPayload(c.Value, as)
 	if err != nil {
 		log.Println("session validation error:", err)
 		WriteHttpError(w, fmt.Errorf("Session Validation Failed: %s", err))
+		return
+	}
+
+	if time.Now().Sub(payload.ExpireAt) > 0 {
+		WriteHttpError(w, fmt.Errorf("Authentication Session timeout"))
 		return
 	}
 
@@ -121,7 +126,7 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 	}
 
 	is := &usecase.IDSession{}
-	session, err := RestoreSessionPayload(c.Value, is)
+	payload, err := RestoreSessionPayload(c.Value, is)
 	if err != nil {
 		httperr := NewHttpError(http.StatusUnauthorized, "failed to restore cookie", err)
 		WriteHttpError(w, httperr)
@@ -129,21 +134,23 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// check ExpireAt
-	if time.Now().Sub(session.ExpireAt) > 0 {
+	if time.Now().Sub(payload.ExpireAt) > 0 {
 		httperr := NewHttpError(http.StatusUnauthorized, "session expired", nil)
 		WriteHttpError(w, httperr)
 		return
 	}
 
-	email, principal, err := a.u.Authorization(req.Context(), is)
+	is, refresh, err := a.u.Authorization(req.Context(), is)
 	if err != nil {
 		httperr := NewHttpError(http.StatusUnauthorized, err.Error(), nil)
 		WriteHttpError(w, httperr)
 		return
 	}
 
+	principal := is.Membership.Principal
+
 	// OK! print headers
-	w.Header().Set("X-Guardmech-Email", email)
+	w.Header().Set("X-Guardmech-Email", is.Email)
 	if len(principal.Groups) > 0 {
 		groups := make([]string, 0, len(principal.Groups))
 		for _, v := range principal.Groups {
@@ -164,6 +171,15 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 			perms = append(perms, v)
 		}
 		w.Header().Set("X-Guardmech-Permissions", strings.Join(perms, ";"))
+	}
+
+	// write cookie if need
+	if refresh {
+		payload := &SessionPayload{
+			Data:     is,
+			ExpireAt: time.Now().Add(config.SessionLifeTime),
+		}
+		http.SetCookie(w, payload.MakeCookie(req, sessionKey, config.CookieLifeTime))
 	}
 
 	w.WriteHeader(http.StatusAccepted)
