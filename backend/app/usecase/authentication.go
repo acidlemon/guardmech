@@ -152,7 +152,7 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 			cmd.SaveGroup(ctx, g)
 			cmd.SavePrincipal(ctx, pri)
 			cmd.SaveAuthOIDC(ctx, oidc, pri)
-			if cmd.Error() != nil {
+			if err = cmd.Error(); err != nil {
 				reserr = systemError("Failed to save item", err)
 				return
 			}
