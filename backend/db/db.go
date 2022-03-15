@@ -17,17 +17,17 @@ func init() {
 }
 
 func initDB() {
-	addr := os.Getenv("DB_HOST")
-	if os.Getenv("DB_PORT") != "" {
-		addr += ":" + os.Getenv("DB_PORT")
+	addr := os.Getenv("GUARDMECH_DB_HOST")
+	if os.Getenv("GUARDMECH_DB_PORT") != "" {
+		addr += ":" + os.Getenv("GUARDMECH_DB_PORT")
 	}
 
 	cfg := mysql.NewConfig()
-	cfg.User = os.Getenv("DB_USER")
-	cfg.Passwd = os.Getenv("DB_PASSWORD")
+	cfg.User = os.Getenv("GUARDMECH_DB_USER")
+	cfg.Passwd = os.Getenv("GUARDMECH_DB_PASSWORD")
 	cfg.Net = "tcp"
 	cfg.Addr = addr
-	cfg.DBName = os.Getenv("DB_NAME")
+	cfg.DBName = os.Getenv("GUARDMECH_DB_NAME")
 	dsn := cfg.FormatDSN()
 	log.Println("connecing to", dsn)
 	d, err := sql.Open("mysql", dsn)
