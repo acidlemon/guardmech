@@ -29,10 +29,8 @@ func NewAdminMux() *AdminMux {
 	return am
 }
 
-func (a *AdminMux) Mux() http.Handler {
-	router := mux.NewRouter()
-
-	sub := router.PathPrefix("/guardmech").Subrouter()
+func (a *AdminMux) RegisterRoute(r *mux.Router) {
+	sub := r.PathPrefix("/guardmech").Subrouter()
 	sub.HandleFunc("/api/authority", a.ApiAuthorityHandler) // no restriction
 	sub.HandleFunc("/api", a.ApiFallbackHandler)
 
@@ -79,8 +77,6 @@ func (a *AdminMux) Mux() http.Handler {
 	ro.HandleFunc("/mapping_rule/{id:[0-9a-f-]+}", a.GetMappingRuleHandler).Methods(http.MethodGet)
 	rw.HandleFunc("/mapping_rule/{id:[0-9a-f-]+}", a.UpdateMappingRuleHandler).Methods(http.MethodPost)
 	rw.HandleFunc("/mapping_rule/{id:[0-9a-f-]+}", a.DeleteMappingRuleHandler).Methods(http.MethodDelete)
-
-	return router
 }
 
 func (a *AdminMux) ApiFallbackHandler(w http.ResponseWriter, req *http.Request) {
