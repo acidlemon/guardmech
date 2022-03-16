@@ -23,6 +23,8 @@ func New() *GuardMech {
 	return gm
 }
 
+const spaIndexFile = "dist/index.html"
+
 func (g *GuardMech) Run() error {
 	listener, err := net.Listen("tcp", "0.0.0.0:2989")
 	if err != nil {
@@ -54,7 +56,7 @@ func (g *GuardMech) Run() error {
 		http.NotFound(w, r)
 	})
 	r.HandleFunc("/guardmech/admin/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "dist/index.html") // write SPA html
+		http.ServeFile(w, r, spaIndexFile) // write SPA html
 	})
 	r.Handle("/guardmech/admin/js/", http.StripPrefix(mount+"/guardmech/admin/js", http.FileServer(http.Dir("dist/js"))))
 	r.Handle("/guardmech/admin/css/", http.StripPrefix(mount+"/guardmech/admin/css", http.FileServer(http.Dir("dist/css"))))
