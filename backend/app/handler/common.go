@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 
 	"github.com/acidlemon/guardmech/backend/app/usecase"
 )
@@ -78,6 +79,12 @@ func WriteHttpError(w http.ResponseWriter, err error) {
 		}
 	}
 
+	var path string
+	if os.Getenv("GUARDMECH_MOUNT_PATH") != "" {
+		path = os.Getenv("GUARDMECH_MOUNT_PATH")
+	}
+	path += "/"
+
 	tmpl := template.Must(template.New("errorHTML").Parse(errorHTML))
 
 	switch statusCode {
@@ -92,6 +99,7 @@ func WriteHttpError(w http.ResponseWriter, err error) {
 			"StatusMessage": http.StatusText(statusCode),
 			"ErrorMessage":  message,
 			"ErrorDetail":   detail,
+			"Mount":         path,
 		})
 	}
 	return
@@ -120,7 +128,7 @@ const errorHTML = `<!doctype html>
     {{ end }}
   </blockquote>
   <p><a href="/">back</a></p>
-  <script type="text/javascript">window.onload = function(){ window.history.replaceState({}, '{{ .StatusCode }} {{ .StatusMessage }} - guardmech', '/') }</script>
+  <script type="text/javascript">window.onload = function(){ window.history.replaceState({}, '{{ .StatusCode }} {{ .StatusMessage }} - guardmech', '{{ .Mount }}') }</script>
 </main>
 </body>
 </html>
