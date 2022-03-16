@@ -32,8 +32,9 @@ func (g *GuardMech) Run() error {
 
 	root := mux.NewRouter()
 	var r *mux.Router
-	if os.Getenv("GUARDMECH_MOUNT_PATH") != "" {
-		r = root.PathPrefix(os.Getenv("GUARDMECH_MOUNT_PATH")).Subrouter()
+	mount := os.Getenv("GUARDMECH_MOUNT_PATH")
+	if mount != "" {
+		r = root.PathPrefix(mount).Subrouter()
 	} else {
 		r = root
 	}
@@ -55,8 +56,8 @@ func (g *GuardMech) Run() error {
 	r.HandleFunc("/guardmech/admin/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "dist/index.html") // write SPA html
 	})
-	r.Handle("/guardmech/admin/js/", http.StripPrefix("/guardmech/admin/js/", http.FileServer(http.Dir("dist/js"))))
-	r.Handle("/guardmech/admin/css/", http.StripPrefix("/guardmech/admin/css/", http.FileServer(http.Dir("dist/css"))))
+	r.Handle("/guardmech/admin/js/", http.StripPrefix(mount+"/guardmech/admin/js/", http.FileServer(http.Dir("dist/js"))))
+	r.Handle("/guardmech/admin/css/", http.StripPrefix(mount+"/guardmech/admin/css/", http.FileServer(http.Dir("dist/css"))))
 
 	root.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("catch all:", req.URL.Path)
