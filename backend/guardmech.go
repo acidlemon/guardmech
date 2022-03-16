@@ -56,8 +56,8 @@ func (g *GuardMech) Run() error {
 	r.HandleFunc("/guardmech/admin/", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "dist/index.html") // write SPA html
 	})
-	r.Handle("/guardmech/admin/js/", http.StripPrefix(mount+"/guardmech/admin/js/", http.FileServer(http.Dir("dist/js"))))
-	r.Handle("/guardmech/admin/css/", http.StripPrefix(mount+"/guardmech/admin/css/", http.FileServer(http.Dir("dist/css"))))
+	r.Handle("/guardmech/admin/js/", http.StripPrefix(mount+"/guardmech/admin/js", http.FileServer(http.Dir("dist/js"))))
+	r.Handle("/guardmech/admin/css/", http.StripPrefix(mount+"/guardmech/admin/css", http.FileServer(http.Dir("dist/css"))))
 
 	root.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("catch all:", req.URL.Path)
