@@ -49,29 +49,24 @@ func (g *GuardMech) Run() error {
 
 	// web assets
 	r.HandleFunc("/guardmech/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/guardmech/" {
-			http.Redirect(w, r, "/guardmech/admin/", http.StatusPermanentRedirect)
+		if r.URL.Path == mount+"/guardmech/" {
+			http.Redirect(w, r, mount+"/guardmech/admin/", http.StatusPermanentRedirect)
 			return
 		}
 		http.NotFound(w, r)
 	})
-	r.HandleFunc("/guardmech/admin/", func(w http.ResponseWriter, r *http.Request) {
+	// r.HandleFunc("/guardmech/admin/", func(w http.ResponseWriter, r *http.Request) {
+	// 	http.ServeFile(w, r, spaIndexFile) // write SPA html
+	// })
+	r.PathPrefix("/guardmech/admin/js/").Handler(http.StripPrefix(mount+"/guardmech/admin/js", http.FileServer(http.Dir("dist/js"))))
+	r.PathPrefix("/guardmech/admin/css/").Handler(http.StripPrefix(mount+"/guardmech/admin/css", http.FileServer(http.Dir("dist/css"))))
+	r.PathPrefix("/guardmech/admin/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, spaIndexFile) // write SPA html
 	})
-	r.Handle("/guardmech/admin/js/", http.StripPrefix(mount+"/guardmech/admin/js", http.FileServer(http.Dir("dist/js"))))
-	r.Handle("/guardmech/admin/css/", http.StripPrefix(mount+"/guardmech/admin/css", http.FileServer(http.Dir("dist/css"))))
 
 	root.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("catch all:", req.URL.Path)
 	})
-
-	// m := http.NewServeMux()
-	// m.Handle("/auth/", authMux.Mux())
-	// m.Handle("/guardmech/", adminWebMux)
-	// m.Handle("/guardmech/api/", adminAPIMux.Mux())
-	// m.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-	// 	log.Println("catch all:", req.URL.Path)
-	// })
 
 	return http.Serve(listener, root)
 }
