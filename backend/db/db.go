@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -29,7 +30,7 @@ func initDB() {
 	cfg.Addr = addr
 	cfg.DBName = os.Getenv("GUARDMECH_DB_NAME")
 	dsn := cfg.FormatDSN()
-	log.Println("connecing to", dsn)
+	log.Println("connecing to", strings.Replace(dsn, cfg.Passwd, strings.Repeat("*", len(cfg.Passwd)), -1))
 	d, err := sql.Open("mysql", dsn)
 	if err != nil {
 		panic(err)
@@ -45,13 +46,13 @@ func initDB() {
 func GetConn(ctx context.Context) (*sql.Conn, error) {
 	conn, err := pool.Conn(ctx)
 	if err != nil {
-		log.Println("Could Not Get Conn")
+		log.Println("Could Not Get Conn:", err)
 		return nil, err
 	}
 
 	err = conn.PingContext(ctx)
 	if err != nil {
-		log.Println("Failed to Ping")
+		log.Println("Failed to Ping:", err)
 		defer conn.Close()
 		return nil, err
 	}
