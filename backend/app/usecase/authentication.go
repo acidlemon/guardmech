@@ -140,12 +140,19 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 				return
 			}
 
+			roperm, err := manager.SetupSystemMembership(ctx)
+			if err != nil {
+				reserr = systemError("Failed to Setup", err)
+				return
+			}
+
+			cmd.SavePermission(ctx, roperm)
 			cmd.SavePermission(ctx, perm)
 			cmd.SaveRole(ctx, r)
 			cmd.SaveGroup(ctx, g)
 			cmd.SavePrincipal(ctx, pri)
 			cmd.SaveAuthOIDC(ctx, oidc, pri)
-			if cmd.Error() != nil {
+			if err = cmd.Error(); err != nil {
 				reserr = systemError("Failed to save item", err)
 				return
 			}
@@ -198,7 +205,7 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 		Subject: token.Sub,
 		Email:   token.Email,
 		Membership: MembershipToken{
-			NextCheck: now.Add(1 * time.Minute), // TODO 使わなそう
+			NextCheck: now.Add(config.AuthorityValidationTimeout),
 			Principal: p,
 		},
 	}
@@ -209,9 +216,38 @@ func (u *Authentication) VerifyAuth(ctx Context, as *AuthSession, state, code st
 	return
 }
 
-func (u *Authentication) Authorization(ctx Context, is *IDSession) (string, *payload.SessionPrincipal, error) {
+func (u *Authentication) Authorization(ctx Context, is *IDSession) (*IDSession, bool, error) {
+	if time.Now().Sub(is.Membership.NextCheck) <= 0 {
+		return is, false, nil
+	}
 
-	return is.Email, is.Membership.Principal, nil
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, false, systemError("Could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+	q := persistence.NewQuery(tx)
+	manager := membership.NewManager(q)
+	pri, err := manager.FindPrincipalByOIDC(ctx, is.Issuer, is.Subject)
+	if err != nil {
+		return nil, false, systemError("Principal Not Found", err)
+	}
+
+	p := payload.SessionPrincipalFromEntity(pri)
+	oidcAuth := pri.OIDCAuthorization()
+	now := time.Now()
+	is = &IDSession{
+		Issuer:  oidcAuth.Issuer,
+		Subject: oidcAuth.Subject,
+		Email:   oidcAuth.Email,
+		Membership: MembershipToken{
+			NextCheck: now.Add(config.AuthorityValidationTimeout),
+			Principal: p,
+		},
+	}
+
+	return is, true, nil
 }
 
 func (u *Authentication) NeedAuthPrompt(ctx Context, expireAt time.Time) bool {

@@ -176,6 +176,12 @@ func (s *Manager) CreatePermission(ctx Context, name, description string) (*Perm
 	}, nil
 }
 
+func (s *Manager) SetupSystemMembership(ctx Context) (*Permission, error) {
+	perm, err := s.CreatePermission(ctx, PermissionReadOnlyName, PermissionReadOnlyDescription)
+
+	return perm, err
+}
+
 func (s *Manager) SetupPrincipalAsOwner(ctx Context, pri *Principal) (*Group, *Role, *Permission, error) {
 	g, err := pri.AttachNewGroup(GroupOwnerName, GroupOwnerDescription)
 	if err != nil {
@@ -360,6 +366,19 @@ func (s *Manager) EnumerateMappingRuleIDs(ctx Context) ([]string, error) {
 
 func (s *Manager) FindMappingRules(ctx Context, ids []string) ([]*MappingRule, error) {
 	return s.q.FindMappingRules(ctx, ids)
+}
+
+func (s *Manager) FindMappingRuleByID(ctx Context, mappingRuleID string) (*MappingRule, error) {
+	r, err := s.q.FindMappingRules(ctx, []string{mappingRuleID})
+	if err != nil {
+		return nil, err
+	}
+	if len(r) == 0 {
+		log.Println("FindMappingRuleByID:", mappingRuleID, "no entry")
+		return nil, ErrNoEntry
+	}
+
+	return r[0], nil
 }
 
 func (s *Manager) EnumerateMappingRules(ctx Context) ([]*MappingRule, error) {

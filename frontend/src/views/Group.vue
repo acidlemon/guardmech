@@ -2,6 +2,7 @@
   <div>
     <div class="container information">
       <h2>Group Information</h2>
+      <AuthorityStatusBox :status="authorityStatus" />
       <BTable
         v-if="group"
         :data="basicRow"
@@ -57,15 +58,17 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, onMounted, defineComponent } from 'vue'
+import { ref, computed, watch, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { Group, Role, Permission } from '@/types/api'
+import { Group, Role } from '@/types/api'
+import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import AttachRoleModal from '@/components/modals/AttachRoleModal.vue'
 import DestructionModal from '@/components/modals/DestructionModal.vue'
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow } from '@/components/bootstrap/BTable.vue'
+import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
 
 export default defineComponent({
   components: {
@@ -73,10 +76,18 @@ export default defineComponent({
     BTable,
     AttachRoleModal,
     DestructionModal,
+    AuthorityStatusBox,
   },
   setup() {
     const router = useRouter()
     const id = router.currentRoute.value.params['id'] as string
+
+    const {
+      authorityStatus,
+      authorityLoadCompleted,
+      canWrite,
+      canRead,
+    } = useUserAuthority()
 
     const group = ref<Group>({
       id: '',
@@ -142,8 +153,12 @@ export default defineComponent({
       }
     })
 
-    onMounted(() => {
-      fetchGroup()
+    watch(authorityLoadCompleted, (val) => {
+      if (val) {
+        if (canRead.value) {
+          fetchGroup()
+        }
+      }
     })
 
     const needRefresh = (() => {
@@ -177,6 +192,9 @@ export default defineComponent({
     })
 
     return {
+      authorityStatus,
+      canWrite,
+      canRead,
       group,
       basicRow,
       basicColumns,

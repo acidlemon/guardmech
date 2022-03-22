@@ -2,6 +2,7 @@
   <div>
     <div class="container information">
       <h2>Principal Information</h2>
+      <AuthorityStatusBox :status="authorityStatus" />
 
       <template v-if="principal">
         <h3>OpenID Connect Authorization Info</h3>
@@ -92,16 +93,18 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, onMounted, defineComponent, SetupContext } from 'vue'
+import { ref, computed, watch, defineComponent, SetupContext } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { PrincipalPayload, Group, Role } from '@/types/api'
+import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow } from '@/components/bootstrap/BTable.vue'
 import AttachGroupModal from '@/components/modals/AttachGroupModal.vue'
 import AttachRoleModal from '@/components/modals/AttachRoleModal.vue'
 import DestructionModal from '@/components/modals/DestructionModal.vue'
+import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
 
 export default defineComponent({
   components: {
@@ -110,10 +113,18 @@ export default defineComponent({
     AttachGroupModal,
     AttachRoleModal,
     DestructionModal,
+    AuthorityStatusBox,
   },
   setup(_, context: SetupContext) {
     const router = useRouter()
     const id = router.currentRoute.value.params['id']
+
+    const {
+      authorityStatus,
+      authorityLoadCompleted,
+      canWrite,
+      canRead,
+    } = useUserAuthority()
 
     const principal = ref<PrincipalPayload>()
 
@@ -203,8 +214,12 @@ export default defineComponent({
       console.log(roleTableRows.value)
     })
 
-    onMounted(() => {
-      fetchPrincipal()
+    watch(authorityLoadCompleted, (val) => {
+      if (val) {
+        if (canRead.value) {
+          fetchPrincipal()
+        }
+      }
     })
 
     const attachedGroups = computed<Group[]>(() => principal.value ? principal.value.groups : [])
@@ -255,6 +270,9 @@ export default defineComponent({
     })
 
     return {
+      authorityStatus,
+      canWrite,
+      canRead,
       principal,
       authTableRows,
       authTableColumns,

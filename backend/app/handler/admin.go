@@ -29,56 +29,107 @@ func NewAdminMux() *AdminMux {
 	return am
 }
 
-func (a *AdminMux) Mux() http.Handler {
-	r := mux.NewRouter()
+func (a *AdminMux) RegisterRoute(r *mux.Router) {
+	sub := r.PathPrefix("/guardmech").Subrouter()
+	sub.HandleFunc("/api/authority", a.ApiAuthorityHandler) // no restriction
+	sub.HandleFunc("/api", a.ApiFallbackHandler)
 
-	r.HandleFunc("/guardmech/api/", a.ApiFallbackHandler)
-	r.HandleFunc("/guardmech/api/principal", a.CreatePrincipalHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/principals", a.ListPrincipalsHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.GetPrincipalHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}", a.DeletePrincipalHandler).Methods(http.MethodDelete)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/attach_role", a.AttachRoleToPrincipalHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/attach_group", a.AttachGroupToPrincipalHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/detach_role", a.DetachRoleToPrincipalHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/principal/{id:[0-9a-f-]+}/detach_group", a.DetachGroupToPrincipalHandler).Methods(http.MethodPost)
+	rw := sub.PathPrefix("/api").Subrouter()
+	ro := sub.PathPrefix("/api").Subrouter()
+	rw.Use(a.checkPermissionMiddleware)
+	ro.Use(a.checkPermissionMiddleware) // TODO
 
-	r.HandleFunc("/guardmech/api/group", a.CreateGroupHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/groups", a.ListGroupsHandler)
-	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.GetGroupHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.UpdateGroupHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}", a.DeleteGroupHandler).Methods(http.MethodDelete)
-	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}/attach_role", a.AttachRoleToGroupHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/group/{id:[0-9a-f-]+}/detach_role", a.DetachRoleToGroupHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/principal", a.CreatePrincipalHandler).Methods(http.MethodPost)
+	ro.HandleFunc("/principals", a.ListPrincipalsHandler).Methods(http.MethodGet)
+	ro.HandleFunc("/principal/{id:[0-9a-f-]+}", a.GetPrincipalHandler).Methods(http.MethodGet)
+	rw.HandleFunc("/principal/{id:[0-9a-f-]+}", a.UpdatePrincipalHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/principal/{id:[0-9a-f-]+}", a.DeletePrincipalHandler).Methods(http.MethodDelete)
+	rw.HandleFunc("/principal/{id:[0-9a-f-]+}/new_key", a.CreateAPIKeyHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/principal/{id:[0-9a-f-]+}/attach_role", a.AttachRoleToPrincipalHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/principal/{id:[0-9a-f-]+}/attach_group", a.AttachGroupToPrincipalHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/principal/{id:[0-9a-f-]+}/detach_role", a.DetachRoleToPrincipalHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/principal/{id:[0-9a-f-]+}/detach_group", a.DetachGroupToPrincipalHandler).Methods(http.MethodPost)
 
-	r.HandleFunc("/guardmech/api/role", a.CreateRoleHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/roles", a.ListRolesHandler)
-	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.GetRoleHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.UpdateRoleHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}", a.DeleteRoleHandler).Methods(http.MethodDelete)
-	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}/attach_permission", a.AttachPermissionToRoleHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/role/{id:[0-9a-f-]+}/detach_permission", a.DetachPermissionToRoleHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/group", a.CreateGroupHandler).Methods(http.MethodPost)
+	ro.HandleFunc("/groups", a.ListGroupsHandler)
+	ro.HandleFunc("/group/{id:[0-9a-f-]+}", a.GetGroupHandler).Methods(http.MethodGet)
+	rw.HandleFunc("/group/{id:[0-9a-f-]+}", a.UpdateGroupHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/group/{id:[0-9a-f-]+}", a.DeleteGroupHandler).Methods(http.MethodDelete)
+	rw.HandleFunc("/group/{id:[0-9a-f-]+}/attach_role", a.AttachRoleToGroupHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/group/{id:[0-9a-f-]+}/detach_role", a.DetachRoleToGroupHandler).Methods(http.MethodPost)
 
-	r.HandleFunc("/guardmech/api/permission", a.CreatePermissionHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/permissions", a.ListPermissionsHandler)
-	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.PermissionGetHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.UpdatePermissionHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/permission/{id:[0-9a-f-]+}", a.DeletePermissionHandler).Methods(http.MethodDelete)
+	rw.HandleFunc("/role", a.CreateRoleHandler).Methods(http.MethodPost)
+	ro.HandleFunc("/roles", a.ListRolesHandler)
+	ro.HandleFunc("/role/{id:[0-9a-f-]+}", a.GetRoleHandler).Methods(http.MethodGet)
+	rw.HandleFunc("/role/{id:[0-9a-f-]+}", a.UpdateRoleHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/role/{id:[0-9a-f-]+}", a.DeleteRoleHandler).Methods(http.MethodDelete)
+	rw.HandleFunc("/role/{id:[0-9a-f-]+}/attach_permission", a.AttachPermissionToRoleHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/role/{id:[0-9a-f-]+}/detach_permission", a.DetachPermissionToRoleHandler).Methods(http.MethodPost)
 
-	r.HandleFunc("/guardmech/api/mapping_rule", a.CreateMappingRuleHandler).Methods(http.MethodPost)
-	r.HandleFunc("/guardmech/api/mapping_rules", a.ListMappingRulesHandler)
-	r.HandleFunc("/guardmech/api/mapping_rule/{id:[0-9a-f-]+}", a.GetMappingRuleHandler).Methods(http.MethodGet)
-	r.HandleFunc("/guardmech/api/mapping_rule/{id:[0-9a-f-]+}", a.UpdateMappingRuleHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/permission", a.CreatePermissionHandler).Methods(http.MethodPost)
+	ro.HandleFunc("/permissions", a.ListPermissionsHandler)
+	ro.HandleFunc("/permission/{id:[0-9a-f-]+}", a.PermissionGetHandler).Methods(http.MethodGet)
+	rw.HandleFunc("/permission/{id:[0-9a-f-]+}", a.UpdatePermissionHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/permission/{id:[0-9a-f-]+}", a.DeletePermissionHandler).Methods(http.MethodDelete)
 
-	r.Use(a.checkPermissionMiddleware)
-
-	return r
+	rw.HandleFunc("/mapping_rule", a.CreateMappingRuleHandler).Methods(http.MethodPost)
+	ro.HandleFunc("/mapping_rules", a.ListMappingRulesHandler)
+	ro.HandleFunc("/mapping_rule/{id:[0-9a-f-]+}", a.GetMappingRuleHandler).Methods(http.MethodGet)
+	rw.HandleFunc("/mapping_rule/{id:[0-9a-f-]+}", a.UpdateMappingRuleHandler).Methods(http.MethodPost)
+	rw.HandleFunc("/mapping_rule/{id:[0-9a-f-]+}", a.DeleteMappingRuleHandler).Methods(http.MethodDelete)
 }
 
 func (a *AdminMux) ApiFallbackHandler(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, `{"message":"Hello World!"}`)
+}
+
+func (a *AdminMux) ApiAuthorityHandler(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(http.StatusOK)
+
+	c, err := req.Cookie(sessionKey)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	is := &usecase.IDSession{}
+	_, err = RestoreSessionPayload(c.Value, is)
+	if err != nil {
+		httperr := NewHttpError(http.StatusUnauthorized, "failed to restore cookie", err)
+		WriteHttpError(w, httperr)
+		return
+	}
+
+	// TODO usecaseに移す
+	owner, readonly := false, false
+	for _, perm := range is.Membership.Principal.Permissions {
+		switch perm {
+		case membership.PermissionOwnerName:
+			owner = true
+		case membership.PermissionReadOnlyName:
+			readonly = true
+		}
+	}
+
+	type Authority struct {
+		Authority string `json:"authority"`
+	}
+
+	userAuthority := Authority{Authority: "NONE"}
+	if owner {
+		userAuthority.Authority = "OWNER"
+	} else if readonly {
+		userAuthority.Authority = "READONLY"
+	}
+
+	result, err := json.Marshal(userAuthority)
+	if err != nil {
+		httperr := NewHttpError(http.StatusInternalServerError, "failed to encode json", err)
+		WriteHttpError(w, httperr)
+		return
+	}
+
+	w.Write(result)
 }
 
 func (a *AdminMux) checkPermissionMiddleware(next http.Handler) http.Handler {
@@ -692,12 +743,13 @@ func (a *AdminMux) CreateMappingRuleHandler(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	rule, err := a.u.CreateMappingRule(req.Context(), name, description, ruleType, detail, associationType, associationID)
+	r, err := a.u.CreateMappingRule(req.Context(), name, description, ruleType, detail, associationType, associationID)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
+	rule := payload.MappingRuleFromEntity(r)
 	renderJSON(w, map[string]interface{}{
 		"mapping_rule": rule,
 	})
@@ -707,12 +759,13 @@ func (a *AdminMux) GetMappingRuleHandler(w http.ResponseWriter, req *http.Reques
 	vars := mux.Vars(req)
 	id := vars["id"]
 
-	rule, err := a.u.FetchMappingRule(req.Context(), id)
+	r, err := a.u.FetchMappingRule(req.Context(), id)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
+	rule := payload.MappingRuleFromEntity(r)
 	renderJSON(w, map[string]interface{}{
 		"mapping_rule": rule,
 	})
@@ -722,14 +775,30 @@ func (a *AdminMux) UpdateMappingRuleHandler(w http.ResponseWriter, req *http.Req
 	vars := mux.Vars(req)
 	id := vars["id"]
 
-	rule, err := a.u.UpdateMappingRule(req.Context(), id)
+	r, err := a.u.UpdateMappingRule(req.Context(), id)
+	if err != nil {
+		errorJSON(w, err)
+		return
+	}
+
+	rule := payload.MappingRuleFromEntity(r)
+	renderJSON(w, map[string]interface{}{
+		"mapping_rule": rule,
+	})
+}
+
+func (a *AdminMux) DeleteMappingRuleHandler(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	id := vars["id"]
+
+	err := a.u.DeleteMappingRule(req.Context(), id)
 	if err != nil {
 		errorJSON(w, err)
 		return
 	}
 
 	renderJSON(w, map[string]interface{}{
-		"mapping_rule": rule,
+		"result": "ok",
 	})
 }
 
@@ -737,10 +806,10 @@ func (a *AdminMux) UpdateMappingRuleHandler(w http.ResponseWriter, req *http.Req
 
 func renderJSON(w http.ResponseWriter, data interface{}) {
 	b, err := json.Marshal(data)
-	code := 200
+	code := http.StatusOK
 	if err != nil {
 		b = []byte(`{"error":"failed to marshal json"}`)
-		code = 500
+		code = http.StatusInternalServerError
 	}
 
 	w.WriteHeader(code)
@@ -757,6 +826,6 @@ func errorJSON(w http.ResponseWriter, err error) {
 
 	log.Println("500 Internal Server Error: ", string(b))
 
-	w.WriteHeader(500)
+	w.WriteHeader(http.StatusInternalServerError)
 	w.Write(b)
 }

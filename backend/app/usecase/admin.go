@@ -34,8 +34,8 @@ func (u *Administration) CreatePrincipal(ctx Context, name, description string) 
 	}
 
 	cmd.SavePrincipal(ctx, pri)
-	if cmd.Error() != nil {
-		log.Println("failed to save new principal")
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to save new principal:", err)
 		return nil, err
 	}
 
@@ -145,7 +145,7 @@ func (u *Administration) CreateAPIKey(ctx Context, principalID, name string) (*m
 	}
 
 	cmd.SaveAuthAPIKey(ctx, apikey, pri)
-	if cmd.Error() != nil {
+	if err = cmd.Error(); err != nil {
 		log.Println("save error on SaveAuthAPIKey:", err)
 		return nil, "", err
 	}
@@ -182,7 +182,7 @@ func (u *Administration) AttachGroupToPrincipal(ctx Context, principalID, groupI
 	}
 
 	cmd.SavePrincipal(ctx, pri)
-	if cmd.Error() != nil {
+	if err = cmd.Error(); err != nil {
 		log.Println("save error on AttachGroupToPrincipal:", err)
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (u *Administration) AttachRoleToPrincipal(ctx Context, principalID, roleID 
 	}
 
 	cmd.SavePrincipal(ctx, pri)
-	if cmd.Error() != nil {
+	if err = cmd.Error(); err != nil {
 		log.Println("save error on AttachRoleToPrincipal:", err)
 		return nil, err
 	}
@@ -256,7 +256,7 @@ func (u *Administration) DetachGroupFromPrincipal(ctx Context, principalID, grou
 	}
 
 	cmd.SavePrincipal(ctx, pri)
-	if cmd.Error() != nil {
+	if err = cmd.Error(); err != nil {
 		log.Println("save error on AttachGroupToPrincipal:", err)
 		return nil, err
 	}
@@ -293,7 +293,7 @@ func (u *Administration) DetachRoleFromPrincipal(ctx Context, principalID, roleI
 	}
 
 	cmd.SavePrincipal(ctx, pri)
-	if cmd.Error() != nil {
+	if err = cmd.Error(); err != nil {
 		log.Println("save error on AttachRoleToPrincipal:", err)
 		return nil, err
 	}
@@ -345,8 +345,8 @@ func (u *Administration) CreateRole(ctx Context, name, description string) (*mem
 	}
 
 	cmd.SaveRole(ctx, r)
-	if cmd.Error() != nil {
-		log.Println("failed to save new role")
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to save new role:", err)
 		return nil, err
 	}
 
@@ -387,19 +387,17 @@ func (u *Administration) DeleteRole(ctx Context, id string) error {
 	cmd := persistence.NewCommand(tx)
 	manager := membership.NewManager(q)
 
-	roles, err := manager.FindRoles(ctx, []string{id})
+	role, err := manager.FindRoleByID(ctx, id)
 	if err != nil {
+		if err == membership.ErrNoEntry {
+			return nil
+		}
 		return err
 	}
 
-	if len(roles) == 0 {
-		return fmt.Errorf("role not found")
-	}
-
-	r := roles[0]
-	cmd.DeleteRole(ctx, r)
-	if cmd.Error() != nil {
-		log.Println("failed to delete role")
+	cmd.DeleteRole(ctx, role)
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to delete role:", err)
 		return err
 	}
 
@@ -435,7 +433,7 @@ func (u *Administration) AttachPermissionToRole(ctx Context, roleID, permissionI
 	}
 
 	cmd.SaveRole(ctx, r)
-	if cmd.Error() != nil {
+	if err = cmd.Error(); err != nil {
 		log.Println("save error on AttachPermissionToRole:", err)
 		return nil, err
 	}
@@ -472,7 +470,7 @@ func (u *Administration) DetachPermissionFromRole(ctx Context, roleID, permissio
 	}
 
 	cmd.SaveRole(ctx, r)
-	if cmd.Error() != nil {
+	if err = cmd.Error(); err != nil {
 		log.Println("save error on DetachPermissionFromRole:", err)
 		return nil, err
 	}
@@ -530,8 +528,8 @@ func (u *Administration) CreateMappingRule(ctx Context, name, description string
 	}
 
 	cmd.SaveMappingRule(ctx, rule)
-	if cmd.Error() != nil {
-		log.Println("failed to save new role")
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to save new mapping rule:", err)
 		return nil, err
 	}
 
@@ -540,11 +538,56 @@ func (u *Administration) CreateMappingRule(ctx Context, name, description string
 	return rule, nil
 }
 func (u *Administration) FetchMappingRule(ctx Context, id string) (*membership.MappingRule, error) {
-	return nil, nil
+	conn, err := db.GetConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	q := persistence.NewQuery(conn)
+	manager := membership.NewManager(q)
+
+	mappingRule, err := manager.FindMappingRuleByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return mappingRule, nil
 }
 func (u *Administration) UpdateMappingRule(ctx Context, id string) (*membership.MappingRule, error) {
 	return nil, nil
 }
+
+func (u *Administration) DeleteMappingRule(ctx Context, id string) error {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+
+	rule, err := manager.FindMappingRuleByID(ctx, id)
+	if err != nil {
+		if err == membership.ErrNoEntry {
+			return nil
+		}
+		return err
+	}
+
+	cmd.DeleteMappingRule(ctx, rule)
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to delete mapping rule:", err)
+		return err
+	}
+
+	tx.Commit()
+
+	return nil
+}
+
 func (u *Administration) ListGroups(ctx Context) ([]*membership.Group, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
@@ -586,8 +629,8 @@ func (u *Administration) CreateGroup(ctx Context, name, description string) (*me
 	}
 
 	cmd.SaveGroup(ctx, g)
-	if cmd.Error() != nil {
-		log.Println("failed to save new group")
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to save new group:", err)
 		return nil, err
 	}
 
@@ -638,8 +681,8 @@ func (u *Administration) DeleteGroup(ctx Context, id string) error {
 
 	g := groups[0]
 	cmd.DeleteGroup(ctx, g)
-	if cmd.Error() != nil {
-		log.Println("failed to delete group")
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to delete group:", err)
 		return err
 	}
 
@@ -675,7 +718,7 @@ func (u *Administration) AttachRoleToGroup(ctx Context, groupID, roleID string) 
 	}
 
 	cmd.SaveGroup(ctx, g)
-	if cmd.Error() != nil {
+	if err = cmd.Error(); err != nil {
 		log.Println("save error on AttachRoleToGroup:", err)
 		return nil, err
 	}
@@ -712,7 +755,7 @@ func (u *Administration) DetachRoleFromGroup(ctx Context, groupID, roleID string
 	}
 
 	cmd.SaveGroup(ctx, g)
-	if cmd.Error() != nil {
+	if err = cmd.Error(); err != nil {
 		log.Println("save error on DetachRoleFromGroup:", err)
 		return nil, err
 	}
@@ -763,8 +806,8 @@ func (u *Administration) CreatePermission(ctx Context, name, description string)
 	}
 
 	cmd.SavePermission(ctx, perm)
-	if cmd.Error() != nil {
-		log.Println("failed to save new group")
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to save new permission:", err)
 		return nil, err
 	}
 
@@ -815,8 +858,8 @@ func (u *Administration) DeletePermission(ctx Context, id string) error {
 
 	perm := perms[0]
 	cmd.DeletePermission(ctx, perm)
-	if cmd.Error() != nil {
-		log.Println("failed to delete permission")
+	if err = cmd.Error(); err != nil {
+		log.Println("failed to delete permission:", err)
 		return err
 	}
 

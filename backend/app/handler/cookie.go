@@ -11,11 +11,6 @@ import (
 	"time"
 )
 
-// type Config struct {
-// 	CryptoKey    string
-// 	SignatureKey string
-// }
-
 type signator struct {
 	SignKey []byte
 }

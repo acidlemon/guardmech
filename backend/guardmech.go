@@ -7,8 +7,10 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 
 	"github.com/acidlemon/guardmech/backend/app/handler"
+	"github.com/gorilla/mux"
 	_ "github.com/k0kubun/pp/v3" // for development
 )
 
@@ -21,6 +23,8 @@ func New() *GuardMech {
 	return gm
 }
 
+const spaIndexFile = "dist/index.html"
+
 func (g *GuardMech) Run() error {
 	listener, err := net.Listen("tcp", "0.0.0.0:2989")
 	if err != nil {
@@ -28,33 +32,43 @@ func (g *GuardMech) Run() error {
 		return nil
 	}
 
-	adminWebMux := http.NewServeMux()
-	// web assets
-	adminWebMux.HandleFunc("/guardmech/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/guardmech/" {
-			http.Redirect(w, r, "/guardmech/admin/", http.StatusPermanentRedirect)
-			return
-		}
-		http.NotFound(w, r)
-	})
-	adminWebMux.HandleFunc("/guardmech/admin/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "dist/index.html") // write SPA html
-	})
-	adminWebMux.Handle("/guardmech/admin/js/", http.StripPrefix("/guardmech/admin/js/", http.FileServer(http.Dir("dist/js"))))
-	adminWebMux.Handle("/guardmech/admin/css/", http.StripPrefix("/guardmech/admin/css/", http.FileServer(http.Dir("dist/css"))))
+	root := mux.NewRouter()
+	var r *mux.Router
+	mount := os.Getenv("GUARDMECH_MOUNT_PATH")
+	if mount != "" {
+		r = root.PathPrefix(mount).Subrouter()
+	} else {
+		r = root
+	}
 
 	authMux := handler.NewAuthMux()
 	adminAPIMux := handler.NewAdminMux()
 
-	mux := http.NewServeMux()
-	mux.Handle("/auth/", authMux.Mux())
-	mux.Handle("/guardmech/", adminWebMux)
-	mux.Handle("/guardmech/api/", adminAPIMux.Mux())
-	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+	authMux.RegisterRoute(r)
+	adminAPIMux.RegisterRoute(r)
+
+	// web assets
+	r.HandleFunc("/guardmech/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == mount+"/guardmech/" {
+			http.Redirect(w, r, mount+"/guardmech/admin/", http.StatusPermanentRedirect)
+			return
+		}
+		http.NotFound(w, r)
+	})
+	// r.HandleFunc("/guardmech/admin/", func(w http.ResponseWriter, r *http.Request) {
+	// 	http.ServeFile(w, r, spaIndexFile) // write SPA html
+	// })
+	r.PathPrefix("/guardmech/admin/js/").Handler(http.StripPrefix(mount+"/guardmech/admin/js", http.FileServer(http.Dir("dist/js"))))
+	r.PathPrefix("/guardmech/admin/css/").Handler(http.StripPrefix(mount+"/guardmech/admin/css", http.FileServer(http.Dir("dist/css"))))
+	r.PathPrefix("/guardmech/admin/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, spaIndexFile) // write SPA html
+	})
+
+	root.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		log.Println("catch all:", req.URL.Path)
 	})
 
-	return http.Serve(listener, mux)
+	return http.Serve(listener, root)
 }
 
 // func (g *GuardMech) ReverseProxy(w http.ResponseWriter, req *http.Request) {

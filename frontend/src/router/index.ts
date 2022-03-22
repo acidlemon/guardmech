@@ -78,18 +78,14 @@ const routes: Array<RouteRecordRaw> = [
       },
     ]
   },
-  {
-    path: '/about',
-    name: 'About',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
-  }
 ]
 
+const curSrc = document.currentScript as HTMLScriptElement
+const baseUrl = new URL(curSrc.src)
+const base = baseUrl.pathname.substring(0, baseUrl.pathname.indexOf('/js/'))
+
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(base),
   routes
 })
 
