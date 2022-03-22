@@ -2,6 +2,7 @@
   <div>
     <div class="container information">
       <h2>Mapping Rule Information</h2>
+      <AuthorityStatusBox :status="authorityStatus" />
       <BTable
         v-if="mappingRule"
         :data="basicRow"
@@ -41,7 +42,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, onMounted, defineComponent } from 'vue'
+import { ref, computed, watch, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import {
@@ -51,21 +52,31 @@ import {
   MappingRuleTypeGroupMember,
   MappingRuleTypeSpecificAddress,
 } from '@/types/api'
+import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import DestructionModal from '@/components/modals/DestructionModal.vue'
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow } from '@/components/bootstrap/BTable.vue'
+import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
     DestructionModal,
+    AuthorityStatusBox,
   },
   setup() {
     const router = useRouter()
     const id = router.currentRoute.value.params['id'] as string
-    
+
+    const {
+      authorityStatus,
+      authorityLoadCompleted,
+      canWrite,
+      canRead,
+    } = useUserAuthority()
+
     const mappingRule = ref<MappingRule>({
       id: '',
       name: '',
@@ -147,8 +158,12 @@ export default defineComponent({
       }]
     })
 
-    onMounted(() => {
-      fetchMappingRule()
+    watch(authorityLoadCompleted, (val) => {
+      if (val) {
+        if (canRead.value) {
+          fetchMappingRule()
+        }
+      }
     })
 
     const onDelete = (() => {
@@ -164,6 +179,9 @@ export default defineComponent({
     })
 
     return {
+      authorityStatus,
+      canWrite,
+      canRead,
       mappingRule,
       basicRow,
       basicColumns,

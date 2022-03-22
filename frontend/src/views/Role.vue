@@ -2,6 +2,7 @@
   <div>
     <div class="container information">
       <h2>Role Information</h2>
+      <AuthorityStatusBox :status="authorityStatus" />
       <BTable
         v-if="role"
         :data="basicRow"
@@ -27,7 +28,7 @@
       <p v-else>No attached permissions.</p>
     </div>
 
-    <template v-if="role">
+    <template v-if="role && canWrite">
       <div class="danger-zone">
         <div class="container">
           <h3>Danger Zone</h3>
@@ -42,15 +43,17 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, onMounted, defineComponent } from 'vue'
+import { ref, computed, watch, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { Role, Permission } from '@/types/api'
+import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import AttachPermissionModal from '@/components/modals/AttachPermissionModal.vue'
 import DestructionModal from '@/components/modals/DestructionModal.vue'
 import BButton from '@/components/bootstrap/BButton.vue'
 import BTable, { BTableRow } from '@/components/bootstrap/BTable.vue'
+import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
 
 export default defineComponent({
   components: {
@@ -58,10 +61,18 @@ export default defineComponent({
     BTable,
     AttachPermissionModal,
     DestructionModal,
+    AuthorityStatusBox,
   },
   setup() {
     const router = useRouter()
     const id = router.currentRoute.value.params['id'] as string
+
+    const {
+      authorityStatus,
+      authorityLoadCompleted,
+      canWrite,
+      canRead,
+    } = useUserAuthority()
 
     const role = ref<Role>({
       id: '',
@@ -115,8 +126,12 @@ export default defineComponent({
       }
     })
 
-    onMounted(() => {
-      fetchRole()
+    watch(authorityLoadCompleted, (val) => {
+      if (val) {
+        if (canRead.value) {
+          fetchRole()
+        }
+      }
     })
 
     const needRefresh = (() => {
@@ -148,6 +163,9 @@ export default defineComponent({
     })
 
     return {
+      authorityStatus,
+      canWrite,
+      canRead,
       role,
       basicRow,
       basicColumns,
