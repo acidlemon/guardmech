@@ -38,7 +38,8 @@ func initDB() {
 	log.Println("connecting db OK")
 
 	// avoid recycle of too idle connection
-	d.SetConnMaxLifetime(time.Second * 60)
+	d.SetConnMaxLifetime(time.Minute * 5)
+	d.SetMaxOpenConns(20)
 
 	pool = d
 }
