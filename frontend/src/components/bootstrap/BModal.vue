@@ -41,7 +41,7 @@
 <script lang="ts">
 import { computed, defineComponent, SetupContext } from 'vue'
 
-import BButton from '@/components/bootstrap/BButton.vue'
+// import BButton from '@/components/bootstrap/BButton.vue'
 
 type ModalType = 'close' | 'confirm-cancel' | 'confirm'
 
@@ -57,9 +57,9 @@ type Props = {
 
 export default defineComponent({
   name: 'BModal',
-  components: {
-    BButton,
-  },
+  // components: {
+  //   BButton,
+  // },
   props: {
     buttonTitle: {
       type: String,

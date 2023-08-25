@@ -1,14 +1,14 @@
 <template>
   <div class="container">
-    <h2>Principal List</h2>
+    <h2>Role List</h2>
     <AuthorityStatusBox :status="authorityStatus" />
     <section v-if="canWrite">
-      <NewPrincipalModal @completed="created"/>
+      <NewRoleModal @completed="created"/>
     </section>
     <section v-if="canRead">
-      <BTable :data="principals" :columns="columns">
+      <BTable :data="roles" :columns="columns" variant="primary">
         <template #cell(action)="data">
-          <BButton v-if="data?.row" :link="`/principal/${data.row.id}`" >View</BButton>
+          <BButton v-if="data?.row" :link="`/role/${data.row.id}`" >View</BButton>
         </template>
       </BTable>
     </section>
@@ -18,19 +18,21 @@
 <script lang="ts">
 import { ref, watch, defineComponent } from 'vue'
 import axios from 'axios'
-import { PrincipalPayload } from '@/types/api'
+import { Role } from '@/types/api'
 import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import BButton from '@/components/bootstrap/BButton.vue'
-import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
-import NewPrincipalModal from '@/components/modals/NewPrincipalModal.vue'
+import BTable from '@/components/bootstrap/BTable.vue'
+import NewRoleModal from '@/components/modals/NewRoleModal.vue'
 import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
+import { BTableRow, BTableColumn } from '@/types/bootstrap'
+
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
-    NewPrincipalModal,
+    NewRoleModal,
     AuthorityStatusBox,
   },
   setup() {
@@ -41,7 +43,7 @@ export default defineComponent({
       canRead,
     } = useUserAuthority()
 
-    const principals = ref<BTableRow[]>([])
+    const roles = ref<BTableRow[]>([])
     const columns = ref<BTableColumn[]>([
       { key: 'name', label: 'Name' },
       { key: 'description', label: 'Description' },
@@ -49,9 +51,8 @@ export default defineComponent({
     ])
 
     const fetchList = (async () => {
-      const res = await axios.get('/api/principals').catch(e => e.response)
-      const payload = res.data.principals as PrincipalPayload[]
-      principals.value = payload.map(d => d.principal)
+      const res = await axios.get('/api/roles').catch(e => e.response)
+      roles.value = res.data.roles as Role[]
     })
 
     watch(authorityLoadCompleted, (val) => {
@@ -71,9 +72,10 @@ export default defineComponent({
       canWrite,
       canRead,
       columns,
-      principals,
+      roles,
       created,
     }
   },
 })
 </script>
+

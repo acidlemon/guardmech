@@ -93,18 +93,19 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, watch, defineComponent, SetupContext } from 'vue'
+import { ref, computed, watch, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { PrincipalPayload, Group, Role } from '@/types/api'
 import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import BButton from '@/components/bootstrap/BButton.vue'
-import BTable, { BTableRow } from '@/components/bootstrap/BTable.vue'
+import BTable from '@/components/bootstrap/BTable.vue'
 import AttachGroupModal from '@/components/modals/AttachGroupModal.vue'
 import AttachRoleModal from '@/components/modals/AttachRoleModal.vue'
 import DestructionModal from '@/components/modals/DestructionModal.vue'
 import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
+import { BTableRow } from '@/types/bootstrap'
 
 export default defineComponent({
   components: {
@@ -115,7 +116,7 @@ export default defineComponent({
     DestructionModal,
     AuthorityStatusBox,
   },
-  setup(_, context: SetupContext) {
+  setup() {
     const router = useRouter()
     const id = router.currentRoute.value.params['id']
 

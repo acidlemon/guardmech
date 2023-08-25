@@ -1,14 +1,14 @@
 <template>
   <div class="container">
-    <h2>Group List</h2>
+    <h2>Permission List</h2>
     <AuthorityStatusBox :status="authorityStatus" />
     <section v-if="canWrite">
-      <NewGroupModal @completed="created" />
+      <NewPermissionModal @completed="created"/>
     </section>
     <section v-if="canRead">
-      <BTable :data="groups" :columns="columns" variant="primary">
+      <BTable :data="permissions" :columns="columns" variant="primary">
         <template #cell(action)="data">
-          <BButton v-if="data?.row" :link="`/group/${data.row.id}`" >View</BButton>
+          <BButton v-if="data?.row" :link="`/permission/${data.row.id}`" >View</BButton>
         </template>
       </BTable>
     </section>
@@ -18,19 +18,20 @@
 <script lang="ts">
 import { ref, watch, defineComponent } from 'vue'
 import axios from 'axios'
-import { Group } from '@/types/api'
+import { Permission } from '@/types/api'
 import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import BButton from '@/components/bootstrap/BButton.vue'
-import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
-import NewGroupModal from '@/components/modals/NewGroupModal.vue'
+import NewPermissionModal from '@/components/modals/NewPermissionModal.vue'
+import BTable from '@/components/bootstrap/BTable.vue'
 import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
+import { BTableRow, BTableColumn } from '@/types/bootstrap'
 
 export default defineComponent({
   components: {
     BButton,
     BTable,
-    NewGroupModal,
+    NewPermissionModal,
     AuthorityStatusBox,
   },
   setup() {
@@ -40,8 +41,8 @@ export default defineComponent({
       canWrite,
       canRead,
     } = useUserAuthority()
-    
-    const groups = ref<BTableRow[]>([])
+
+    const permissions = ref<BTableRow[]>([])
     const columns = ref<BTableColumn[]>([
       { key: 'name', label: 'Name' },
       { key: 'description', label: 'Description' },
@@ -49,8 +50,8 @@ export default defineComponent({
     ])
 
     const fetchList = (async () => {
-      const res = await axios.get('/api/groups').catch(e => e.response)
-      groups.value = res.data.groups as Group[]
+      const res = await axios.get('/api/permissions').catch(e => e.response)
+      permissions.value = res.data.permissions as Permission[]
     })
 
     watch(authorityLoadCompleted, (val) => {
@@ -61,6 +62,7 @@ export default defineComponent({
       }
     })
 
+
     const created = (() => {
       fetchList()
     })
@@ -70,7 +72,7 @@ export default defineComponent({
       canWrite,
       canRead,
       columns,
-      groups,
+      permissions,
       created,
     }
   },

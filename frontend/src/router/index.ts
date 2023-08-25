@@ -1,80 +1,80 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import Layout from '../views/Layout.vue'
+import LayoutPage from '@/pages/LayoutPage.vue'
 
-import Home from '@/views/Home.vue'
-import PrincipalList from '@/views/PrincipalList.vue'
-import Principal from '@/views/Principal.vue'
-import MappingRuleList from '@/views/MappingRuleList.vue'
-import MappingRule from '@/views/MappingRule.vue'
-import GroupList from '@/views/GroupList.vue'
-import Group from '@/views/Group.vue'
-import RoleList from '@/views/RoleList.vue'
-import Role from '@/views/Role.vue'
-import PermissionList from '@/views/PermissionList.vue'
-import Permission from '@/views/Permission.vue'
+import HomePage from '@/pages/HomePage.vue'
+import PrincipalListPage from '@/pages/PrincipalListPage.vue'
+import PrincipalPage from '@/pages/PrincipalPage.vue'
+import MappingRuleListPage from '@/pages/MappingRuleListPage.vue'
+import MappingRulePage from '@/pages/MappingRulePage.vue'
+import GroupListPage from '@/pages/GroupListPage.vue'
+import GroupPage from '@/pages/GroupPage.vue'
+import RoleListPage from '@/pages/RoleListPage.vue'
+import RolePage from '@/pages/RolePage.vue'
+import PermissionListPage from '@/pages/PermissionListPage.vue'
+import PermissionPage from '@/pages/PermissionPage.vue'
 
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'Home',
-    component: Layout,
+    component: LayoutPage,
     redirect: '/home',
     children: [
       {
         path: 'home',
         name: 'Home',
-        component: Home,
+        component: HomePage,
       },
       {
         path: 'principals',
         name: 'Principals',
-        component: PrincipalList,
+        component: PrincipalListPage,
       },
       {
         path: 'principal/:id',
         name: 'Principal',
-        component: Principal,
+        component: PrincipalPage,
       },
       {
         path: 'mapping_rules',
         name: 'MappingRuleList',
-        component: MappingRuleList,
+        component: MappingRuleListPage,
       },
       {
         path: 'mapping_rule/:id',
         name: 'MappingRule',
-        component: MappingRule,
+        component: MappingRulePage,
       },
       {
         path: 'groups',
         name: 'GroupList',
-        component: GroupList,
+        component: GroupListPage,
       },
       {
         path: 'group/:id',
         name: 'Group',
-        component: Group,
+        component: GroupPage,
       },
       {
         path: 'roles',
         name: 'Roles',
-        component: RoleList,
+        component: RoleListPage,
       },
       {
         path: 'role/:id',
         name: 'Role',
-        component: Role,
+        component: RolePage,
       },
       {
         path: 'permissions',
         name: 'PermissionList',
-        component: PermissionList,
+        component: PermissionListPage,
       },
       {
         path: 'permission/:id',
         name: 'Permission',
-        component: Permission,
+        component: PermissionPage,
       },
     ]
   },

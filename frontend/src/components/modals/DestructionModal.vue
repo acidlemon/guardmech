@@ -16,16 +16,16 @@
 
 <script lang="ts">
 import { ref, defineComponent, SetupContext } from 'vue'
-import axios from 'axios'
+// import axios from 'axios'
 import BModal from '@/components/bootstrap/BModal.vue'
-import BInput from '@/components/bootstrap/BInput.vue'
+// import BInput from '@/components/bootstrap/BInput.vue'
 
 
 export default defineComponent({
   name: 'DestructionModal',
   components: {
     BModal,
-    BInput,
+    // BInput,
   },
   props: {
     buttonTitle: {
