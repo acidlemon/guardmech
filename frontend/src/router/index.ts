@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import LayoutPage from '@/pages/Layout.vue'
+import LayoutPage from '@/pages/LayoutPage.vue'
 
 import HomePage from '@/pages/HomePage.vue'
 import PrincipalListPage from '@/pages/PrincipalListPage.vue'
