@@ -6,7 +6,7 @@ type Props = {
   columns: BTableColumn[]
   variant?: string
 }
-const _props = withDefaults(defineProps<Props>(), {
+const _ = withDefaults(defineProps<Props>(), {
   data: () => [],
   columns: () => [],
 })

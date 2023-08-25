@@ -93,7 +93,7 @@
 </template>
 
 <script lang="ts">
-import { ref, computed, watch, defineComponent, SetupContext } from 'vue'
+import { ref, computed, watch, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { PrincipalPayload, Group, Role } from '@/types/api'
@@ -116,7 +116,7 @@ export default defineComponent({
     DestructionModal,
     AuthorityStatusBox,
   },
-  setup(_, context: SetupContext) {
+  setup() {
     const router = useRouter()
     const id = router.currentRoute.value.params['id']
 

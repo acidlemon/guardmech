@@ -34,7 +34,7 @@ import { ref, computed, onMounted, defineComponent, SetupContext } from 'vue'
 import axios from 'axios'
 import BModal from '@/components/bootstrap/BModal.vue'
 import BInput from '@/components/bootstrap/BInput.vue'
-import BCheckList, { BCheckItem } from '@/components/bootstrap/BCheckList.vue'
+import BCheckList from '@/components/bootstrap/BCheckList.vue'
 import BSelect, { BSelectItem } from '@/components/bootstrap/BSelect.vue'
 import { Group, Role } from '@/types/api'
 

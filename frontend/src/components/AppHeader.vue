@@ -16,7 +16,7 @@ export default defineComponent({
     AppMenu,
   },
   setup() {
-    
+    return {}
   },
 })
 </script>

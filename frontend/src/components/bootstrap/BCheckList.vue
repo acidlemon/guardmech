@@ -50,7 +50,7 @@ export default defineComponent({
     },
     items: {
       type: Array as () => BCheckItem[],
-      default: [],
+      default: () => [],
     },
     name: {
       type: String,

@@ -52,7 +52,7 @@ export default defineComponent({
     }
   },
   emits: ['update:modelValue'],
-  setup(_, context: SetupContext) {
+  setup(_: Props, context: SetupContext) {
     const targetId = 'tg' + Math.random().toString(32).substring(2)
     
     const changed = (e: Event) => {
