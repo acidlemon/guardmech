@@ -23,8 +23,9 @@ import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import BButton from '@/components/bootstrap/BButton.vue'
 import NewPermissionModal from '@/components/modals/NewPermissionModal.vue'
-import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
+import BTable from '@/components/bootstrap/BTable.vue'
 import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
+import { BTableRow, BTableColumn } from '@/types/bootstrap'
 
 export default defineComponent({
   components: {

@@ -7,7 +7,7 @@
   </header>
 </template>
 
-<script>
+<script lang="ts">
 import { defineComponent } from 'vue'
 import AppMenu from '@/components/AppMenu.vue'
 

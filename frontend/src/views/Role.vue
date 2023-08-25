@@ -52,8 +52,9 @@ import { useUserAuthority } from '@/hooks/useUserAuthority'
 import AttachPermissionModal from '@/components/modals/AttachPermissionModal.vue'
 import DestructionModal from '@/components/modals/DestructionModal.vue'
 import BButton from '@/components/bootstrap/BButton.vue'
-import BTable, { BTableRow } from '@/components/bootstrap/BTable.vue'
+import BTable from '@/components/bootstrap/BTable.vue'
 import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
+import { BTableRow } from '@/types/bootstrap'
 
 export default defineComponent({
   components: {

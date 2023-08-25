@@ -100,11 +100,12 @@ import { PrincipalPayload, Group, Role } from '@/types/api'
 import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import BButton from '@/components/bootstrap/BButton.vue'
-import BTable, { BTableRow } from '@/components/bootstrap/BTable.vue'
+import BTable from '@/components/bootstrap/BTable.vue'
 import AttachGroupModal from '@/components/modals/AttachGroupModal.vue'
 import AttachRoleModal from '@/components/modals/AttachRoleModal.vue'
 import DestructionModal from '@/components/modals/DestructionModal.vue'
 import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
+import { BTableRow } from '@/types/bootstrap'
 
 export default defineComponent({
   components: {

@@ -130,6 +130,7 @@ export default defineComponent({
       {
         label: 'Role',
         value: 'role',
+        defaultChecked: false,
       },
     ]
     const targetList = computed<BSelectItem[]>(() => {

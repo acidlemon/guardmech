@@ -1,7 +1,7 @@
 <template>
   <div class="check-list">
     <label v-if="label" class="form-label">{{ label }}</label>
-    <div class="form-check" v-for="(item, index) in items" :key="item">
+    <div class="form-check" v-for="(item, index) in items" :key="item.value">
       <input
         class="form-check-input"
         :type="checkType"

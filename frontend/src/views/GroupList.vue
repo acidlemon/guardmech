@@ -22,9 +22,10 @@ import { Group } from '@/types/api'
 import { useUserAuthority } from '@/hooks/useUserAuthority'
 
 import BButton from '@/components/bootstrap/BButton.vue'
-import BTable, { BTableRow, BTableColumn } from '@/components/bootstrap/BTable.vue'
+import BTable from '@/components/bootstrap/BTable.vue'
 import NewGroupModal from '@/components/modals/NewGroupModal.vue'
 import AuthorityStatusBox from '@/components/AuthorityStatusBox.vue'
+import { BTableRow, BTableColumn } from '@/types/bootstrap'
 
 export default defineComponent({
   components: {
