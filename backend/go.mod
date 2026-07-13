@@ -1,6 +1,6 @@
 module github.com/acidlemon/guardmech/backend
 
-go 1.26.0
+go 1.26.5
 
 require (
 	github.com/acidlemon/seacle v0.3.0
