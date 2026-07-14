@@ -265,7 +265,7 @@ func (a *AdminMux) CreateAPIKeyHandler(w http.ResponseWriter, req *http.Request)
 
 	result := map[string]interface{}{
 		"token":   rawToken,
-		"api_key": ap,
+		"api_key": payload.APIKeyFromEntity(ap),
 	}
 
 	renderJSON(w, result)

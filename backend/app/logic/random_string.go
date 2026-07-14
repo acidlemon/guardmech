@@ -1,23 +1,17 @@
 package logic
 
 import (
-	"math/rand"
+	"crypto/rand"
 	"strings"
 )
 
-var randLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-
-func generateRandomString(length int, letters []rune) string {
+// GenerateRandomString returns a cryptographically secure random string of the given length.
+// The result consists of characters from the crypto/rand.Text alphabet (A-Z and 2-7).
+func GenerateRandomString(length int) string {
 	b := strings.Builder{}
 	b.Grow(length)
-	lc := len(letters)
-
-	for i := 0; i < length; i++ {
-		b.WriteRune(letters[rand.Intn(lc)])
+	for b.Len() < length {
+		b.WriteString(rand.Text())
 	}
-	return b.String()
-}
-
-func GenerateRandomString(length int) string {
-	return generateRandomString(length, randLetters)
+	return b.String()[:length]
 }

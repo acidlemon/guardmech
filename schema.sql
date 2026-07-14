@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS auth_apikey (
     principal_seq_id BIGINT NOT NULL,
     name VARCHAR(191) NOT NULL,
     masked_token VARCHAR(255) CHARACTER SET utf8 NOT NULL,
-    salt VARCHAR(255) CHARACTER SET utf8 NOT NULL,
     hashed_token VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
     PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
