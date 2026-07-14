@@ -1,4 +1,4 @@
-FROM golang:1.16 AS backend-builder
+FROM golang:1.26 AS backend-builder
 
 WORKDIR /stash/src/github.com/acidlemon/guardmech/backend
 ENV GOPATH=/stash
