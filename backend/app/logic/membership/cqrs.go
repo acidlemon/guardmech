@@ -11,6 +11,9 @@ var ErrNoEntry = errors.New("no such entry")
 type Query interface {
 	FindPrincipals(ctx Context, ids []string) ([]*Principal, error)
 	FindPrincipalIDByOIDC(ctx Context, issuer, subject string) (*Principal, error)
+	// FindPrincipalByAPIKey finds the principal that owns the API key of the given
+	// hashed token (see HashAPIKeyToken). It returns ErrNoEntry when no key matches.
+	FindPrincipalByAPIKey(ctx Context, hashedToken string) (*Principal, error)
 	EnumeratePrincipalIDs(ctx Context) ([]uuid.UUID, error)
 
 	FindGroups(ctx Context, ids []string) ([]*Group, error)

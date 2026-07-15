@@ -123,6 +123,8 @@ func (u *Administration) DeletePrincipal(ctx Context, id string) error {
 	return nil
 }
 
+// CreateAPIKey issues a new API key for the principal and returns the key entity with its raw token.
+// The raw token is returned only here at issuance; only its SHA-256 digest is persisted.
 func (u *Administration) CreateAPIKey(ctx Context, principalID, name string) (*membership.AuthAPIKey, string, error) {
 	conn, tx, err := db.GetTxConn(ctx)
 	if err != nil {
@@ -150,7 +152,9 @@ func (u *Administration) CreateAPIKey(ctx Context, principalID, name string) (*m
 		return nil, "", err
 	}
 
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		return nil, "", systemError("failed to commit transaction", err)
+	}
 
 	return apikey, rawToken, nil
 }

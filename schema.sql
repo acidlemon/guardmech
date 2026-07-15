@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS auth_apikey (
     principal_seq_id BIGINT NOT NULL,
     name VARCHAR(191) NOT NULL,
     masked_token VARCHAR(255) CHARACTER SET utf8 NOT NULL,
-    salt VARCHAR(255) CHARACTER SET utf8 NOT NULL,
     hashed_token VARCHAR(255) CHARACTER SET utf8 NOT NULL UNIQUE,
     PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -45,7 +44,7 @@ CREATE TABLE IF NOT EXISTS group_rule (
     name VARCHAR(191) NOT NULL UNIQUE,
     description TEXT(2048),
     rule_type INTEGER NOT NULL, /* 1=specific domain, 2=whole domain, 3=member of 4=specific */
-    condition TEXT(4096),
+    `condition` TEXT(4096),
     PRIMARY KEY (seq_id)
 ) Engine=InnoDB DEFAULT CHARSET=utf8mb4;
 
