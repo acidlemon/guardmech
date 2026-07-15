@@ -351,6 +351,29 @@ func (s *Service) FindPrincipalByOIDC(ctx Context, conn seacle.Selectable, issue
 	return result[0], nil
 }
 
+// FindPrincipalByAPIKey finds the principal that owns the API key of the given hashed token.
+// It returns sql.ErrNoRows without logging when no key matches, because unknown tokens are
+// a normal event on the forward-auth hot path.
+func (s *Service) FindPrincipalByAPIKey(ctx Context, conn seacle.Selectable, hashedToken string) (*entity.Principal, error) {
+	pri := PrincipalRow{}
+	err := seacle.SelectRow(ctx, conn, &pri,
+		`JOIN auth_apikey a ON a.principal_seq_id = principal.seq_id WHERE a.hashed_token = ?`,
+		hashedToken)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			log.Println(err)
+		}
+		return nil, err
+	}
+
+	result, err := s.FindPrincipals(ctx, conn, []string{pri.PrincipalID})
+	if err != nil {
+		return nil, err
+	}
+
+	return result[0], nil
+}
+
 func (s *Service) EnumeratePrincipalIDs(ctx Context, conn seacle.Selectable) ([]string, error) {
 	pris := make([]*PrincipalRow, 0, 8)
 	err := seacle.Select(ctx, conn, &pris, "ORDER BY seq_id")

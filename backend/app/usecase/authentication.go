@@ -250,6 +250,27 @@ func (u *Authentication) Authorization(ctx Context, is *IDSession) (*IDSession, 
 	return is, true, nil
 }
 
+// AuthorizationByAPIKey resolves the principal that owns the given raw API key token
+// and returns its session principal for response headers.
+// It returns membership.ErrNoEntry when no principal owns the token.
+func (u *Authentication) AuthorizationByAPIKey(ctx Context, rawToken string) (*payload.SessionPrincipal, error) {
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		return nil, systemError("could not start transaction", err)
+	}
+	defer conn.Close()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	manager := membership.NewManager(q)
+	pri, err := manager.FindPrincipalByAPIKey(ctx, rawToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return payload.SessionPrincipalFromEntity(pri), nil
+}
+
 func (u *Authentication) NeedAuthPrompt(ctx Context, expireAt time.Time) bool {
 	if time.Now().Sub(expireAt) > 0 {
 		return false

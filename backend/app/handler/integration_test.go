@@ -168,6 +168,83 @@ func ownerSessionCookie(t *testing.T, nextCheck time.Time) *http.Cookie {
 	return &http.Cookie{Name: sessionKey, Value: value}
 }
 
+func seedAPIKeyOnlyPrincipal(t *testing.T, name string) string {
+	t.Helper()
+	ctx := t.Context()
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		t.Fatalf("db.GetTxConn: %v", err)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("close conn: %v", err)
+		}
+	}()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+
+	pri, err := manager.CreatePrincipal(ctx, name, "api key only principal")
+	if err != nil {
+		t.Fatalf("CreatePrincipal: %v", err)
+	}
+	key, rawToken, err := pri.CreateAPIKey(name)
+	if err != nil {
+		t.Fatalf("CreateAPIKey: %v", err)
+	}
+
+	cmd.SavePrincipal(ctx, pri)
+	cmd.SaveAuthAPIKey(ctx, key, pri)
+	if err := cmd.Error(); err != nil {
+		t.Fatalf("save api key only principal: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	return rawToken
+}
+
+func seedAPIKeyForOwner(t *testing.T) string {
+	t.Helper()
+	ctx := t.Context()
+	conn, tx, err := db.GetTxConn(ctx)
+	if err != nil {
+		t.Fatalf("db.GetTxConn: %v", err)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			t.Errorf("close conn: %v", err)
+		}
+	}()
+	defer tx.AutoRollback()
+
+	q := persistence.NewQuery(tx)
+	cmd := persistence.NewCommand(tx)
+	manager := membership.NewManager(q)
+
+	pri, err := manager.FindPrincipalByOIDC(ctx, testIssuer, testSubject)
+	if err != nil {
+		t.Fatalf("FindPrincipalByOIDC: %v", err)
+	}
+	key, rawToken, err := pri.CreateAPIKey("owner-key")
+	if err != nil {
+		t.Fatalf("CreateAPIKey: %v", err)
+	}
+
+	cmd.SaveAuthAPIKey(ctx, key, pri)
+	if err := cmd.Error(); err != nil {
+		t.Fatalf("save owner api key: %v", err)
+	}
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	return rawToken
+}
+
 func TestIntegrationAuthRequest(t *testing.T) {
 	setupIntegrationDB(t)
 	seedOwnerPrincipal(t)
@@ -199,6 +276,92 @@ func TestIntegrationAuthRequest(t *testing.T) {
 
 		if w.Code != http.StatusUnauthorized {
 			t.Fatalf("status = %d, want %d", w.Code, http.StatusUnauthorized)
+		}
+	})
+}
+
+func TestIntegrationAuthRequestBearer(t *testing.T) {
+	setupIntegrationDB(t)
+	seedOwnerPrincipal(t)
+	apiOnlyToken := seedAPIKeyOnlyPrincipal(t, "api-client")
+	ownerToken := seedAPIKeyForOwner(t)
+
+	r := mux.NewRouter()
+	NewAuthMux().RegisterRoute(r)
+
+	getAuthRequest := func(t *testing.T, authorization string, cookie *http.Cookie) *httptest.ResponseRecorder {
+		t.Helper()
+		req := httptest.NewRequest(http.MethodGet, "/auth/request", nil)
+		if authorization != "" {
+			req.Header.Set("Authorization", authorization)
+		}
+		if cookie != nil {
+			req.AddCookie(cookie)
+		}
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("ownerのAPIキーで202になりEmailとPermissionsが載る", func(t *testing.T) {
+		w := getAuthRequest(t, "Bearer "+ownerToken, nil)
+		if w.Code != http.StatusAccepted {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusAccepted, w.Body.String())
+		}
+		if got := w.Header().Get("X-Guardmech-Email"); got != testEmail {
+			t.Errorf("X-Guardmech-Email = %q, want %q", got, testEmail)
+		}
+		if got := w.Header().Get("X-Guardmech-Groups"); !strings.Contains(got, membership.GroupOwnerName) {
+			t.Errorf("X-Guardmech-Groups = %q, want contains %q", got, membership.GroupOwnerName)
+		}
+		if got := w.Header().Get("X-Guardmech-Roles"); !strings.Contains(got, membership.RoleOwnerName) {
+			t.Errorf("X-Guardmech-Roles = %q, want contains %q", got, membership.RoleOwnerName)
+		}
+		if got := w.Header().Get("X-Guardmech-Permissions"); !strings.Contains(got, membership.PermissionOwnerName) {
+			t.Errorf("X-Guardmech-Permissions = %q, want contains %q", got, membership.PermissionOwnerName)
+		}
+	})
+
+	t.Run("OIDCを持たないPrincipalのAPIキーでもpanicせず202になりEmailは空", func(t *testing.T) {
+		w := getAuthRequest(t, "Bearer "+apiOnlyToken, nil)
+		if w.Code != http.StatusAccepted {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusAccepted, w.Body.String())
+		}
+		if got := w.Header().Get("X-Guardmech-Email"); got != "" {
+			t.Errorf("X-Guardmech-Email = %q, want empty", got)
+		}
+		if got := w.Header().Get("X-Guardmech-Permissions"); got != "" {
+			t.Errorf("X-Guardmech-Permissions = %q, want empty", got)
+		}
+	})
+
+	t.Run("未登録のgmch-トークンは401とWWW-Authenticateを返す", func(t *testing.T) {
+		w := getAuthRequest(t, "Bearer gmch-UNKNOWN0000000000000000000000000000000000", nil)
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("status = %d, want %d", w.Code, http.StatusUnauthorized)
+		}
+		if got := w.Header().Get("WWW-Authenticate"); got != `Bearer realm="guardmech"` {
+			t.Errorf("WWW-Authenticate = %q, want %q", got, `Bearer realm="guardmech"`)
+		}
+	})
+
+	t.Run("gmch-でないBearerはCookie経路にフォールスルーして202", func(t *testing.T) {
+		w := getAuthRequest(t, "Bearer other-idp-token", ownerSessionCookie(t, time.Now().Add(-time.Minute)))
+		if w.Code != http.StatusAccepted {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusAccepted, w.Body.String())
+		}
+		if got := w.Header().Get("X-Guardmech-Email"); got != testEmail {
+			t.Errorf("X-Guardmech-Email = %q, want %q", got, testEmail)
+		}
+	})
+
+	t.Run("gmch-でないBearerかつCookieなしはCookie経路の401", func(t *testing.T) {
+		w := getAuthRequest(t, "Bearer other-idp-token", nil)
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("status = %d, want %d", w.Code, http.StatusUnauthorized)
+		}
+		if got := w.Header().Get("WWW-Authenticate"); got != "" {
+			t.Errorf("WWW-Authenticate = %q, want empty (cookie path 401)", got)
 		}
 	})
 }

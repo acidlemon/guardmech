@@ -7,6 +7,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// APIKeyPrefix is the prefix of every raw API key token issued by guardmech.
+const APIKeyPrefix = "gmch-"
+
 type AuthAPIKey struct {
 	AuthAPIKeyID uuid.UUID
 	Name         string

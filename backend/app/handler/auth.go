@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,7 +12,9 @@ import (
 	"time"
 
 	"github.com/acidlemon/guardmech/backend/app/config"
+	"github.com/acidlemon/guardmech/backend/app/logic/membership"
 	"github.com/acidlemon/guardmech/backend/app/usecase"
+	"github.com/acidlemon/guardmech/backend/app/usecase/payload"
 	"github.com/gorilla/mux"
 )
 
@@ -115,7 +118,15 @@ func (a *AuthMux) CallbackAuth(w http.ResponseWriter, req *http.Request) {
 	http.Redirect(w, req, path, http.StatusFound)
 }
 
+// AuthRequest is the forward-auth endpoint for nginx auth_request. It responds with
+// 202 plus X-Guardmech-* headers when the request carries a valid session cookie or
+// a "Bearer gmch-..." API key, and with 401 otherwise.
 func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
+	if token, ok := bearerAPIKeyToken(req.Header.Get("Authorization")); ok {
+		a.authRequestByBearer(w, req, token)
+		return
+	}
+
 	c, err := req.Cookie(sessionKey)
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -144,31 +155,7 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	principal := is.Membership.Principal
-
-	// OK! print headers
-	w.Header().Set("X-Guardmech-Email", is.Email)
-	if len(principal.Groups) > 0 {
-		groups := make([]string, 0, len(principal.Groups))
-		for _, v := range principal.Groups {
-			groups = append(groups, v)
-		}
-		w.Header().Set("X-Guardmech-Groups", strings.Join(groups, ";"))
-	}
-	if len(principal.Roles) > 0 {
-		roles := make([]string, 0, len(principal.Roles))
-		for _, v := range principal.Roles {
-			roles = append(roles, v)
-		}
-		w.Header().Set("X-Guardmech-Roles", strings.Join(roles, ";"))
-	}
-	if len(principal.Permissions) > 0 {
-		perms := make([]string, 0, len(principal.Permissions))
-		for _, v := range principal.Permissions {
-			perms = append(perms, v)
-		}
-		w.Header().Set("X-Guardmech-Permissions", strings.Join(perms, ";"))
-	}
+	a.writeAuthorizedHeaders(w, is.Email, is.Membership.Principal)
 
 	// write cookie if need
 	if refresh {
@@ -180,6 +167,53 @@ func (a *AuthMux) AuthRequest(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusAccepted)
+}
+
+func (a *AuthMux) writeAuthorizedHeaders(w http.ResponseWriter, email string, principal *payload.SessionPrincipal) {
+	w.Header().Set("X-Guardmech-Email", email)
+	if len(principal.Groups) > 0 {
+		w.Header().Set("X-Guardmech-Groups", strings.Join(principal.Groups, ";"))
+	}
+	if len(principal.Roles) > 0 {
+		w.Header().Set("X-Guardmech-Roles", strings.Join(principal.Roles, ";"))
+	}
+	if len(principal.Permissions) > 0 {
+		w.Header().Set("X-Guardmech-Permissions", strings.Join(principal.Permissions, ";"))
+	}
+}
+
+// bearerAPIKeyToken extracts a guardmech API key token from an Authorization header
+// value. The Bearer scheme is matched case-insensitively (RFC 9110).
+func bearerAPIKeyToken(header string) (string, bool) {
+	const prefix = "bearer "
+	if len(header) < len(prefix) || !strings.EqualFold(header[:len(prefix)], prefix) {
+		return "", false
+	}
+	token := strings.TrimSpace(header[len(prefix):])
+	if !strings.HasPrefix(token, membership.APIKeyPrefix) {
+		return "", false
+	}
+
+	return token, true
+}
+
+func (a *AuthMux) authRequestByBearer(w http.ResponseWriter, req *http.Request, token string) {
+	sp, err := a.u.AuthorizationByAPIKey(req.Context(), token)
+	if err != nil {
+		if !errors.Is(err, membership.ErrNoEntry) {
+			log.Println("bearer authorization error:", err)
+		}
+		writeBearerUnauthorized(w)
+		return
+	}
+
+	a.writeAuthorizedHeaders(w, sp.Email, sp)
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func writeBearerUnauthorized(w http.ResponseWriter) {
+	w.Header().Set("WWW-Authenticate", `Bearer realm="guardmech"`)
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 func (a *AuthMux) SignIn(w http.ResponseWriter, req *http.Request) {

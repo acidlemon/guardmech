@@ -115,7 +115,7 @@ func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
 		return nil, "", fmt.Errorf("CreateAPIKey: name is required")
 	}
 
-	newToken := "gmch-" + logic.GenerateRandomString(43)
+	newToken := APIKeyPrefix + logic.GenerateRandomString(43)
 	masked := strings.Repeat("*", 20) + newToken[44:]
 
 	key := &AuthAPIKey{
