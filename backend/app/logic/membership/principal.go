@@ -3,12 +3,10 @@ package membership
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/acidlemon/guardmech/backend/app/logic"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Context = context.Context
@@ -117,20 +115,13 @@ func (p *Principal) CreateAPIKey(name string) (*AuthAPIKey, string, error) {
 		return nil, "", fmt.Errorf("CreateAPIKey: name is required")
 	}
 
-	newToken := "gmch-" + logic.GenerateRandomString(43)
-
-	hashed, err := bcrypt.GenerateFromPassword([]byte(newToken), 12)
-	if err != nil {
-		log.Println("failed to run bcrypt. Maybe this is bug:", err)
-		return nil, "", err
-	}
-
+	newToken := APIKeyPrefix + logic.GenerateRandomString(43)
 	masked := strings.Repeat("*", 20) + newToken[44:]
 
 	key := &AuthAPIKey{
 		AuthAPIKeyID: uuid.New(),
 		Name:         name,
-		HashedToken:  string(hashed),
+		HashedToken:  HashAPIKeyToken(newToken),
 		MaskedToken:  masked,
 	}
 

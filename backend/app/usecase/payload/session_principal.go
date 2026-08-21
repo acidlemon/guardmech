@@ -10,6 +10,8 @@ type SessionPrincipal struct {
 	Permissions []string `json:"permissions,omitempty"`
 }
 
+// SessionPrincipalFromEntity converts a principal entity into its session payload.
+// Email is empty when the principal has no OIDC authorization (e.g. API key only).
 func SessionPrincipalFromEntity(pri *entity.Principal) *SessionPrincipal {
 	gs := pri.Groups()
 	rs := pri.Roles()
@@ -29,8 +31,13 @@ func SessionPrincipalFromEntity(pri *entity.Principal) *SessionPrincipal {
 		perms = append(perms, v.Name)
 	}
 
+	email := ""
+	if auth := pri.OIDCAuthorization(); auth != nil {
+		email = auth.Email
+	}
+
 	return &SessionPrincipal{
-		Email:       pri.OIDCAuthorization().Email,
+		Email:       email,
 		Groups:      groups,
 		Roles:       roles,
 		Permissions: perms,

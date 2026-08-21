@@ -2,6 +2,8 @@ package persistence
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	entity "github.com/acidlemon/guardmech/backend/app/logic/membership"
 	"github.com/acidlemon/guardmech/backend/persistence/db"
@@ -29,6 +31,20 @@ func (q *query) FindPrincipals(ctx Context, ids []string) ([]*entity.Principal, 
 
 func (q *query) FindPrincipalIDByOIDC(ctx Context, issuer, subject string) (*entity.Principal, error) {
 	return q.m.FindPrincipalByOIDC(ctx, q.conn, issuer, subject)
+}
+
+// FindPrincipalByAPIKey finds the principal that owns the API key of the given hashed token.
+// It returns membership.ErrNoEntry when no key matches.
+func (q *query) FindPrincipalByAPIKey(ctx Context, hashedToken string) (*entity.Principal, error) {
+	pri, err := q.m.FindPrincipalByAPIKey(ctx, q.conn, hashedToken)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, entity.ErrNoEntry
+		}
+		return nil, err
+	}
+
+	return pri, nil
 }
 
 func (q *query) EnumeratePrincipalIDs(ctx Context) ([]uuid.UUID, error) {

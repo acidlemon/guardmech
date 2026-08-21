@@ -32,6 +32,9 @@ server {
 
     # for checking login status.
     # only returns 202 Accepted, 401 Unauthorized, or 403 Forbidden response;
+    # The client's Authorization header (e.g. "Bearer gmch-...") is forwarded to the
+    # auth subrequest by nginx's default proxy behavior. If your configuration drops
+    # it (e.g. proxy caching), add: proxy_set_header Authorization $http_authorization;
     location = /auth/request {
         internal;
         proxy_pass http://guardmech:2989;
@@ -39,6 +42,25 @@ server {
         proxy_set_header X-Real-IP               $remote_addr;
         proxy_set_header X-Scheme                $scheme;
     }
+
+    # Example: API/MCP path authenticated with "Authorization: Bearer gmch-..." that
+    # returns a raw 401 (no login-page redirect). Opt-in: copy and adapt per path.
+    # WWW-Authenticate on 401 responses is propagated to the client automatically
+    # by the auth_request module; no explicit relay is needed.
+    # location /your-api/ {
+    #     auth_request /auth/request;
+    #
+    #     auth_request_set $email $upstream_http_x_guardmech_email;
+    #     auth_request_set $groups $upstream_http_x_guardmech_groups;
+    #     auth_request_set $roles  $upstream_http_x_guardmech_roles;
+    #     auth_request_set $permissions $upstream_http_x_guardmech_permissions;
+    #     proxy_set_header X-Auth-Email  $email;
+    #     proxy_set_header X-Auth-Groups $groups;
+    #     proxy_set_header X-Auth-Roles  $roles;
+    #     proxy_set_header X-Auth-Permissions $permissions;
+    #
+    #     proxy_pass http://your_app:8080;
+    # }
 
     location /guardmech/ {
         auth_request /auth/request;

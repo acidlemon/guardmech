@@ -53,6 +53,12 @@ func (s *Manager) FindPrincipalByOIDC(ctx Context, issuer, subject string) (*Pri
 	return pri, nil
 }
 
+// FindPrincipalByAPIKey finds the principal that owns the API key of the given raw token.
+// It returns ErrNoEntry when no principal owns the token.
+func (s *Manager) FindPrincipalByAPIKey(ctx Context, rawToken string) (*Principal, error) {
+	return s.q.FindPrincipalByAPIKey(ctx, HashAPIKeyToken(rawToken))
+}
+
 func (s *Manager) EnumeratePrincipalIDs(ctx Context) ([]string, error) {
 	IDs, err := s.q.EnumeratePrincipalIDs(ctx)
 	if err != nil {
